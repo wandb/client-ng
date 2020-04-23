@@ -3,11 +3,6 @@ version: 2.1
 orbs:
   python: circleci/python@0.2.1
 
-dependencies:
-  override:
-    - pip install tox tox-pyenv
-    - pyenv local 2.7 3.5 3.6
-
 jobs:
   build-and-test:
     executor: python/default
@@ -17,7 +12,10 @@ jobs:
       - python/install-deps
       - python/save-cache
       - run:
-          command: tox -v
+          command: |
+            pip install tox tox-pyenv
+            pyenv local 2.7 3.5 3.6
+            tox -v
           name: Test
 
 workflows:
