@@ -1,12 +1,5 @@
 version: 2.1
 
-workflows:
-  version: 2
-  test:
-    jobs:
-      - test-2.7
-      - test-3.6
-
 jobs:
   test:
     test-3.6: &test-template
@@ -39,3 +32,11 @@ jobs:
         <<: *test-template
         docker:
             - image: python:2.7
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-2.7
+      - test-3.6
+
