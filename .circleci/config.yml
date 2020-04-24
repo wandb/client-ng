@@ -26,6 +26,9 @@ workflows:
          name: "Windows (Python 3.7)"
       - mac:
          name: "MacOS (Python 3.7)"
+      - final:
+         requires:
+            - test
 
 jobs:
     test:
@@ -83,3 +86,11 @@ jobs:
                   name: Run tests
                   command: |
                       python3 -m tox -v -e py37
+    final:
+        docker:
+            - image: python:3.7
+        steps:
+            - run:
+                  name: Call coveralls webhook
+                  command: |
+                      curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_BUILD_NUM&payload[status]=done"
