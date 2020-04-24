@@ -13,15 +13,15 @@ workflows:
       - test:
          name: "Python 2.7"
          image: "python:2.7"
-         toxenv: "py27,coveralls"
+         toxenv: "py27,covercircle,coveralls"
       - test:
          name: "Python 3.6"
          image: "python:3.6"
-         toxenv: "py36,coveralls"
+         toxenv: "py36,covercircle,coveralls"
       - test:
          name: "Python 3.7"
          image: "python:3.7"
-         toxenv: "py37,coveralls"
+         toxenv: "py37,covercircle,coveralls"
       - win:
          name: "Windows (Python 3.7)"
       - mac:
