@@ -7,17 +7,21 @@ workflows:
   main:
     jobs:
       - test:
+         name: "Linters"
+         image: "python:3.6"
+         toxenv: "yapf,mypy"
+      - test:
          name: "Python 2.7"
          image: "python:2.7"
-         toxenv: "py27"
+         toxenv: "py27,cover,coveralls"
       - test:
          name: "Python 3.6"
          image: "python:3.6"
-         toxenv: "py36"
+         toxenv: "py36,cover,coveralls"
       - test:
          name: "Python 3.7"
          image: "python:3.7"
-         toxenv: "py37"
+         toxenv: "py37,cover,coveralls"
       - win:
          name: "Windows (Python 3.7)"
       - mac:
@@ -79,3 +83,8 @@ jobs:
                   name: Run tests
                   command: |
                       python3 -m tox -v -e py37
+
+# we shouldnt put the token in here but need to figure out how to use env
+notify:
+  webhooks:
+    - url: https://coveralls.io/webhook?repo_token=HJivsC9R1JLlFuaYl83RfAyvWPnewKDBk
