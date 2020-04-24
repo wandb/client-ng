@@ -4,19 +4,22 @@ workflows:
   main:
     jobs:
       - test:
-         name: "py27"
-         v: "2.7"
+         name: "Python 2.7"
+         image: "python:2.7"
+         toxenv: "py27"
       - test:
-         name: "py36"
-         v: "3.6"
-
+         name: "Python 3.6"
+         image: "python:3.6"
+         toxenv: "py36"
 jobs:
     test:
         parameters:
-            v:
+            image:
+              type: string
+            toxenv:
               type: string
         docker:
-            - image: python:<< parameters.v >>
+            - image: << parameters.image >>
         steps:
             - checkout
             - run:
@@ -37,7 +40,7 @@ jobs:
             - run:
                   name: Run tests
                   command: |
-                      tox -v -e v<< parameters.v >>
+                      tox -v -e << parameters.toxenv >>
             - store_test_results:
                   path: results
 
