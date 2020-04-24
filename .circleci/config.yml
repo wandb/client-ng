@@ -19,6 +19,9 @@ workflows:
          image: "python:3.7"
          toxenv: "py37"
       - win
+         name: "Windows (Python 3.7)"
+      - mac
+         name: "MacOS (Python 3.7)"
 
 jobs:
     test:
@@ -50,8 +53,6 @@ jobs:
                   name: Run tests
                   command: |
                       tox -v -e << parameters.toxenv >>
-            - store_test_results:
-                  path: results
     win:
         executor: win/default
         steps:
@@ -61,10 +62,20 @@ jobs:
                   command: |
                       pip install tox
             - run:
-                  name: Hello
-                  command: Write-Host 'Hello, Windows'
-            - run:
-                  name: Hello
+                  name: Run tests
                   shell: cmd.exe
+                  command: |
+                      tox -v -e py37
+    mac:
+        macos:
+            xcode: 11.4.1
+        steps:
+            - checkout
+            - run:
+                  name: Install python dependencies
+                  command: |
+                      pip install tox
+            - run:
+                  name: Run tests
                   command: |
                       tox -v -e py37
