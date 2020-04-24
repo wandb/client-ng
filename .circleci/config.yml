@@ -55,5 +55,16 @@ jobs:
     win:
         executor: win/default
         steps:
-          - checkout
-          - run: Write-Host 'Hello, Windows'
+            - checkout
+            - run:
+                  name: Install python dependencies
+                  command: |
+                      pip install tox
+            - run:
+                  name: Hello
+                  command: Write-Host 'Hello, Windows'
+            - run:
+                  name: Hello
+                  shell: cmd.exe
+                  command: |
+                      tox -v -e py37
