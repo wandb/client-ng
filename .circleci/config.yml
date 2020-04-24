@@ -26,6 +26,8 @@ workflows:
          name: "Windows (Python 3.7)"
       - mac:
          name: "MacOS (Python 3.7)"
+      - last:
+         requires: test
 
 jobs:
     test:
@@ -83,8 +85,11 @@ jobs:
                   name: Run tests
                   command: |
                       python3 -m tox -v -e py37
-
-# we shouldnt put the token in here but need to figure out how to use env
-notify:
-  webhooks:
-    - url: https://coveralls.io/webhook?repo_token=HJivsC9R1JLlFuaYl83RfAyvWPnewKDBk
+    last:
+        docker:
+            - image: << parameters.image >>
+        steps:
+            - run:
+                  name: Notify
+                  command: |
+                      curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_BUILD_NUM&payload[status]=done"
