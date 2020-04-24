@@ -28,7 +28,8 @@ workflows:
          name: "MacOS (Python 3.7)"
       - final:
          requires:
-            - test
+            - "Python 2.7"
+            - "Python 3.6"
 
 jobs:
     test:
