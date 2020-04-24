@@ -24,16 +24,16 @@ jobs:
                   command: apt-get update && apt-get install -y libsndfile1 ffmpeg
             - restore_cache:
                   keys:
-                      - v0.1-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
-                      - v0.1-dependencies-{{ .Environment.CIRCLE_JOB }}
+                      - v0.2-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
+                      - v0.2-dependencies-{{ .Environment.CIRCLE_JOB }}
             - run:
                   name: Install python dependencies
                   command: |
-                      tox
+                      pip install tox
             - save_cache:
                   paths:
                       - ./venv
-                  key: v0.1-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
+                  key: v0.2-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
             - run:
                   name: Run tests
                   command: |
