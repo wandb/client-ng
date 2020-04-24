@@ -21,7 +21,7 @@ workflows:
       - test:
          name: "Python 3.7"
          image: "python:3.7"
-         toxenv: "py37,covercircle,coveralls"
+         toxenv: "py37"
       - win:
          name: "Windows (Python 3.7)"
       - mac:
