@@ -1,16 +1,22 @@
 version: 2.1
 
 workflows:
-  version: 2
-  test:
+  main:
     jobs:
-      - test-2.7
-      - test-3.6
+      - test:
+         name: "py27"
+         v: "2.7"
+      - test:
+         name: "py36"
+         v: "3.6"
 
 jobs:
-    test-3.6: &test-template
+    test:
+        parameters:
+            v:
+              type: string
         docker:
-            - image: python:3.6
+            - image: python:<< parameters.v >>
         steps:
             - checkout
             - run:
@@ -31,11 +37,7 @@ jobs:
             - run:
                   name: Run tests
                   command: |
-                      tox -v -e v3.6
+                      tox -v -e v<< parameters.v >>
             - store_test_results:
                   path: results
-    test-2.7:
-        <<: *test-template
-        docker:
-            - image: python:2.7
 
