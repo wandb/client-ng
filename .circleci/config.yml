@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  win: circleci/windows@2.2.0
+
 workflows:
   main:
     jobs:
@@ -15,6 +18,8 @@ workflows:
          name: "Python 3.7"
          image: "python:3.7"
          toxenv: "py37"
+      - win
+
 jobs:
     test:
         parameters:
@@ -47,4 +52,8 @@ jobs:
                       tox -v -e << parameters.toxenv >>
             - store_test_results:
                   path: results
-
+    win:
+        executor: win/default
+        steps:
+          - checkout
+          - run: Write-Host 'Hello, Windows'
