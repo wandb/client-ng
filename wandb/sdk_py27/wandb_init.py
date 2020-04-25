@@ -11,6 +11,7 @@ from wandb.util.globals import set_global
 from wandb.backend.backend import Backend
 from wandb.stuff import util2
 from wandb.util import reporting
+from wandb.errors import Error
 
 import time
 import json
@@ -22,6 +23,7 @@ from wandb.stuff import io_wrap
 import sys
 import os
 from wandb.util import redirect
+import traceback
 
 from .wandb_settings import Settings
 
