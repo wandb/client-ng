@@ -68,6 +68,7 @@ class ExitHooks(object):
         if self.was_ctrl_c():
             self.exit_code = 255
 
+        print("except handle")
         traceback.print_exception(exc_type, exc, *tb)
 
 
