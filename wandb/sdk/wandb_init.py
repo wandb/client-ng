@@ -183,6 +183,9 @@ class _WandbInit(object):
         logger.info("got exitcode: %d", exit_code)
         ret = self.backend.interface.send_exit_sync(exit_code, timeout=60)
         logger.info("got exit ret: %s", ret)
+        if ret is None:
+            print("Problem syncing data")
+            os._exit(1)
 
         self._restore()
 
@@ -331,10 +334,7 @@ class _WandbInit(object):
         elif s.mode in ('offline', 'dryrun'):
             backend.interface.send_run(run)
         elif s.mode in ('async', 'run'):
-            try:
-                err = backend.interface.send_run_sync(run, timeout=10)
-            except Backend.Timeout:
-                pass
+            ret = backend.interface.send_run_sync(run, timeout=10)
             # TODO: on network error, do async run save
             backend.interface.send_run(run)
 

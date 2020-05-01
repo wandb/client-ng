@@ -184,12 +184,13 @@ class BackendSender(object):
     class ExceptionTimeout(Exception):
         pass
 
-    def __init__(self, process_queue=None, notify_queue=None, request_queue=None, response_queue=None):
+    def __init__(self, process_queue=None, notify_queue=None, request_queue=None, response_queue=None, process=None):
         self.process_queue = process_queue
         self.notify_queue = notify_queue
         self.request_queue = request_queue
         self.response_queue = response_queue
         self._run = None
+        self._process = process
 
     def _hack_set_run(self, run):
         self._run = run
@@ -210,8 +211,7 @@ class BackendSender(object):
         o.timestamp.GetCurrentTime()
         rec = wandb_internal_pb2.Record()
         rec.output.CopyFrom(o)
-        self.process_queue.put(rec)
-        self.notify_queue.put(constants.NOTIFY_PROCESS)
+        self._queue_process(rec)
 
     def send_history(self, data):
         rec = wandb_internal_pb2.Record()
@@ -221,12 +221,12 @@ class BackendSender(object):
             item = history.item.add()
             item.key = k
             item.value_json = json_dumps_safer_history(v)
-        self.process_queue.put(rec)
-        self.notify_queue.put(constants.NOTIFY_PROCESS)
+        self._queue_process(rec)
 
     def _make_run(self, run):
         proto_run = wandb_internal_pb2.RunData()
         run._make_proto_run(proto_run)
+        proto_run.start_time.GetCurrentTime()
         if run._config is not None:
             config_dict = run._config._as_dict()
             self._make_config(config_dict, obj=proto_run.config)
@@ -247,8 +247,12 @@ class BackendSender(object):
 
     def _make_stats(self, stats_dict):
         stats = wandb_internal_pb2.StatsData()
-        #config.run_id = config_dict['run_id']
-        stats.stats_json = json.dumps(stats_dict['data'])
+        stats.stats_type = wandb_internal_pb2.StatsData.StatsType.SYSTEM
+        stats.timestamp.GetCurrentTime()
+        for k, v in six.iteritems(stats_dict):
+            item = stats.item.add()
+            item.key = k
+            item.value_json = json.dumps(v)
         return stats
 
     def _summary_encode(self, value, path_from_root):
@@ -313,6 +317,8 @@ class BackendSender(object):
         return rec
 
     def _queue_process(self, rec):
+        if self._process and not self._process.is_alive():
+            raise Exception("problem")
         self.process_queue.put(rec)
         self.notify_queue.put(constants.NOTIFY_PROCESS)
 
@@ -334,7 +340,8 @@ class BackendSender(object):
             rsp = self.response_queue.get(timeout=timeout)
         except queue.Empty:
             self._request_flush()
-            raise BackendSender.ExceptionTimeout("timeout")
+            # raise BackendSender.ExceptionTimeout("timeout")
+            return None
 
         # returns response, err
         return rsp

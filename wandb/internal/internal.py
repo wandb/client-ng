@@ -250,14 +250,20 @@ class _SendManager(object):
 
     def handle_stats(self, data):
         stats = data.stats
-        d = json.loads(stats.stats_json)
-        if self._fs:
-            row = dict(system=d)
-            self._flatten(row)
-            row["_wandb"] = True
-            row["_timestamp"] = int(time.time())
-            row['_runtime'] = int(time.time() - self._settings.start_time)
-            x = self._fs.push("wandb-events.jsonl", json.dumps(row))
+        if stats.stats_type != wandb_internal_pb2.StatsData.StatsType.SYSTEM:
+            return
+        if not self._fs:
+            return
+        now = stats.timestamp.seconds
+        d = dict()
+        for item in stats.item:
+            d[item.key] = json.loads(item.value_json)
+        row = dict(system=d)
+        self._flatten(row)
+        row["_wandb"] = True
+        row["_timestamp"] = now
+        row['_runtime'] = int(now - self._settings.start_time)
+        x = self._fs.push("wandb-events.jsonl", json.dumps(row))
 
     def handle_output(self, data):
         out = data.output

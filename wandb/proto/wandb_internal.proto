@@ -46,6 +46,7 @@ message RunData {
   SettingsData settings = 11;
 
   string storage_id = 16;
+  google.protobuf.Timestamp start_time = 17;
 }
 
 /*
@@ -130,7 +131,17 @@ message FilesItem {
  * StatsData: system metrics
  */
 message StatsData {
-  string stats_json = 16;
+  enum StatsType {
+    SYSTEM = 0;
+  }
+  StatsType                 stats_type = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  repeated StatsItem        item = 3;
+}
+
+message StatsItem {
+  string          key = 1;
+  string          value_json = 16;
 }
 
 /*
