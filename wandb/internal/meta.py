@@ -38,7 +38,7 @@ class Meta(object):
         self.data["args"] = sys.argv[1:]
         self.data["state"] = "running"
         self.data["heartbeatAt"] = datetime.utcnow().isoformat()
-        self.data["startedAt"] = datetime.utcfromtimestamp(self._settings.start_time).isoformat()
+        self.data["startedAt"] = datetime.utcfromtimestamp(self._settings._start_time).isoformat()
 
     def write(self):
         with open(self.fname, 'w') as f:

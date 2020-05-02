@@ -262,7 +262,7 @@ class _SendManager(object):
         self._flatten(row)
         row["_wandb"] = True
         row["_timestamp"] = now
-        row['_runtime'] = int(now - self._settings.start_time)
+        row['_runtime'] = int(now - self._settings._start_time)
         x = self._fs.push("wandb-events.jsonl", json.dumps(row))
 
     def handle_output(self, data):

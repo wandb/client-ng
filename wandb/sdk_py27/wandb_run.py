@@ -12,7 +12,6 @@ from . import wandb_config
 from . import wandb_summary
 from . import wandb_history
 
-import shortuuid  # type: ignore
 import click
 import platform
 import shutil
@@ -21,13 +20,6 @@ import os
 import json
 
 logger = logging.getLogger("wandb")
-
-
-def generate_id():
-    # ~3t run ids (36**8)
-    run_gen = shortuuid.ShortUUID(
-        alphabet=list("0123456789abcdefghijklmnopqrstuvwxyz"))
-    return run_gen.random(8)
 
 
 class Run(object):
@@ -58,7 +50,7 @@ class RunManaged(Run):
         self._project = None
         self._group = None
         self._job_type = None
-        self._run_id = generate_id()
+        self._run_id = settings.run_id
         self._name = None
         self._notes = None
         self._tags = None
