@@ -21,13 +21,19 @@ import collections
 import configparser
 import copy
 import datetime
+import json
 import logging
 import os
 import platform
+import sys
 
 import shortuuid  # type: ignore
 import six
 import wandb
+from wandb import env
+from wandb import util
+from wandb.apis import InternalApi
+from wandb.errors.error import CommError
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
@@ -68,6 +74,7 @@ defaults = dict(
     _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "mock", "file", "iowrap",)),
+    git_remote="origin",
 )
 
 # env mapping?
@@ -108,6 +115,13 @@ def _get_python_type():
             return "jupyter"
     except (NameError, AttributeError):
         return "python"
+
+
+def _is_kaggle():
+    return (
+        os.getenv("KAGGLE_KERNEL_RUN_TYPE") is not None
+        or "kaggle_environments" in sys.modules  # noqa: W503
+    )
 
 
 class CantTouchThis(type):
@@ -185,6 +199,9 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         program=None,
         notebook_name=None,
         disable_code=None,
+        save_code=None,
+        code_program=None,
+        git_remote=None,
         host=None,
         username=None,
         docker=None,
@@ -337,7 +354,29 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             if self.jupyter:
                 console = "off"
             u["console"] = console
+        u["save_code"] = env.should_save_code()
+        u["disable_code"] = os.getenv(env.DISABLE_CODE)
         self.update(u)
+
+        self._load_viewer_settings()
+
+    def _load_viewer_settings(self):
+        api = InternalApi()
+        http_timeout = 5
+        if self.mode != "dryrun" and not api.disabled() and api.api_key:
+            # Kaggle has internet disabled by default, this checks for that case
+            async_viewer = util.async_call(api.viewer, timeout=http_timeout)
+            viewer, viewer_thread = async_viewer()
+            if viewer_thread.is_alive():
+                if _is_kaggle():
+                    raise CommError(
+                        "To use W&B in kaggle you must enable internet in the settings panel on the right."  # noqa: E501
+                    )
+            else:
+                flags = json.loads(viewer.get("flags", "{}"))
+                # TODO: Load other settings from flags.
+                if "code_saving_enabled" in flags:
+                    self.update({"save_code": flags["code_saving_enabled"]})
 
     def setdefaults(self, __d=None):
         __d = __d or defaults

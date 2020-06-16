@@ -118,10 +118,11 @@ def _get_program():
         return program
 
     try:
-        import __main__
+        import __main__  # type: ignore
+
         program = __main__.__file__
         if not program:
-            program = '<python with no main file>'
+            program = "<python with no main file>"
     except (ImportError, AttributeError):
         program = None
 

@@ -11,7 +11,6 @@ run_id can be resolved.
 """
 
 import copy
-import json
 import logging
 import multiprocessing
 import os
@@ -19,9 +18,6 @@ import sys
 import threading
 
 import wandb
-from wandb import util
-from wandb.apis import InternalApi
-from wandb.errors.error import CommError
 
 from . import wandb_settings
 
@@ -73,13 +69,6 @@ class _EarlyLogger(object):
             logger.exception(msg, *args, **kwargs)
 
 
-def _is_kaggle():
-    return (
-        os.getenv("KAGGLE_KERNEL_RUN_TYPE") is not None
-        or "kaggle_environments" in sys.modules  # noqa: W503
-    )
-
-
 class _WandbSetup__WandbSetup(object):  # noqa: N801
     """Inner class of _WandbSetup."""
 
@@ -98,15 +87,6 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
 
         self._check()
         self._setup()
-        self._gitstuff()
-        self._load_viewer()
-
-    def _gitstuff(self):
-        # self.git = GitRepo(remote=self.settings("git_remote"))
-        # self.git = GitRepo()
-        # print("remote", self.git.remote_url)
-        # print("last", self.git.last_commit)
-        pass
 
     def _settings_setup(self, settings=None, early_logger=None):
         s = wandb_settings.Settings(

@@ -30,11 +30,10 @@ import sys
 import shortuuid  # type: ignore
 import six
 import wandb
-
-from wandb.apis import InternalApi
-from wandb.errors.error import CommError
 from wandb import env
 from wandb import util
+from wandb.apis import InternalApi
+from wandb.errors.error import CommError
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
@@ -377,9 +376,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
                         "To use W&B in kaggle you must enable internet in the settings panel on the right."  # noqa: E501
                     )
             else:
-                print("GOT USER FLAGS")
                 flags = json.loads(viewer.get("flags", "{}"))
-                print(flags)
                 # TODO: Load other settings from flags.
                 if "code_saving_enabled" in flags:
                     self.update({"save_code": flags["code_saving_enabled"]})

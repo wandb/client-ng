@@ -21,8 +21,9 @@ class GitRepo(object):
                 self._repo = False
             else:
                 try:
-                    self._repo = Repo(self._root or os.getcwd(),
-                                      search_parent_directories=True)
+                    self._repo = Repo(
+                        self._root or os.getcwd(), search_parent_directories=True
+                    )
                 except exc.InvalidGitRepositoryError:
                     logger.debug("git repository is invalid")
                     self._repo = False
@@ -173,6 +174,6 @@ class FakeGitRepo(GitRepo):
 
 
 try:
-    from git import Repo, exc
+    from git import Repo, exc  # type: ignore
 except ImportError:  # import fails if user doesn't have git
-    GitRepo = FakeGitRepo
+    GitRepo = FakeGitRepo  # type: ignore

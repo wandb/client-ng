@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class Meta(object):
     """Used to store metadata during and after a run."""
 
-    def __init__(self, settings=None, process_q=None, notify_q=None, program=""):
+    def __init__(self, settings=None, process_q=None, notify_q=None):
         self._settings = settings
         self.data = {}
         self.fname = os.path.join(self._settings.files_dir, METADATA_FNAME)
@@ -59,9 +59,7 @@ class Meta(object):
             saved_program = os.path.join(
                 self._settings.files_dir, "code", relative_path
             )
-            logger.debug("save program saved: {}".format(saved_program))
             if not os.path.exists(saved_program):
-                logger.debug("save program")
                 copyfile(program, saved_program)
                 self.data["codePath"] = relative_path
 
