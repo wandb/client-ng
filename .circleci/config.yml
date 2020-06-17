@@ -74,7 +74,6 @@ jobs:
                   name: Run tests
                   shell: bash.exe
                   command: |
-                      export PATH="C:\Program Files\Git\bin\git.exe":$PATH
                       tox -v -e py37
     mac:
         macos:
