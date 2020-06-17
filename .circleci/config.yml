@@ -67,6 +67,10 @@ jobs:
         steps:
             - checkout
             - run:
+                name: Fix path
+                command: |
+                    export PATH="C:\Program Files\Git\bin\git.exe":$PATH
+            - run:
                   name: Install python dependencies
                   command: |
                       pip install tox
