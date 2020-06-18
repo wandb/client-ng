@@ -21,7 +21,6 @@ import collections
 import configparser
 import copy
 import datetime
-import json
 import logging
 import os
 import platform
@@ -31,9 +30,6 @@ import shortuuid  # type: ignore
 import six
 import wandb
 from wandb import env
-from wandb import util
-from wandb.apis import InternalApi
-from wandb.errors.error import CommError
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
@@ -364,26 +360,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
 
         u["disable_code"] = os.getenv(env.DISABLE_CODE)
         self.update(u)
-
-        # self._load_viewer_settings()
-
-    def _load_viewer_settings(self):
-        api = InternalApi()
-        http_timeout = 5
-        if self.mode != "dryrun" and not api.disabled() and api.api_key:
-            # Kaggle has internet disabled by default, this checks for that case
-            async_viewer = util.async_call(api.viewer, timeout=http_timeout)
-            viewer, viewer_thread = async_viewer()
-            if viewer_thread.is_alive():
-                if _is_kaggle():
-                    raise CommError(
-                        "To use W&B in kaggle you must enable internet in the settings panel on the right."  # noqa: E501
-                    )
-            else:
-                flags = json.loads(viewer.get("flags", "{}"))
-                # TODO: Load other settings from flags.
-                if "code_saving_enabled" in flags:
-                    self.update({"save_code": flags["code_saving_enabled"]})
 
     def setdefaults(self, __d=None):
         __d = __d or defaults
