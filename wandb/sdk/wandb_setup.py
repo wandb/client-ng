@@ -18,6 +18,7 @@ import sys
 import threading
 
 import wandb
+from wandb.lib import server
 
 from . import wandb_settings
 
@@ -77,11 +78,16 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         self._settings = None
         self._environ = environ or dict(os.environ)
         self._config = None
+        self._server = None
 
         # TODO(jhr): defer strict checks until settings are fully initialized
         #            and logging is ready
         self._early_logger = _EarlyLogger()
         _set_logger(self._early_logger)
+
+        # Have to load viewer before setting up settings.
+        self._load_viewer()
+
         self._settings_setup(settings, self._early_logger)
         self._settings.freeze()
 
@@ -89,14 +95,17 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         self._setup()
 
     def _settings_setup(self, settings=None, early_logger=None):
-        s = wandb_settings.Settings(
+        kwargs = dict(
             _environ=self._environ,
             _files=True,
             _early_logger=early_logger,
             _settings=settings,
         )
-        # if settings:
-        #     s.update(dict(settings))
+        flags = self._get_user_flags()
+        if "code_saving_enabled" in flags:
+            kwargs["save_code"] = flags["code_saving_enabled"]
+
+        s = wandb_settings.Settings(**kwargs)
 
         # setup defaults
         s.setdefaults()
@@ -121,6 +130,31 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         s = copy.copy(self._settings)
         s.update(__d, **kwargs)
         return s
+
+    def _get_entity(self):
+        entity = self._server._viewer.get("entity")
+        return entity
+
+    def _get_user_flags(self):
+        return self._server._flags
+
+    def _load_viewer(self):
+        s = server.Server()
+        s.query_with_timeout()
+        self._server = s
+        # if self.mode != "dryrun" and not self._api.disabled() and self._api.api_key:
+        #    # Kaggle has internet disabled by default, this checks for that case
+        #    async_viewer = util.async_call(self._api.viewer, timeout=http_timeout)
+        #    viewer, viewer_thread = async_viewer()
+        #    if viewer_thread.is_alive():
+        #        if _is_kaggle():
+        #            raise CommError(
+        #                "To use W&B in kaggle you must enable internet in the settings panel on the right."  # noqa: E501
+        #            )
+        #    else:
+        #        # self._viewer = viewer
+        #        self._flags = json.loads(viewer.get("flags", "{}"))
+        #        print("loadviewer3", self._flags, viewer)
 
     def _check(self):
         if hasattr(threading, "main_thread"):
