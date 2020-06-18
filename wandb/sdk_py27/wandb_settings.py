@@ -354,11 +354,18 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             if self.jupyter:
                 console = "off"
             u["console"] = console
-        u["save_code"] = env.should_save_code()
+
+        # For code saving, only allow env var override if value from server is true, or
+        # if no preference was specified.
+        if (self.save_code is True or self.save_code is None) and os.getenv(
+            env.SAVE_CODE
+        ) is not None:
+            u["save_code"] = env.should_save_code()
+
         u["disable_code"] = os.getenv(env.DISABLE_CODE)
         self.update(u)
 
-        self._load_viewer_settings()
+        # self._load_viewer_settings()
 
     def _load_viewer_settings(self):
         api = InternalApi()

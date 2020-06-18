@@ -101,6 +101,8 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
             _early_logger=early_logger,
             _settings=settings,
         )
+
+        # TODO: Do a more formal merge of user settings from the backend.
         flags = self._get_user_flags()
         if "code_saving_enabled" in flags:
             kwargs["save_code"] = flags["code_saving_enabled"]
