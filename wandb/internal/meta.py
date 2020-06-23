@@ -40,6 +40,7 @@ class Meta(object):
     def _save_code(self):
         if self._settings.code_program is None:
             logger.warn("unable to save code -- program entry not found")
+            return
 
         root = self._git.root or os.getcwd()
         program_relative = self._settings.code_program
