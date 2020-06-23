@@ -38,16 +38,17 @@ class Meta(object):
         )
 
     def _save_code(self):
-        if "root" not in self.data or self._settings.code_program is None:
+        if self._settings.code_program is None:
             logger.warn("unable to save code -- program entry not found")
 
+        root = self._git.root or os.getcwd()
         program_relative = self._settings.code_program
         util.mkdir_exists_ok(
             os.path.join(
                 self._settings.files_dir, "code", os.path.dirname(program_relative)
             )
         )
-        program_absolute = os.path.join(self.data["root"], program_relative)
+        program_absolute = os.path.join(root, program_relative)
         saved_program = os.path.join(self._settings.files_dir, "code", program_relative)
 
         if not os.path.exists(saved_program):
@@ -70,7 +71,7 @@ class Meta(object):
                 "commit": self._git.last_commit,
             }
             self.data["email"] = self._git.email
-            self.data["root"] = self._git.root or self.data["root"]
+            self.data["root"] = self._git.root or self.data["root"] or os.getcwd()
 
     def probe(self):
         self._setup_sys()

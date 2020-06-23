@@ -131,22 +131,21 @@ def _get_program():
 
         program = __main__.__file__
         if not program:
-            program = "<python with no main file>"
+            return "<python with no main file>"
     except (ImportError, AttributeError):
-        program = None
+        return None
 
-    return program
-
-
-def _get_program_relpath(program):
     repo = git_repo.GitRepo()
     root = repo.root
+    if not root:
+        root = os.getcwd()
     full_path_to_program = os.path.join(
         root, os.path.relpath(os.getcwd(), root), program
     )
     if os.path.exists(full_path_to_program):
         relative_path = os.path.relpath(full_path_to_program, start=root)
         if "../" in relative_path:
+            logger.warn("could not find program at %s" % program)
             return None
         return relative_path
 
@@ -402,7 +401,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         # infer it now.
         if self.save_code and not self.code_program:
             code_program = _get_program()
-            code_program = _get_program_relpath(code_program)
             self.update(dict(code_program=code_program))
 
     def setdefaults(self, __d=None):
