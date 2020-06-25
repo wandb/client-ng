@@ -11,6 +11,7 @@ import logging
 import os
 import time
 
+from wandb.util import sentry_set_scope
 from wandb.proto import wandb_internal_pb2  # type: ignore
 
 # from wandb.stuff import io_wrap
@@ -152,6 +153,7 @@ class SendManager(object):
         self._fs.start()
         self._pusher = FilePusher(self._api)
         self._run_id = run.run_id
+        sentry_set_scope("internal", run.entity, run.project)
         logger.info("run started: %s", self._run_id)
 
     def handle_history(self, data):
