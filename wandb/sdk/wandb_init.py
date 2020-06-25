@@ -21,7 +21,7 @@ from wandb.errors import Error
 from wandb.lib import filesystem, redirect, reporting
 from wandb.lib.globals import set_global
 from wandb.old import io_wrap
-from wandb.util import sentry_reraise, sentry_exc
+from wandb.util import sentry_exc
 
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
