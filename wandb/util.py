@@ -75,9 +75,9 @@ def sentry_message(message):
 def sentry_exc(exc, delay=False):
     if error_reporting_enabled():
         if isinstance(exc, six.string_types):
-            sentry_sdk.capture_exception(Exception(exc))
+            capture_exception(Exception(exc))
         else:
-            sentry_sdk.capture_exception(exc)
+            capture_exception(exc)
         if delay:
             time.sleep(2)
 
