@@ -639,7 +639,7 @@ def _LoadNvmlLibrary():
                     # load nvml.dll from %ProgramFiles%/NVIDIA Corporation/NVSMI/nvml.dll
                     search_paths = [
                             os.path.join(os.getenv("ProgramFiles", "C:/Program Files"), "NVIDIA Corporation/NVSMI/nvml.dll"),
-                            os.path.join("Windows", "System32", "nvml.dll"),
+                            os.path.join("C:/Windows", "System32", "nvml.dll"),
                             ]
                     nvml_path = os.getenv("NVML_DLL_PATH")
                     if nvml_path:
@@ -649,6 +649,7 @@ def _LoadNvmlLibrary():
                             nvmlLib = CDLL(dll_path)
                         except OSError as ose:
                             continue
+                        break
                 else:
                     # assume linux
                     try:
