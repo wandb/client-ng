@@ -1,5 +1,5 @@
-import wandb
 import numpy as np
+import wandb
 
 wandb.init(project="lidar-scene-test")
 
