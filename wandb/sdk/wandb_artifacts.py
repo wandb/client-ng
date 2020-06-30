@@ -1,11 +1,8 @@
-import collections
-import json
 import codecs
 import base64
 import hashlib
 import re
 import os
-import tempfile
 import time
 import shutil
 import requests
@@ -203,36 +200,33 @@ class Artifact(object):
         self._final = True
         self._digest = self._manifest.digest()
 
-        # If there are new files, move them into the artifact cache. We do this
-        # so that they'll definitely be available when file_pusher tries to upload
-        # them. Other files don't get written through the cache.
+        # If there are new files, move them into the artifact cache now. Our temp
+        # self._artifact_dir may not be available by the time file pusher syncs
+        # these files.
         if self._added_new:
-            final_artifact_dir = self._cache.get_artifact_dir(self.type, self._digest)
-            shutil.rmtree(final_artifact_dir)
-            os.rename(self._artifact_dir.name, final_artifact_dir)
-
             # Update the file entries for new files to point at their new location.
             def remap_entry(entry):
-                if entry.local_path is None or not entry.local_path.startswith(
-                    self._artifact_dir.name
-                ):
+                if entry.local_path is None or not entry.local_path.startswith(self._artifact_dir.name):
                     return entry
-                rel_path = os.path.relpath(
-                    entry.local_path, start=self._artifact_dir.name
-                )
-                entry.local_path = os.path.join(final_artifact_dir, rel_path)
+                rel_path = os.path.relpath(entry.local_path, start=self._artifact_dir.name)
+                local_path = os.path.join(self._artifact_dir.name, rel_path)
+                cache_path, hit = self._cache.check_md5_obj_path(entry.digest, entry.size)
+                if not hit:
+                    shutil.copyfile(local_path, cache_path)
+                entry.local_path = cache_path
 
             for entry in self._manifest.entries.values():
                 remap_entry(entry)
 
 
 class ArtifactManifest(object):
+
     @classmethod
     # TODO: we don't need artifact here.
     def from_manifest_json(cls, artifact, manifest_json):
-        if "version" not in manifest_json:
-            raise ValueError("Invalid manifest format. Must contain version field.")
-        version = manifest_json["version"]
+        if 'version' not in manifest_json:
+            raise ValueError('Invalid manifest format. Must contain version field.')
+        version = manifest_json['version']
         for sub in cls.__subclasses__():
             if sub.version() == version:
                 return sub.from_manifest_json(artifact, manifest_json)
@@ -252,34 +246,9 @@ class ArtifactManifest(object):
     def digest(self):
         raise NotImplementedError()
 
-    def load_path(self, path, local=False, expand_dirs=False):
-        if path in self.entries:
-            return self.storage_policy.load_path(
-                self.artifact, self.entries[path], local=local
-            )
-
-        # the path could be a directory, so load all matching prefixes
-        paths = []
-        for (name, entry) in self.entries.items():
-            if name.startswith(path):
-                paths.append(
-                    self.storage_policy.load_path(self.artifact, entry, local=local)
-                )
-
-        if len(paths) > 0 and local:
-            return os.path.join(self.artifact.cache_dir, path)
-        if len(paths) > 0 and not local:
-            if expand_dirs:
-                return paths
-            raise ValueError(
-                'Cannot fetch remote path of directory "%s". '
-                "Set expand_dirs=True get remote paths for directories." % path
-            )
-        raise ValueError('Failed to find "%s" in artifact manifest' % path)
-
     def add_entry(self, entry):
         if entry.path in self.entries:
-            raise ValueError("Cannot add the same path twice: %s" % entry.path)
+            raise ValueError('Cannot add the same path twice: %s' % entry.path)
         self.entries[entry.path] = entry
 
 
@@ -380,6 +349,7 @@ class ArtifactManifestEntry(object):
 
 
 class StoragePolicy(object):
+
     @classmethod
     def lookup_by_name(cls, name):
         for sub in cls.__subclasses__():
@@ -398,19 +368,24 @@ class StoragePolicy(object):
     def config(self):
         pass
 
-    def load_path(self, artifact, manifest_entry, local=False):
-        pass
+    def load_file(self, artifact, name, manifest_entry):
+        raise NotImplementedError
 
-    def store_reference(
-        self, artifact, path, name=None, checksum=True, max_objects=None
-    ):
-        pass
+    def store_file(self, artifact_id, entry, preparer, progress_callback=None):
+        raise NotImplementedError
+
+    def store_reference(self, artifact, path, name=None, checksum=True, max_objects=None):
+        raise NotImplementedError
+
+    def load_reference(self, artifact, name, manifest_entry, local=False):
+        raise NotImplementedError
 
 
 class WandbStoragePolicy(StoragePolicy):
+
     @classmethod
     def name(cls):
-        return "wandb-storage-policy-v1"
+        return 'wandb-storage-policy-v1'
 
     @classmethod
     def from_config(cls, config):
@@ -422,42 +397,43 @@ class WandbStoragePolicy(StoragePolicy):
         file_handler = LocalFileHandler()
 
         self._api = InternalApi()
-        self._handler = MultiHandler(
-            handlers=[s3, gcs, file_handler,], default_handler=TrackingHandler()
-        )
+        self._handler = MultiHandler(handlers=[
+            s3,
+            gcs,
+            file_handler,
+        ], default_handler=TrackingHandler())
+
+        self._cache = artifacts_cache.get_artifacts_cache()
 
         # I believe this makes the first sleep 1s, and then doubles it up to
         # total times, which makes for ~18 hours.
         retry_strategy = requests.packages.urllib3.util.retry.Retry(
             backoff_factor=1,
             total=16,
-            status_forcelist=(308, 409, 429, 500, 502, 503, 504),
-        )
+            status_forcelist=(308, 409, 429, 500, 502, 503, 504))
         self._session = requests.Session()
         adapter = requests.adapters.HTTPAdapter(
-            max_retries=retry_strategy, pool_connections=64, pool_maxsize=64
-        )
-        self._session.mount("http://", adapter)
-        self._session.mount("https://", adapter)
+            max_retries=retry_strategy,
+            pool_connections=64,
+            pool_maxsize=64)
+        self._session.mount('http://', adapter)
+        self._session.mount('https://', adapter)
 
     def config(self):
         return None
 
     def load_file(self, artifact, name, manifest_entry):
-        path = "{}/{}".format(artifact.cache_dir, name)
-        if os.path.isfile(path):
-            cur_md5 = md5_file_b64(path)
-            if cur_md5 == manifest_entry.digest:
-                return path
+        path, hit = self._cache.check_md5_obj_path(manifest_entry.digest, manifest_entry.size)
+        if hit:
+            return path
 
-        util.mkdir_exists_ok(os.path.dirname(path))
         response = self._session.get(
             self._file_url(
-                self._api, self._api.settings("entity"), manifest_entry.digest
-            ),
+                self._api,
+                self._api.settings('entity'),
+                manifest_entry.digest),
             auth=("api", self._api.api_key),
-            stream=True,
-        )
+            stream=True)
         response.raise_for_status()
 
         with open(path, "wb") as file:
@@ -465,47 +441,39 @@ class WandbStoragePolicy(StoragePolicy):
                 file.write(data)
         return path
 
-    def load_path(self, artifact, manifest_entry, local=False):
-        return self._handler.load_path(artifact, manifest_entry, local=local)
-
-    def store_reference(
-        self, artifact, path, name=None, checksum=True, max_objects=None
-    ):
-        return self._handler.store_path(
-            artifact, path, name=name, checksum=checksum, max_objects=max_objects
-        )
+    def store_reference(self, artifact, path, name=None, checksum=True, max_objects=None):
+        return self._handler.store_path(artifact, path, name=name, checksum=checksum, max_objects=max_objects)
 
     def load_reference(self, artifact, name, manifest_entry, local=False):
-        return self._handler.load_path(artifact, manifest_entry, local)
+        return self._handler.load_path(self._cache, manifest_entry, local)
 
     def _file_url(self, api, entity_name, md5):
         md5_hex = base64.b64decode(md5).hex()
-        return "{}/artifacts/{}/{}".format(
-            api.settings("base_url"), entity_name, md5_hex
-        )
+        return '{}/artifacts/{}/{}'.format(api.settings("base_url"), entity_name, md5_hex)
 
     def store_file(self, artifact_id, entry, preparer, progress_callback=None):
-        resp = preparer.prepare(
-            lambda: {
-                "artifactID": artifact_id,
-                "name": entry.path,
-                "md5": entry.digest,
-            }
-        )
+        # write-through cache
+        cache_path, hit = self._cache.check_md5_obj_path(entry.digest, entry.size)
+        if not hit:
+            shutil.copyfile(entry.local_path, cache_path)
+
+        resp = preparer.prepare(lambda: {
+            "artifactID": artifact_id,
+            "name": entry.path,
+            "md5": entry.digest,
+        })
 
         exists = resp.upload_url is None
         if not exists:
             with open(entry.local_path, "rb") as file:
                 # This fails if we don't send the first byte before the signed URL
                 # expires.
-                r = self._session.put(
-                    resp.upload_url,
-                    headers={
-                        header.split(":", 1)[0]: header.split(":", 1)[1]
-                        for header in (resp.upload_headers or {})
-                    },
-                    data=Progress(file, callback=progress_callback),
-                )
+                r = self._session.put(resp.upload_url,
+                                 headers={
+                                     header.split(":", 1)[0]: header.split(":", 1)[1]
+                                     for header in (resp.upload_headers or {})
+                                 },
+                                 data=Progress(file, callback=progress_callback))
                 r.raise_for_status()
         return exists
 

@@ -10,6 +10,7 @@ from wandb.errors.error import CommError
 
 class Progress(object):
     """A helper class for displaying progress"""
+    ITER_BYTES = 1024 * 1024
 
     def __init__(self, file, callback=None):
         self.file = file
@@ -40,3 +41,14 @@ class Progress(object):
         # on those in the past so it's riskier to make that an error now.
         self.callback(len(bites), self.bytes_read)
         return bites
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        bites = self.read(self.ITER_BYTES)
+        if len(bites) == 0:
+            raise StopIteration
+        return bites
+
+    next = __next__
