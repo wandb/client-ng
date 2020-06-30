@@ -20,6 +20,7 @@ import wandb
 from wandb.interface import constants
 from wandb.internal import datastore
 from wandb.internal import sender
+from wandb.util import sentry_exc
 
 # from wandb.stuff import io_wrap
 
@@ -65,7 +66,8 @@ def wandb_stream_read(fd):
     while True:
         try:
             data = os.read(fd, 200)
-        except OSError:
+        except OSError as e:
+            sentry_exc(e)
             # print("problem", e, file=sys.stderr)
             return
         if len(data) == 0:
@@ -227,16 +229,20 @@ def wandb_internal(
         setup_logging(settings.log_internal, log_level)
 
     pid = os.getpid()
-    system_stats = stats.SystemStats(
-        pid=pid, process_q=process_queue, notify_q=notify_queue
-    )
-    system_stats.start()
 
-    run_meta = meta.Meta(
-        settings=settings, process_q=process_queue, notify_q=notify_queue,
-    )
-    run_meta.probe()
-    run_meta.write()
+    system_stats = None
+    if not settings._disable_stats:
+        system_stats = stats.SystemStats(
+            pid=pid, process_q=process_queue, notify_q=notify_queue
+        )
+        system_stats.start()
+
+    if not settings._disable_meta:
+        run_meta = meta.Meta(
+            settings=settings, process_q=process_queue, notify_q=notify_queue,
+        )
+        run_meta.probe()
+        run_meta.write()
 
     current_version = wandb.__version__
     update.check_available(current_version)
@@ -344,7 +350,8 @@ def wandb_internal(
         if done:
             break
 
-    system_stats.shutdown()
+    if system_stats:
+        system_stats.shutdown()
 
     read_thread.join()
     send_thread.join()
