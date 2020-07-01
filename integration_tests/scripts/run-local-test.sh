@@ -1,4 +1,6 @@
 #!/bin/sh
+jupyter notebook &
+scripts/serve-local.sh
 
 rm -rf wandb/* &&\
   DEBUG=wandb:*\
