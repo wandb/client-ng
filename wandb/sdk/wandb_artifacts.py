@@ -50,7 +50,8 @@ class Artifact(object):
 
     @property
     def entity(self):
-        return self._api.settings("entity")
+        # TODO: querying for default entity a good idea here?
+        return self._api.settings('entity') or self._api.viewer().get("entity")
 
     @property
     def project(self):
@@ -359,7 +360,7 @@ class WandbStoragePolicy(StoragePolicy):
         return self._handler.load_path(self._cache, manifest_entry, local)
 
     def _file_url(self, api, entity_name, md5):
-        md5_hex = base64.b64decode(md5).hex()
+        md5_hex = util.bytes_to_hex(base64.b64decode(md5))
         return "{}/artifacts/{}/{}".format(
             api.settings("base_url"), entity_name, md5_hex
         )
