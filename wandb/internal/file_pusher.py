@@ -65,7 +65,6 @@ class FilePusher(object):
         # TODO(artifacts): maybe don't do this
         self._temp_file_refs = []
 
-
     def print_status(self):
         step = 0
         spinner_states = ['-', '\\', '|', '/']

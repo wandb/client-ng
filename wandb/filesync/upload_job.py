@@ -3,7 +3,6 @@ import os
 import threading
 
 import wandb
-from wandb import util
 
 EventJobDone = collections.namedtuple('EventJobDone', ('job', 'success'))
 

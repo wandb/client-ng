@@ -2,6 +2,7 @@ import threading
 
 from wandb import util
 
+
 class Stats(object):
     def __init__(self):
         self._stats = {}

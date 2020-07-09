@@ -1,13 +1,9 @@
 """Batching file prepare requests to our API."""
 
-import multiprocessing
-import multiprocessing.pool
 import collections
 import os
 import shutil
 import threading
-import time
-from six.moves import queue
 import wandb.util
 
 from wandb.filesync import step_upload

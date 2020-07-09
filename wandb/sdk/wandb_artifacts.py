@@ -13,11 +13,13 @@ from six.moves.urllib.parse import urlparse
 
 from wandb.compat import tempfile as compat_tempfile
 
-from wandb.apis import InternalApi, Progress
+from wandb.internal.progress import Progress
+from wandb.apis import InternalApi
 from wandb.errors.error import CommError
 from wandb import artifacts_cache
 from wandb import util
-from wandb import termwarn, termlog
+from wandb.errors.term import termwarn, termlog
+from wandb.proto import wandb_internal_pb2
 
 
 def md5_string(string):
@@ -106,7 +108,6 @@ class Artifact(object):
         self.finalize()
         return self._manifest
 
-    # TODO: Currently this returns the L0 digest. Is this what we want?
     @property
     def digest(self):
         self.finalize()
@@ -236,6 +237,17 @@ class Artifact(object):
             for entry in self._manifest.entries.values():
                 remap_entry(entry)
 
+    def _make_proto(self):
+        if not self._final:
+            raise ValueError('Can only serialize finalized artifacts')
+        artifact = wandb_internal_pb2.ArtifactData()
+        artifact.type = self.type
+        artifact.name = self.name
+        artifact.digest = self.digest
+        artifact.metadata = self.metadata
+        artifact.manifest = self.manifest._make_proto()
+        return artifact
+
 
 class ArtifactManifest(object):
 
@@ -356,6 +368,18 @@ class ArtifactManifestV1(ArtifactManifest):
             hasher.update('{}:{}\n'.format(name, entry.digest).encode())
         return hasher.hexdigest()
 
+    def _make_proto(self):
+        manifest = wandb_internal_pb2.ArtifactManifest()
+        manifest.version = self.version()
+        manifest.storage_policy = self.storage_policy
+        for k, v in self.storage_policy.config:
+            cfg = manifest.storage_policy_config.add()
+            cfg.key = k
+            cfg.value_json = json.dumps(v)
+        for entry in sorted(self.entries.values(), key=lambda k: k.path):
+            manifest.contents.add(entry._make_proto())
+        return manifest
+
 
 class ArtifactManifestEntry(object):
 
@@ -376,6 +400,19 @@ class ArtifactManifestEntry(object):
             summary = 'digest: %s' % self.digest
 
         return "<ManifestEntry %s>" % summary
+
+    def _make_proto(self):
+        entry = wandb_internal_pb2.ArtifactManifestEntry()
+        entry.path = self.path
+        entry.ref = self.ref
+        entry.digest = self.digest
+        entry.size = self.size
+        entry.local_path = self.local_path
+        for k, v in self.extra.items():
+            extra = entry.extra.add()
+            extra.key = k
+            extra.value_json = json.dumps(v)
+        return entry
 
 
 class StoragePolicy(object):

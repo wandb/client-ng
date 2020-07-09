@@ -322,7 +322,7 @@ class BackendSender(object):
         return files
 
     def _make_record(
-        self, run=None, config=None, files=None, summary=None, stats=None, exit=None
+        self, run=None, config=None, files=None, summary=None, stats=None, exit=None, log_artifact=None
     ):
         rec = wandb_internal_pb2.Record()
         if run:
@@ -337,6 +337,8 @@ class BackendSender(object):
             rec.stats.CopyFrom(stats)
         if exit:
             rec.exit.CopyFrom(exit)
+        if log_artifact:
+            rec.log_artifact.CopyFrom(log_artifact)
         return rec
 
     def _queue_process(self, rec):
@@ -402,7 +404,12 @@ class BackendSender(object):
         self._queue_process(rec)
 
     def send_log_artifact(self, log_dict):
-        pass
+        log = wandb_internal_pb2.LogArtifactData()
+        log.artifact = log_dict['artifact']._make_proto()
+        for alias in log_dict['aliases']:
+            log.aliases.add(alias)
+        rec = self._make_record(log_artifact=log)
+        self._queue_process(rec)
 
     def send_exit(self, exit_code):
         pass

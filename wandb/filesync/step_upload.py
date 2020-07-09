@@ -5,7 +5,7 @@ import threading
 from six.moves import queue
 
 from wandb.filesync import upload_job
-from wandb import termerror
+from wandb.errors.term import termerror
 
 
 RequestUpload = collections.namedtuple(

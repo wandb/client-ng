@@ -22,6 +22,7 @@ from wandb.viz import Visualize
 from . import wandb_config
 from . import wandb_history
 from . import wandb_summary
+from . import wandb_artifacts
 
 
 logger = logging.getLogger("wandb")
@@ -358,3 +359,14 @@ class RunManaged(Run):
     def watch(self, models, criterion=None, log="gradients", log_freq=100, idx=None):
         logger.info("Watching")
         # wandb.run.watch(watch)
+
+    def log_artifact(self, artifact, aliases=['latest']):
+        if not isinstance(artifact, wandb_artifacts.Artifact):
+            raise ValueError('You must pass an instance of wandb.Artifact to log_artifact')
+        if isinstance(aliases, str):
+            aliases = [aliases]
+        artifact.finalize()
+        log_artifact = dict(artifact=artifact, aliases=aliases)
+        self._backend.interface.send_log_artifact()
+
+

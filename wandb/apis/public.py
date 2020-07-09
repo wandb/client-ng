@@ -1,10 +1,7 @@
 import logging
-import requests
 import time
-import sys
 import os
 import json
-import re
 import six
 import yaml
 import tempfile
@@ -13,14 +10,12 @@ from gql import Client, gql
 from gql.client import RetryError
 from gql.transport.requests import RequestsHTTPTransport
 from six.moves import urllib
-import hashlib
-import base64
 import requests
 
 import wandb
-from wandb.core import termlog
-from wandb import Error, __version__
-from wandb import artifacts
+from wandb.errors.term import termlog
+from wandb import __version__
+from wandb.sdk import wandb_artifacts
 from wandb import artifacts_cache
 from wandb import util
 from wandb.old.retry import retriable
@@ -28,7 +23,6 @@ from wandb.old.summary import HTTPSummary
 from wandb import env
 from wandb.apis.normalize import normalize_exceptions
 from wandb.apis.internal import Api as InternalApi
-from wandb.apis import normalize_exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -2115,7 +2109,7 @@ class Artifact(object):
         if self._manifest is None:
             index_file_url = self._attrs['currentManifest']['file']['url']
             with requests.get(index_file_url) as req:
-                self._manifest = artifacts.ArtifactManifest.from_manifest_json(self, json.loads(req.content))
+                self._manifest = wandb_artifacts.ArtifactManifest.from_manifest_json(self, json.loads(req.content))
         return self._manifest
 
 

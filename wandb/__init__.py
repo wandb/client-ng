@@ -40,8 +40,6 @@ from wandb import util
 
 # Move this (keras.__init__ expects it at top level)
 from wandb.data_types import Graph
-from wandb.artifacts import Artifact
-from wandb.run_manager import LaunchError, Process
 from wandb.data_types import Image
 from wandb.data_types import Video
 from wandb.data_types import Audio
