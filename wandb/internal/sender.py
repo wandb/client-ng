@@ -16,6 +16,7 @@ from wandb.util import sentry_set_scope
 
 # from wandb.stuff import io_wrap
 
+from . import artifacts
 from . import file_stream
 from . import internal_api
 from .file_pusher import FilePusher
@@ -225,7 +226,6 @@ class SendManager(object):
         logger.info("saving file %s at %s", fname, directory)
         path = os.path.abspath(os.path.join(directory, fname))
         logger.info("saving file %s at full %s", fname, path)
-        self._pusher.update_file(fname, path)
         self._pusher.file_changed(fname, path)
 
     def handle_files(self, data):
@@ -236,6 +236,23 @@ class SendManager(object):
             fname = fpath[0]
             self._save_file(fname)
 
+    def handle_artifact(self, data):
+        artifact = data.artifact
+        saver = artifacts.ArtifactSaver(
+            api=self._api,
+            digest=artifact.digest,
+            manifest_json=artifacts._manifest_json_from_proto(artifact.manifest),
+            file_pusher=self._pusher,
+        )
+
+        saver.save(
+            type=artifact.type,
+            name=artifact.name,
+            metadata=artifact.metadata,
+            description=artifact.description,
+            aliases=artifact.aliases,
+        )
+
     def finish(self):
         if self._pusher:
             self._pusher.finish()
@@ -243,8 +260,4 @@ class SendManager(object):
             # TODO(jhr): now is a good time to output pending output lines
             self._fs.finish(self._exit_code)
         if self._pusher:
-            self._pusher.update_all_files()
-            files = self._pusher.files()
-            for f in files:
-                logger.info("Finish Sync: %s", f)
             self._pusher.print_status()

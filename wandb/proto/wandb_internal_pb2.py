@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n wandb/proto/wandb_internal.proto\x12\x0ewandb_internal\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe6\x03\n\x06Record\x12\x0b\n\x03num\x18\x01 \x01(\x03\x12.\n\x07history\x18\x02 \x01(\x0b\x32\x1b.wandb_internal.HistoryDataH\x00\x12.\n\x07summary\x18\x03 \x01(\x0b\x32\x1b.wandb_internal.SummaryDataH\x00\x12,\n\x06output\x18\x04 \x01(\x0b\x32\x1a.wandb_internal.OutputDataH\x00\x12,\n\x06\x63onfig\x18\x05 \x01(\x0b\x32\x1a.wandb_internal.ConfigDataH\x00\x12*\n\x05\x66iles\x18\x06 \x01(\x0b\x32\x19.wandb_internal.FilesDataH\x00\x12*\n\x05stats\x18\x07 \x01(\x0b\x32\x19.wandb_internal.StatsDataH\x00\x12\x37\n\x0clog_artifact\x18\x08 \x01(\x0b\x32\x1f.wandb_internal.LogArtifactDataH\x00\x12&\n\x03run\x18\x11 \x01(\x0b\x32\x17.wandb_internal.RunDataH\x00\x12(\n\x04\x65xit\x18\x12 \x01(\x0b\x32\x18.wandb_internal.ExitDataH\x00\x12(\n\x07\x63ontrol\x18\x10 \x01(\x0b\x32\x17.wandb_internal.ControlB\x06\n\x04\x64\x61ta\"\x1b\n\x07\x43ontrol\x12\x10\n\x08req_resp\x18\x01 \x01(\x08\"\xf2\x02\n\x07RunData\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x02 \x01(\t\x12\x0f\n\x07project\x18\x03 \x01(\t\x12*\n\x06\x63onfig\x18\x04 \x01(\x0b\x32\x1a.wandb_internal.ConfigData\x12,\n\x07summary\x18\x05 \x01(\x0b\x32\x1b.wandb_internal.SummaryData\x12\x11\n\trun_group\x18\x06 \x01(\t\x12\x10\n\x08job_type\x18\x07 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x08 \x01(\t\x12\r\n\x05notes\x18\t \x01(\t\x12\x0c\n\x04tags\x18\n \x03(\t\x12.\n\x08settings\x18\x0b \x01(\x0b\x32\x1c.wandb_internal.SettingsData\x12\x10\n\x08sweep_id\x18\x0c \x01(\t\x12\x12\n\nstorage_id\x18\x10 \x01(\t\x12.\n\nstart_time\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\":\n\x0cSettingsData\x12*\n\x04item\x18\x01 \x03(\x0b\x32\x1c.wandb_internal.SettingsItem\"/\n\x0cSettingsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"8\n\x0bHistoryData\x12)\n\x04item\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.HistoryItem\"B\n\x0bHistoryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\xab\x01\n\nOutputData\x12:\n\x0boutput_type\x18\x01 \x01(\x0e\x32%.wandb_internal.OutputData.OutputType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04line\x18\x03 \x01(\t\"$\n\nOutputType\x12\n\n\x06STDERR\x10\x00\x12\n\n\x06STDOUT\x10\x01\"d\n\nConfigData\x12*\n\x06update\x18\x01 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\x12*\n\x06remove\x18\x02 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\"A\n\nConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"g\n\x0bSummaryData\x12+\n\x06update\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\x12+\n\x06remove\x18\x02 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\"B\n\x0bSummaryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"5\n\tFilesData\x12(\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x19.wandb_internal.FilesItem\"0\n\tFilesItem\x12\x0c\n\x04path\x18\x01 \x03(\t\x12\x15\n\rexternal_path\x18\x10 \x03(\t\"\xb5\x01\n\tStatsData\x12\x37\n\nstats_type\x18\x01 \x01(\x0e\x32#.wandb_internal.StatsData.StatsType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\'\n\x04item\x18\x03 \x03(\x0b\x32\x19.wandb_internal.StatsItem\"\x17\n\tStatsType\x12\n\n\x06SYSTEM\x10\x00\",\n\tStatsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"R\n\x0fLogArtifactData\x12.\n\x08\x61rtifact\x18\x01 \x01(\x0b\x32\x1c.wandb_internal.ArtifactData\x12\x0f\n\x07\x61liases\x18\x02 \x03(\t\"\x80\x01\n\x0c\x41rtifactData\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06\x64igest\x18\x03 \x01(\t\x12\x10\n\x08metadata\x18\x04 \x01(\t\x12\x32\n\x08manifest\x18\x05 \x01(\x0b\x32 .wandb_internal.ArtifactManifest\"\xb8\x01\n\x10\x41rtifactManifest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x16\n\x0estorage_policy\x18\x02 \x01(\t\x12\x42\n\x15storage_policy_config\x18\x03 \x01(\x0b\x32#.wandb_internal.StoragePolicyConfig\x12\x37\n\x08\x63ontents\x18\x04 \x03(\x0b\x32%.wandb_internal.ArtifactManifestEntry\"\xa0\x01\n\x15\x41rtifactManifestEntry\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0e\n\x06\x64igest\x18\x02 \x01(\t\x12\x0b\n\x03ref\x18\x03 \x01(\t\x12\x0c\n\x04size\x18\x04 \x01(\x03\x12\x10\n\x08mimetype\x18\x05 \x01(\t\x12\x12\n\nlocal_path\x18\x06 \x01(\t\x12(\n\x05\x65xtra\x18\x10 \x03(\x0b\x32\x19.wandb_internal.ExtraItem\",\n\tExtraItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\"S\n\x13StoragePolicyConfig\x12<\n\x0b\x63onfig_item\x18\x01 \x03(\x0b\x32\'.wandb_internal.StoragePolicyConfigItem\":\n\x17StoragePolicyConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\"\x1d\n\x08\x45xitData\x12\x11\n\texit_code\x18\x01 \x01(\x05\x62\x06proto3'
+  serialized_pb=b'\n wandb/proto/wandb_internal.proto\x12\x0ewandb_internal\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdf\x03\n\x06Record\x12\x0b\n\x03num\x18\x01 \x01(\x03\x12.\n\x07history\x18\x02 \x01(\x0b\x32\x1b.wandb_internal.HistoryDataH\x00\x12.\n\x07summary\x18\x03 \x01(\x0b\x32\x1b.wandb_internal.SummaryDataH\x00\x12,\n\x06output\x18\x04 \x01(\x0b\x32\x1a.wandb_internal.OutputDataH\x00\x12,\n\x06\x63onfig\x18\x05 \x01(\x0b\x32\x1a.wandb_internal.ConfigDataH\x00\x12*\n\x05\x66iles\x18\x06 \x01(\x0b\x32\x19.wandb_internal.FilesDataH\x00\x12*\n\x05stats\x18\x07 \x01(\x0b\x32\x19.wandb_internal.StatsDataH\x00\x12\x30\n\x08\x61rtifact\x18\x08 \x01(\x0b\x32\x1c.wandb_internal.ArtifactDataH\x00\x12&\n\x03run\x18\x11 \x01(\x0b\x32\x17.wandb_internal.RunDataH\x00\x12(\n\x04\x65xit\x18\x12 \x01(\x0b\x32\x18.wandb_internal.ExitDataH\x00\x12(\n\x07\x63ontrol\x18\x10 \x01(\x0b\x32\x17.wandb_internal.ControlB\x06\n\x04\x64\x61ta\"\x1b\n\x07\x43ontrol\x12\x10\n\x08req_resp\x18\x01 \x01(\x08\"\xf2\x02\n\x07RunData\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x02 \x01(\t\x12\x0f\n\x07project\x18\x03 \x01(\t\x12*\n\x06\x63onfig\x18\x04 \x01(\x0b\x32\x1a.wandb_internal.ConfigData\x12,\n\x07summary\x18\x05 \x01(\x0b\x32\x1b.wandb_internal.SummaryData\x12\x11\n\trun_group\x18\x06 \x01(\t\x12\x10\n\x08job_type\x18\x07 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x08 \x01(\t\x12\r\n\x05notes\x18\t \x01(\t\x12\x0c\n\x04tags\x18\n \x03(\t\x12.\n\x08settings\x18\x0b \x01(\x0b\x32\x1c.wandb_internal.SettingsData\x12\x10\n\x08sweep_id\x18\x0c \x01(\t\x12\x12\n\nstorage_id\x18\x10 \x01(\t\x12.\n\nstart_time\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\":\n\x0cSettingsData\x12*\n\x04item\x18\x01 \x03(\x0b\x32\x1c.wandb_internal.SettingsItem\"/\n\x0cSettingsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"8\n\x0bHistoryData\x12)\n\x04item\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.HistoryItem\"B\n\x0bHistoryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\xab\x01\n\nOutputData\x12:\n\x0boutput_type\x18\x01 \x01(\x0e\x32%.wandb_internal.OutputData.OutputType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04line\x18\x03 \x01(\t\"$\n\nOutputType\x12\n\n\x06STDERR\x10\x00\x12\n\n\x06STDOUT\x10\x01\"d\n\nConfigData\x12*\n\x06update\x18\x01 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\x12*\n\x06remove\x18\x02 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\"A\n\nConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"g\n\x0bSummaryData\x12+\n\x06update\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\x12+\n\x06remove\x18\x02 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\"B\n\x0bSummaryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"5\n\tFilesData\x12(\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x19.wandb_internal.FilesItem\"0\n\tFilesItem\x12\x0c\n\x04path\x18\x01 \x03(\t\x12\x15\n\rexternal_path\x18\x10 \x03(\t\"\xb5\x01\n\tStatsData\x12\x37\n\nstats_type\x18\x01 \x01(\x0e\x32#.wandb_internal.StatsData.StatsType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\'\n\x04item\x18\x03 \x03(\x0b\x32\x19.wandb_internal.StatsItem\"\x17\n\tStatsType\x12\n\n\x06SYSTEM\x10\x00\",\n\tStatsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\xd7\x01\n\x0c\x41rtifactData\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x0e\n\x06\x64igest\x18\x06 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t\x12\x10\n\x08metadata\x18\x08 \x01(\t\x12\x0f\n\x07\x61liases\x18\t \x03(\t\x12\x32\n\x08manifest\x18\n \x01(\x0b\x32 .wandb_internal.ArtifactManifest\"\xb8\x01\n\x10\x41rtifactManifest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x16\n\x0estorage_policy\x18\x02 \x01(\t\x12\x42\n\x15storage_policy_config\x18\x03 \x01(\x0b\x32#.wandb_internal.StoragePolicyConfig\x12\x37\n\x08\x63ontents\x18\x04 \x03(\x0b\x32%.wandb_internal.ArtifactManifestEntry\"\xa0\x01\n\x15\x41rtifactManifestEntry\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0e\n\x06\x64igest\x18\x02 \x01(\t\x12\x0b\n\x03ref\x18\x03 \x01(\t\x12\x0c\n\x04size\x18\x04 \x01(\x03\x12\x10\n\x08mimetype\x18\x05 \x01(\t\x12\x12\n\nlocal_path\x18\x06 \x01(\t\x12(\n\x05\x65xtra\x18\x10 \x03(\x0b\x32\x19.wandb_internal.ExtraItem\",\n\tExtraItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\"S\n\x13StoragePolicyConfig\x12<\n\x0b\x63onfig_item\x18\x01 \x03(\x0b\x32\'.wandb_internal.StoragePolicyConfigItem\":\n\x17StoragePolicyConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\"\x1d\n\x08\x45xitData\x12\x11\n\texit_code\x18\x01 \x01(\x05\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
@@ -46,8 +46,8 @@ _OUTPUTDATA_OUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1347,
-  serialized_end=1383,
+  serialized_start=1340,
+  serialized_end=1376,
 )
 _sym_db.RegisterEnumDescriptor(_OUTPUTDATA_OUTPUTTYPE)
 
@@ -66,8 +66,8 @@ _STATSDATA_STATSTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1991,
-  serialized_end=2014,
+  serialized_start=1984,
+  serialized_end=2007,
 )
 _sym_db.RegisterEnumDescriptor(_STATSDATA_STATSTYPE)
 
@@ -130,7 +130,7 @@ _RECORD = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='log_artifact', full_name='wandb_internal.Record.log_artifact', index=7,
+      name='artifact', full_name='wandb_internal.Record.artifact', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -175,7 +175,7 @@ _RECORD = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=86,
-  serialized_end=572,
+  serialized_end=565,
 )
 
 
@@ -206,8 +206,8 @@ _CONTROL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=574,
-  serialized_end=601,
+  serialized_start=567,
+  serialized_end=594,
 )
 
 
@@ -329,8 +329,8 @@ _RUNDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=604,
-  serialized_end=974,
+  serialized_start=597,
+  serialized_end=967,
 )
 
 
@@ -361,8 +361,8 @@ _SETTINGSDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=976,
-  serialized_end=1034,
+  serialized_start=969,
+  serialized_end=1027,
 )
 
 
@@ -400,8 +400,8 @@ _SETTINGSITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1036,
-  serialized_end=1083,
+  serialized_start=1029,
+  serialized_end=1076,
 )
 
 
@@ -432,8 +432,8 @@ _HISTORYDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1085,
-  serialized_end=1141,
+  serialized_start=1078,
+  serialized_end=1134,
 )
 
 
@@ -478,8 +478,8 @@ _HISTORYITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1143,
-  serialized_end=1209,
+  serialized_start=1136,
+  serialized_end=1202,
 )
 
 
@@ -525,8 +525,8 @@ _OUTPUTDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1212,
-  serialized_end=1383,
+  serialized_start=1205,
+  serialized_end=1376,
 )
 
 
@@ -564,8 +564,8 @@ _CONFIGDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1385,
-  serialized_end=1485,
+  serialized_start=1378,
+  serialized_end=1478,
 )
 
 
@@ -610,8 +610,8 @@ _CONFIGITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1487,
-  serialized_end=1552,
+  serialized_start=1480,
+  serialized_end=1545,
 )
 
 
@@ -649,8 +649,8 @@ _SUMMARYDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1554,
-  serialized_end=1657,
+  serialized_start=1547,
+  serialized_end=1650,
 )
 
 
@@ -695,8 +695,8 @@ _SUMMARYITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1659,
-  serialized_end=1725,
+  serialized_start=1652,
+  serialized_end=1718,
 )
 
 
@@ -727,8 +727,8 @@ _FILESDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1727,
-  serialized_end=1780,
+  serialized_start=1720,
+  serialized_end=1773,
 )
 
 
@@ -766,8 +766,8 @@ _FILESITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1782,
-  serialized_end=1830,
+  serialized_start=1775,
+  serialized_end=1823,
 )
 
 
@@ -813,8 +813,8 @@ _STATSDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1833,
-  serialized_end=2014,
+  serialized_start=1826,
+  serialized_end=2007,
 )
 
 
@@ -852,47 +852,8 @@ _STATSITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2016,
-  serialized_end=2060,
-)
-
-
-_LOGARTIFACTDATA = _descriptor.Descriptor(
-  name='LogArtifactData',
-  full_name='wandb_internal.LogArtifactData',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='artifact', full_name='wandb_internal.LogArtifactData.artifact', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='aliases', full_name='wandb_internal.LogArtifactData.aliases', index=1,
-      number=2, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=2062,
-  serialized_end=2144,
+  serialized_start=2009,
+  serialized_end=2053,
 )
 
 
@@ -905,36 +866,71 @@ _ARTIFACTDATA = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='type', full_name='wandb_internal.ArtifactData.type', index=0,
+      name='run_id', full_name='wandb_internal.ArtifactData.run_id', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='name', full_name='wandb_internal.ArtifactData.name', index=1,
+      name='project', full_name='wandb_internal.ArtifactData.project', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='digest', full_name='wandb_internal.ArtifactData.digest', index=2,
+      name='entity', full_name='wandb_internal.ArtifactData.entity', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='metadata', full_name='wandb_internal.ArtifactData.metadata', index=3,
+      name='type', full_name='wandb_internal.ArtifactData.type', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='manifest', full_name='wandb_internal.ArtifactData.manifest', index=4,
-      number=5, type=11, cpp_type=10, label=1,
+      name='name', full_name='wandb_internal.ArtifactData.name', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='digest', full_name='wandb_internal.ArtifactData.digest', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='description', full_name='wandb_internal.ArtifactData.description', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='wandb_internal.ArtifactData.metadata', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='aliases', full_name='wandb_internal.ArtifactData.aliases', index=8,
+      number=9, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='manifest', full_name='wandb_internal.ArtifactData.manifest', index=9,
+      number=10, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -951,8 +947,8 @@ _ARTIFACTDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2147,
-  serialized_end=2275,
+  serialized_start=2056,
+  serialized_end=2271,
 )
 
 
@@ -1004,8 +1000,8 @@ _ARTIFACTMANIFEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2278,
-  serialized_end=2462,
+  serialized_start=2274,
+  serialized_end=2458,
 )
 
 
@@ -1078,8 +1074,8 @@ _ARTIFACTMANIFESTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2465,
-  serialized_end=2625,
+  serialized_start=2461,
+  serialized_end=2621,
 )
 
 
@@ -1117,8 +1113,8 @@ _EXTRAITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2627,
-  serialized_end=2671,
+  serialized_start=2623,
+  serialized_end=2667,
 )
 
 
@@ -1149,8 +1145,8 @@ _STORAGEPOLICYCONFIG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2673,
-  serialized_end=2756,
+  serialized_start=2669,
+  serialized_end=2752,
 )
 
 
@@ -1188,8 +1184,8 @@ _STORAGEPOLICYCONFIGITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2758,
-  serialized_end=2816,
+  serialized_start=2754,
+  serialized_end=2812,
 )
 
 
@@ -1220,8 +1216,8 @@ _EXITDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2818,
-  serialized_end=2847,
+  serialized_start=2814,
+  serialized_end=2843,
 )
 
 _RECORD.fields_by_name['history'].message_type = _HISTORYDATA
@@ -1230,7 +1226,7 @@ _RECORD.fields_by_name['output'].message_type = _OUTPUTDATA
 _RECORD.fields_by_name['config'].message_type = _CONFIGDATA
 _RECORD.fields_by_name['files'].message_type = _FILESDATA
 _RECORD.fields_by_name['stats'].message_type = _STATSDATA
-_RECORD.fields_by_name['log_artifact'].message_type = _LOGARTIFACTDATA
+_RECORD.fields_by_name['artifact'].message_type = _ARTIFACTDATA
 _RECORD.fields_by_name['run'].message_type = _RUNDATA
 _RECORD.fields_by_name['exit'].message_type = _EXITDATA
 _RECORD.fields_by_name['control'].message_type = _CONTROL
@@ -1253,8 +1249,8 @@ _RECORD.oneofs_by_name['data'].fields.append(
   _RECORD.fields_by_name['stats'])
 _RECORD.fields_by_name['stats'].containing_oneof = _RECORD.oneofs_by_name['data']
 _RECORD.oneofs_by_name['data'].fields.append(
-  _RECORD.fields_by_name['log_artifact'])
-_RECORD.fields_by_name['log_artifact'].containing_oneof = _RECORD.oneofs_by_name['data']
+  _RECORD.fields_by_name['artifact'])
+_RECORD.fields_by_name['artifact'].containing_oneof = _RECORD.oneofs_by_name['data']
 _RECORD.oneofs_by_name['data'].fields.append(
   _RECORD.fields_by_name['run'])
 _RECORD.fields_by_name['run'].containing_oneof = _RECORD.oneofs_by_name['data']
@@ -1279,7 +1275,6 @@ _STATSDATA.fields_by_name['stats_type'].enum_type = _STATSDATA_STATSTYPE
 _STATSDATA.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _STATSDATA.fields_by_name['item'].message_type = _STATSITEM
 _STATSDATA_STATSTYPE.containing_type = _STATSDATA
-_LOGARTIFACTDATA.fields_by_name['artifact'].message_type = _ARTIFACTDATA
 _ARTIFACTDATA.fields_by_name['manifest'].message_type = _ARTIFACTMANIFEST
 _ARTIFACTMANIFEST.fields_by_name['storage_policy_config'].message_type = _STORAGEPOLICYCONFIG
 _ARTIFACTMANIFEST.fields_by_name['contents'].message_type = _ARTIFACTMANIFESTENTRY
@@ -1301,7 +1296,6 @@ DESCRIPTOR.message_types_by_name['FilesData'] = _FILESDATA
 DESCRIPTOR.message_types_by_name['FilesItem'] = _FILESITEM
 DESCRIPTOR.message_types_by_name['StatsData'] = _STATSDATA
 DESCRIPTOR.message_types_by_name['StatsItem'] = _STATSITEM
-DESCRIPTOR.message_types_by_name['LogArtifactData'] = _LOGARTIFACTDATA
 DESCRIPTOR.message_types_by_name['ArtifactData'] = _ARTIFACTDATA
 DESCRIPTOR.message_types_by_name['ArtifactManifest'] = _ARTIFACTMANIFEST
 DESCRIPTOR.message_types_by_name['ArtifactManifestEntry'] = _ARTIFACTMANIFESTENTRY
@@ -1422,13 +1416,6 @@ StatsItem = _reflection.GeneratedProtocolMessageType('StatsItem', (_message.Mess
   # @@protoc_insertion_point(class_scope:wandb_internal.StatsItem)
   })
 _sym_db.RegisterMessage(StatsItem)
-
-LogArtifactData = _reflection.GeneratedProtocolMessageType('LogArtifactData', (_message.Message,), {
-  'DESCRIPTOR' : _LOGARTIFACTDATA,
-  '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.LogArtifactData)
-  })
-_sym_db.RegisterMessage(LogArtifactData)
 
 ArtifactData = _reflection.GeneratedProtocolMessageType('ArtifactData', (_message.Message,), {
   'DESCRIPTOR' : _ARTIFACTDATA,

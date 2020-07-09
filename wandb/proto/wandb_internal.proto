@@ -16,7 +16,7 @@ message Record {
     ConfigData      config = 5;
     FilesData       files = 6;
     StatsData       stats = 7;
-    LogArtifactData log_artifact = 8;
+    ArtifactData    artifact = 8;
     RunData         run = 17;
     ExitData        exit = 18;
   }
@@ -146,17 +146,17 @@ message StatsItem {
   string          value_json = 16;
 }
 
-message LogArtifactData {
-  ArtifactData      artifact = 1;
-  repeated string   aliases = 2;
-}
-
 message ArtifactData {
-  string                        type = 1;
-  string                        name = 2;
-  string                        digest = 3;
-  string                        metadata = 4;
-  ArtifactManifest              manifest = 5;
+  string                        run_id = 1;
+  string                        project = 2;
+  string                        entity = 3;
+  string                        type = 4;
+  string                        name = 5;
+  string                        digest = 6;
+  string                        description = 7;
+  string                        metadata = 8;
+  repeated string               aliases = 9;
+  ArtifactManifest              manifest = 10;
 }
 
 message ArtifactManifest {

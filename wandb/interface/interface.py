@@ -247,6 +247,26 @@ class BackendSender(object):
             self._make_config(config_dict, obj=proto_run.config)
         return proto_run
 
+    def _make_artifact(self, artifact):
+        proto_artifact = wandb_internal_pb2.ArtifactData()
+        proto_artifact.type = artifact.type
+        proto_artifact.name = artifact.name
+        proto_artifact.digest = artifact.digest
+        if proto_artifact.description:
+            proto_artifact.description = artifact.description
+        if proto_artifact.metadata:
+            proto_artifact.metadata = artifact.metadata
+        proto_artifact.manifest.version = artifact.manifest.version()
+        proto_artifact.manifest.storage_policy = artifact.manifest.storage_policy.name()
+        for k, v in (artifact.manifest.storage_policy.config() or {}):
+            cfg = proto_artifact.manifest.storage_policy_config.add()
+            cfg.key = k
+            cfg.value_json = json.dumps(v)
+        for entry in sorted(artifact.manifest.entries.values(), key=lambda k: k.path):
+            e = proto_artifact.manifest.contents.add()
+            entry._make_proto(e)
+        return proto_artifact
+
     def _make_exit(self, exit_code):
         exit = wandb_internal_pb2.ExitData()
         exit.exit_code = exit_code
@@ -322,7 +342,7 @@ class BackendSender(object):
         return files
 
     def _make_record(
-        self, run=None, config=None, files=None, summary=None, stats=None, exit=None, log_artifact=None
+        self, run=None, config=None, files=None, summary=None, stats=None, exit=None, artifact=None
     ):
         rec = wandb_internal_pb2.Record()
         if run:
@@ -337,8 +357,8 @@ class BackendSender(object):
             rec.stats.CopyFrom(stats)
         if exit:
             rec.exit.CopyFrom(exit)
-        if log_artifact:
-            rec.log_artifact.CopyFrom(log_artifact)
+        if artifact:
+            rec.artifact.CopyFrom(artifact)
         return rec
 
     def _queue_process(self, rec):
@@ -403,12 +423,15 @@ class BackendSender(object):
         rec = self._make_record(files=files)
         self._queue_process(rec)
 
-    def send_log_artifact(self, log_dict):
-        log = wandb_internal_pb2.LogArtifactData()
-        log.artifact = log_dict['artifact']._make_proto()
-        for alias in log_dict['aliases']:
-            log.aliases.add(alias)
-        rec = self._make_record(log_artifact=log)
+    def send_artifact(self, run, artifact, aliases):
+        proto_run = self._make_run(run)
+        proto_artifact = self._make_artifact(artifact)
+        proto_artifact.run_id = proto_run.run_id
+        proto_artifact.project = proto_run.project
+        proto_artifact.entity = proto_run.entity
+        for alias in aliases:
+            proto_artifact.aliases.append(alias)
+        rec = self._make_record(artifact=proto_artifact)
         self._queue_process(rec)
 
     def send_exit(self, exit_code):

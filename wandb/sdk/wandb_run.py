@@ -366,7 +366,4 @@ class RunManaged(Run):
         if isinstance(aliases, str):
             aliases = [aliases]
         artifact.finalize()
-        log_dict = dict(artifact=artifact, aliases=aliases)
-        self._backend.interface.send_log_artifact(log_dict)
-
-
+        self._backend.interface.send_artifact(self, artifact, aliases)

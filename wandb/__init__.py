@@ -27,6 +27,7 @@ setup = wandb_sdk.setup
 save = wandb_sdk.save
 watch = wandb_sdk.watch
 login = wandb_sdk.login
+Artifact = wandb_sdk.Artifact
 Settings = wandb_sdk.Settings
 
 from wandb.apis import InternalApi, PublicApi
