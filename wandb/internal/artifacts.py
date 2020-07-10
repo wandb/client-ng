@@ -2,8 +2,8 @@ import json
 import os
 import tempfile
 
+from wandb.interface.artifacts import ArtifactManifest
 import wandb.filesync.step_prepare
-from wandb.sdk.wandb_artifacts import ArtifactManifest
 
 
 def _manifest_json_from_proto(manifest):

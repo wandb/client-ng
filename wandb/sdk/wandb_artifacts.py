@@ -8,9 +8,8 @@ import shutil
 import requests
 from six.moves.urllib.parse import urlparse
 
-import wandb
-
 from wandb.compat import tempfile as compat_tempfile
+from wandb.interface.artifacts import ArtifactManifest, StoragePolicy, StorageHandler
 from wandb.internal.progress import Progress
 from wandb.apis import InternalApi
 from wandb.errors.error import CommError
@@ -226,38 +225,6 @@ class Artifact(object):
                 remap_entry(entry)
 
 
-class ArtifactManifest(object):
-    @classmethod
-    # TODO: we don't need artifact here.
-    def from_manifest_json(cls, artifact, manifest_json):
-        if "version" not in manifest_json:
-            raise ValueError("Invalid manifest format. Must contain version field.")
-        version = manifest_json["version"]
-        for sub in cls.__subclasses__():
-            if sub.version() == version:
-                return sub.from_manifest_json(artifact, manifest_json)
-
-    @classmethod
-    def version(cls):
-        pass
-
-    def __init__(self, artifact, storage_policy, entries=None):
-        self.artifact = artifact
-        self.storage_policy = storage_policy
-        self.entries = entries or {}
-
-    def to_manifest_json(self):
-        raise NotImplementedError()
-
-    def digest(self):
-        raise NotImplementedError()
-
-    def add_entry(self, entry):
-        if entry.path in self.entries:
-            raise ValueError("Cannot add the same path twice: %s" % entry.path)
-        self.entries[entry.path] = entry
-
-
 class ArtifactManifestV1(ArtifactManifest):
     @classmethod
     def version(cls):
@@ -352,40 +319,6 @@ class ArtifactManifestEntry(object):
             summary = "digest: %s" % self.digest
 
         return "<ManifestEntry %s>" % summary
-
-
-class StoragePolicy(object):
-    @classmethod
-    def lookup_by_name(cls, name):
-        for sub in cls.__subclasses__():
-            if sub.name() == name:
-                return sub
-        return None
-
-    @classmethod
-    def name(cls):
-        pass
-
-    @classmethod
-    def from_config(cls, config):
-        pass
-
-    def config(self):
-        pass
-
-    def load_file(self, artifact, name, manifest_entry):
-        raise NotImplementedError
-
-    def store_file(self, artifact_id, entry, preparer, progress_callback=None):
-        raise NotImplementedError
-
-    def store_reference(
-        self, artifact, path, name=None, checksum=True, max_objects=None
-    ):
-        raise NotImplementedError
-
-    def load_reference(self, artifact, name, manifest_entry, local=False):
-        raise NotImplementedError
 
 
 class WandbStoragePolicy(StoragePolicy):
@@ -523,40 +456,6 @@ class __S3BucketPolicy(StoragePolicy):
         return self._handler.store_path(
             artifact, path, name=name, checksum=checksum, max_objects=max_objects
         )
-
-
-class StorageHandler(object):
-    def scheme(self):
-        """
-        :return: The scheme to which this handler applies.
-        :rtype: str
-        """
-        pass
-
-    def load_path(self, artifact, manifest_entry, local=False):
-        """
-        Loads the file or directory within the specified artifact given its
-        corresponding index entry.
-
-        :param manifest_entry: The index entry to load
-        :type manifest_entry: ArtifactManifestEntry
-        :return: A path to the file represented by `index_entry`
-        :rtype: os.PathLike
-        """
-        pass
-
-    def store_path(self, artifact, path, name=None, checksum=True, max_objects=None):
-        """
-        Stores the file or directory at the given path within the specified artifact.
-
-        :param path: The path to store
-        :type path: str
-        :param name: If specified, the logical name that should map to `path`
-        :type name: str
-        :return: A list of manifest entries to store within the artifact
-        :rtype: list(ArtifactManifestEntry)
-        """
-        pass
 
 
 class MultiHandler(StorageHandler):
