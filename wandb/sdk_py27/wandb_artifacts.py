@@ -1,6 +1,3 @@
-import codecs
-import base64
-import hashlib
 import re
 import os
 import time
@@ -9,40 +6,13 @@ import requests
 from six.moves.urllib.parse import urlparse
 
 from wandb.compat import tempfile as compat_tempfile
-from wandb.interface.artifacts import ArtifactManifest, StoragePolicy, StorageHandler
+from wandb.interface.artifacts import *
 from wandb.internal.progress import Progress
 from wandb.apis import InternalApi
 from wandb.errors.error import CommError
 from wandb import artifacts_cache
 from wandb import util
 from wandb.errors.term import termwarn, termlog
-
-
-def md5_string(string):
-    hash_md5 = hashlib.md5()
-    hash_md5.update(string.encode())
-    return base64.b64encode(hash_md5.digest()).decode("ascii")
-
-
-def md5_hash_file(path):
-    hash_md5 = hashlib.md5()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(64 * 1024), b""):
-            hash_md5.update(chunk)
-    return hash_md5
-
-
-def md5_file_b64(path):
-    return base64.b64encode(md5_hash_file(path).digest()).decode("ascii")
-
-
-def md5_file_hex(path):
-    return md5_hash_file(path).hexdigest()
-
-
-def bytes_to_hex(bytestr):
-    # Works in python2 / python3
-    return codecs.getencoder("hex")(bytestr)[0]
 
 
 class Artifact(object):

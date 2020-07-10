@@ -1,8 +1,8 @@
 import os
 import pytest
-from wandb import artifacts
+from wandb import wandb_sdk
 from wandb import util
-from .utils import runner
+
 
 def mock_boto(artifact, path=False):
     class S3Object(object):
@@ -43,6 +43,7 @@ def mock_boto(artifact, path=False):
     handler._botocore = util.get_module("botocore")
     return mock
 
+
 def mock_gcs(artifact, path=False):
     class Blob(object):
         def __init__(self, name='my_object.pb', metadata=None):
@@ -68,11 +69,12 @@ def mock_gcs(artifact, path=False):
     handler._client = mock
     return mock
 
+
 def test_add_one_file(runner):
     with runner.isolated_filesystem():
         with open('file1.txt', 'w') as f:
             f.write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_file('file1.txt')
 
         assert artifact.digest == 'a00c2239f036fb656c1dcbf9a32d89b4'
@@ -80,11 +82,12 @@ def test_add_one_file(runner):
         assert manifest['contents']['file1.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'size': 5}
 
+
 def test_add_named_file(runner):
     with runner.isolated_filesystem():
         with open('file1.txt', 'w') as f:
             f.write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_file('file1.txt', name='great-file.txt')
 
         assert artifact.digest == '585b9ada17797e37c9cbab391e69b8c5'
@@ -92,9 +95,10 @@ def test_add_named_file(runner):
         assert manifest['contents']['great-file.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'size': 5}
 
+
 def test_add_new_file(runner):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         with artifact.new_file('file1.txt') as f:
             f.write('hello')
 
@@ -103,10 +107,11 @@ def test_add_new_file(runner):
         assert manifest['contents']['file1.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'size': 5}
 
+
 def test_add_dir(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_dir('.')
 
         assert artifact.digest == 'a00c2239f036fb656c1dcbf9a32d89b4'
@@ -114,10 +119,11 @@ def test_add_dir(runner):
         assert manifest['contents']['file1.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'size': 5}
 
+
 def test_add_named_dir(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_dir('.', name='subdir')
 
         assert artifact.digest == 'a757208d042e8627b2970d72a71bed5b'
@@ -126,10 +132,11 @@ def test_add_named_dir(runner):
         assert manifest['contents']['subdir/file1.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'size': 5}
 
+
 def test_add_reference_local_file(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_reference('file://file1.txt')
 
         assert artifact.digest == 'a00c2239f036fb656c1dcbf9a32d89b4'
@@ -137,10 +144,11 @@ def test_add_reference_local_file(runner):
         assert manifest['contents']['file1.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'ref': 'file://file1.txt', 'size': 5}
 
+
 def test_add_reference_local_file_no_checksum(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_reference('file://file1.txt', checksum=False)
 
         assert artifact.digest == '2f66dd01e5aea4af52445f7602fe88a0'
@@ -148,11 +156,12 @@ def test_add_reference_local_file_no_checksum(runner):
         assert manifest['contents']['file1.txt'] == {
             'digest': 'file://file1.txt', 'ref': 'file://file1.txt'}
 
+
 def test_add_reference_local_dir(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
         open('file2.txt', 'w').write('dude')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_reference('file://'+os.getcwd())
 
         assert artifact.digest == '5e8e98ebd59cc93b58d0cb26432d4720'
@@ -162,9 +171,10 @@ def test_add_reference_local_dir(runner):
         assert manifest['contents']['file2.txt'] == {
             'digest': 'E7c+2uhEOZC+GqjxpIO8Jw==', 'ref': 'file://'+os.getcwd()+'/file2.txt', 'size': 4}
 
+
 def test_add_s3_reference_object(runner, mocker):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type="dataset", name='my-arty')
+        artifact = wandb_sdk.Artifact(type="dataset", name='my-arty')
         mock_boto(artifact)
         artifact.add_reference("s3://my-bucket/my_object.pb")
 
@@ -174,9 +184,10 @@ def test_add_s3_reference_object(runner, mocker):
             'digest': '1234567890abcde', 'ref': 's3://my-bucket/my_object.pb',
             'extra': {'etag': '1234567890abcde', 'versionID': '1'}, 'size': 10}
 
+
 def test_add_s3_reference_path(runner, mocker, capsys):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type="dataset", name='my-arty')
+        artifact = wandb_sdk.Artifact(type="dataset", name='my-arty')
         mock_boto(artifact, path=True)
         artifact.add_reference("s3://my-bucket/")
 
@@ -188,17 +199,19 @@ def test_add_s3_reference_path(runner, mocker, capsys):
         _, err = capsys.readouterr()
         assert "Generating checksum" in err
 
+
 def test_add_s3_max_objects(runner, mocker, capsys):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type="dataset", name='my-arty')
+        artifact = wandb_sdk.Artifact(type="dataset", name='my-arty')
         mock_boto(artifact, path=True)
         with pytest.raises(ValueError):
             artifact.add_reference("s3://my-bucket/", max_objects=1)
 
+
 def test_add_reference_s3_no_checksum(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         # TODO: Should we require name in this case?
         artifact.add_reference('s3://my_bucket/file1.txt', checksum=False)
 
@@ -207,9 +220,10 @@ def test_add_reference_s3_no_checksum(runner):
         assert manifest['contents']['file1.txt'] == {
             'digest': 's3://my_bucket/file1.txt', 'ref': 's3://my_bucket/file1.txt'}
 
+
 def test_add_gs_reference_object(runner, mocker):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type="dataset", name='my-arty')
+        artifact = wandb_sdk.Artifact(type="dataset", name='my-arty')
         mock_gcs(artifact)
         artifact.add_reference("gs://my-bucket/my_object.pb")
 
@@ -219,9 +233,10 @@ def test_add_gs_reference_object(runner, mocker):
             'digest': '1234567890abcde', 'ref': 'gs://my-bucket/my_object.pb',
             'extra': {'etag': '1234567890abcde', 'versionID': '1'}, 'size': 10}
 
+
 def test_add_gs_reference_path(runner, mocker, capsys):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type="dataset", name='my-arty')
+        artifact = wandb_sdk.Artifact(type="dataset", name='my-arty')
         mock_gcs(artifact, path=True)
         artifact.add_reference("gs://my-bucket/")
 
@@ -233,10 +248,11 @@ def test_add_gs_reference_path(runner, mocker, capsys):
         _, err = capsys.readouterr()
         assert "Generating checksum" in err
 
+
 def test_add_reference_named_local_file(runner):
     with runner.isolated_filesystem():
         open('file1.txt', 'w').write('hello')
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_reference('file://file1.txt', name='great-file.txt')
 
         assert artifact.digest == '585b9ada17797e37c9cbab391e69b8c5'
@@ -244,9 +260,10 @@ def test_add_reference_named_local_file(runner):
         assert manifest['contents']['great-file.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'ref': 'file://file1.txt', 'size': 5}
 
+
 def test_add_reference_unknown_handler(runner):
     with runner.isolated_filesystem():
-        artifact = artifacts.Artifact(type='dataset', name='my-arty')
+        artifact = wandb_sdk.Artifact(type='dataset', name='my-arty')
         artifact.add_reference('http://example.com/somefile.txt', name='ref')
 
         assert artifact.digest == '5b8876252f3ca922c164de380089c9ae'
