@@ -16,13 +16,13 @@ import requests
 import wandb
 from wandb.errors.term import termlog
 from wandb import __version__
-from wandb.sdk import wandb_artifacts
 from wandb import util
 from wandb.old.retry import retriable
 from wandb.old.summary import HTTPSummary
 from wandb import env
 from wandb.apis.normalize import normalize_exceptions
 from wandb.apis.internal import Api as InternalApi
+from wandb.interface import artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -2089,7 +2089,7 @@ class Artifact(object):
         ref_count = 0
         for entry in manifest.entries.values():
             if entry.ref is None:
-                if wandb_artifacts.md5_file_b64(os.path.join(dirpath, entry.path)) != entry.digest:
+                if artifacts.md5_file_b64(os.path.join(dirpath, entry.path)) != entry.digest:
                     raise ValueError('Digest mismatch for file: %s' % entry.path)
             else:
                 ref_count += 1
@@ -2164,7 +2164,7 @@ class Artifact(object):
         if self._manifest is None:
             index_file_url = self._attrs['currentManifest']['file']['url']
             with requests.get(index_file_url) as req:
-                self._manifest = wandb_artifacts.ArtifactManifest.from_manifest_json(self, json.loads(req.content))
+                self._manifest = artifacts.ArtifactManifest.from_manifest_json(self, json.loads(req.content))
         return self._manifest
 
 

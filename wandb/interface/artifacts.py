@@ -1,3 +1,34 @@
+import base64
+import codecs
+import hashlib
+
+
+def md5_string(string):
+    hash_md5 = hashlib.md5()
+    hash_md5.update(string.encode())
+    return base64.b64encode(hash_md5.digest()).decode("ascii")
+
+
+def md5_hash_file(path):
+    hash_md5 = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(64 * 1024), b""):
+            hash_md5.update(chunk)
+    return hash_md5
+
+
+def md5_file_b64(path):
+    return base64.b64encode(md5_hash_file(path).digest()).decode("ascii")
+
+
+def md5_file_hex(path):
+    return md5_hash_file(path).hexdigest()
+
+
+def bytes_to_hex(bytestr):
+    # Works in python2 / python3
+    return codecs.getencoder("hex")(bytestr)[0]
+
 
 class ArtifactManifest(object):
     @classmethod
