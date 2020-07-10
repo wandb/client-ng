@@ -363,38 +363,43 @@ class RunManaged(Run):
 
     def use_artifact(self, artifact, type=None, aliases=None):
         r = self._run_obj
-        api = internal.Api(default_settings={
-            'entity': r.entity,
-            'project': r.project,
-        })
+        api = internal.Api(default_settings={"entity": r.entity, "project": r.project,})
         api.set_current_run_id(self.id)
 
         if isinstance(artifact, str):
             if type is None:
-                raise ValueError('type required')
+                raise ValueError("type required")
             public_api = public.Api()
             artifact = public_api.artifact(type=type, name=artifact)
+            if type is not None and type != artifact.type:
+                raise ValueError('Supplied type {} does not match type {} of artifact {}'.format(
+                    type, artifact.type, artifact.name))
             api.use_artifact(artifact.id)
             return artifact
         else:
             if type is not None:
-                raise ValueError('cannot specify type when passing Artifact object')
+                raise ValueError("cannot specify type when passing Artifact object")
             if isinstance(aliases, str):
                 aliases = [aliases]
             if isinstance(artifact, wandb.Artifact):
                 artifact.finalize()
-                self._backend.interface.send_artifact(self, artifact, aliases,
-                                                      is_user_created=True, use_after_commit=True)
+                self._backend.interface.send_artifact(
+                    self, artifact, aliases, is_user_created=True, use_after_commit=True
+                )
                 return artifact
             elif isinstance(artifact, public.Artifact):
                 api.use_artifact(artifact.id)
                 return artifact
             else:
-                raise ValueError('You must pass an artifact name (e.g. "pedestrian-dataset:v1"), an instance of wandb.Artifact, or wandb.Api().artifact() to use_artifact')
+                raise ValueError(
+                    'You must pass an artifact name (e.g. "pedestrian-dataset:v1"), an instance of wandb.Artifact, or wandb.Api().artifact() to use_artifact'
+                )
 
-    def log_artifact(self, artifact, aliases=['latest']):
+    def log_artifact(self, artifact, aliases=["latest"]):
         if not isinstance(artifact, wandb_artifacts.Artifact):
-            raise ValueError('You must pass an instance of wandb.Artifact to log_artifact')
+            raise ValueError(
+                "You must pass an instance of wandb.Artifact to log_artifact"
+            )
         if isinstance(aliases, str):
             aliases = [aliases]
         artifact.finalize()

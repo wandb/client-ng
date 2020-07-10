@@ -264,7 +264,7 @@ class BackendSender(object):
         proto_manifest.version = artifact_manifest.version()
         proto_manifest.storage_policy = artifact_manifest.storage_policy.name()
 
-        for k, v in (artifact_manifest.storage_policy.config() or {}):
+        for k, v in artifact_manifest.storage_policy.config() or {}:
             cfg = proto_manifest.storage_policy_config.add()
             cfg.key = k
             cfg.value_json = json.dumps(v)
@@ -359,7 +359,14 @@ class BackendSender(object):
         return files
 
     def _make_record(
-        self, run=None, config=None, files=None, summary=None, stats=None, exit=None, artifact=None
+        self,
+        run=None,
+        config=None,
+        files=None,
+        summary=None,
+        stats=None,
+        exit=None,
+        artifact=None,
     ):
         rec = wandb_internal_pb2.Record()
         if run:
@@ -440,7 +447,9 @@ class BackendSender(object):
         rec = self._make_record(files=files)
         self._queue_process(rec)
 
-    def send_artifact(self, run, artifact, aliases, is_user_created=False, use_after_commit=False):
+    def send_artifact(
+        self, run, artifact, aliases, is_user_created=False, use_after_commit=False
+    ):
         proto_run = self._make_run(run)
         proto_artifact = self._make_artifact(artifact)
         proto_artifact.run_id = proto_run.run_id
