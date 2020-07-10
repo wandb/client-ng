@@ -36,7 +36,9 @@ wandb/filesync/step_checksum.py
 wandb/filesync/step_prepare.py
 wandb/filesync/step_upload.py
 wandb/filesync/upload_job.py
+wandb/fastai/__init__.py
 wandb/framework/__init__.py
+wandb/framework/fastai/__init__.py
 wandb/framework/keras/__init__.py
 wandb/framework/keras/keras.py
 wandb/framework/torch/__init__.py
