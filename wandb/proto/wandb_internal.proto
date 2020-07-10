@@ -155,14 +155,16 @@ message ArtifactData {
   string                        digest = 6;
   string                        description = 7;
   string                        metadata = 8;
-  repeated string               aliases = 9;
-  ArtifactManifest              manifest = 10;
+  bool                          user_created = 9;
+  bool                          use_after_commit = 10;
+  repeated string               aliases = 11;
+  ArtifactManifest              manifest = 12;
 }
 
 message ArtifactManifest {
   int32                             version = 1;
   string                            storage_policy = 2;
-  StoragePolicyConfig               storage_policy_config = 3;
+  repeated StoragePolicyConfigItem  storage_policy_config = 3;
   repeated ArtifactManifestEntry    contents = 4;
 }
 
@@ -179,10 +181,6 @@ message ArtifactManifestEntry {
 message ExtraItem {
   string        key = 1;
   string        value_json = 2;
-}
-
-message StoragePolicyConfig {
-  repeated StoragePolicyConfigItem  config_item = 1;
 }
 
 message StoragePolicyConfigItem {

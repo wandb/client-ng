@@ -51,18 +51,12 @@ def bytes_to_hex(bytestr):
 class Artifact(object):
     """An artifact object you can write files into, and pass to log_artifact."""
 
-    # A local manifest contains the path to the local file in addition to the path within
-    # the artifact.
-    LocalArtifactManifestEntry = collections.namedtuple('LocalArtifactManifestEntry', (
-        'path', 'hash', 'local_path'))
-
     def __init__(self, name, type, description=None, metadata=None):
         if not re.match('^[a-zA-Z0-9_\-.]+$', name):
             raise ValueError('Artifact name may only contain alphanumeric characters, dashes, underscores, and dots. Invalid name: "%s"' % name)
         # TODO: this shouldn't be a property of the artifact. It's a more like an
         # argument to log_artifact.
         self._storage_policy = WandbStoragePolicy()
-        self._file_specs = {}
         self._api = InternalApi()
         self._final = False
         self._digest = None
@@ -283,11 +277,13 @@ class ArtifactManifestV1(ArtifactManifest):
 
         entries = {
             name: ArtifactManifestEntry(
-                name, val.get('ref'), val['digest'],
+                path=name,
+                digest=val['digest'],
+                ref=val.get('ref'),
                 size=val.get('size'),
+                local_path=val.get('local_path'),
                 extra=val.get('extra'),
-                local_path=val.get('local_path'))
-            for name, val in manifest_json['contents'].items()
+            ) for name, val in manifest_json['contents'].items()
         }
 
         return cls(artifact, storage_policy_cls.from_config(storage_policy_config), entries)
@@ -351,19 +347,6 @@ class ArtifactManifestEntry(object):
             summary = 'digest: %s' % self.digest
 
         return "<ManifestEntry %s>" % summary
-
-    def _make_proto(self, entry):
-        entry.path = self.path
-        entry.digest = self.digest
-        entry.size = self.size
-        if self.ref:
-            entry.ref = self.ref
-        entry.local_path = self.local_path
-        for k, v in self.extra.items():
-            extra = entry.extra.add()
-            extra.key = k
-            extra.value_json = json.dumps(v)
-        return entry
 
 
 class StoragePolicy(object):

@@ -10,21 +10,25 @@ def _manifest_json_from_proto(manifest):
     return {
         'version': manifest.version,
         'storagePolicy': manifest.storage_policy,
-        'storagePolicyConfig': manifest.storage_policy_config,
-        'contents': {content.path: {
-            'digest': content.digest,
-            'ref': content.ref if content.ref else None,
-            'size': content.size if content.size else None,
-            'local_path': content.local_path if content.local_path else None,
-        } for content in manifest.contents},
+        'storagePolicyConfig': {
+            config.key: json.loads(config.value_json) for config in manifest.storage_policy_config
+        },
+        'contents': {
+            content.path: {
+                'digest': content.digest,
+                'ref': content.ref if content.ref else None,
+                'size': content.size if content.size else None,
+                'local_path': content.local_path if content.local_path else None,
+                'extra': {
+                    extra.key: json.loads(extra.value_json) for extra in content.extra
+                },
+            } for content in manifest.contents
+        },
     }
 
 
 class ArtifactSaver(object):
     def __init__(self, api, digest, manifest_json, file_pusher, is_user_created=False):
-        # NOTE: manifest_entries are LocalManifestEntry but they get converted to
-        # arrays when we convert to json, so we need to access fields by index instead
-        # of by name
         self._api = api
         self._file_pusher = file_pusher
         self._digest = digest

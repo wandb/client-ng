@@ -421,7 +421,7 @@ def agent(sweep_id, function=None, entity=None, project=None, count=None):
         function (func, optional): A function to call instead of the "program" specifed in the config
         entity (str, optional): W&B Entity
         project (str, optional): W&B Project
-        count (ing, optional): the number of trials to run.
+        count (int, optional): the number of trials to run.
     """
     in_jupyter = wandb._get_python_type() != "python"
     if in_jupyter:

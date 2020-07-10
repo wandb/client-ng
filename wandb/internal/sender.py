@@ -243,6 +243,7 @@ class SendManager(object):
             digest=artifact.digest,
             manifest_json=artifacts._manifest_json_from_proto(artifact.manifest),
             file_pusher=self._pusher,
+            is_user_created=artifact.user_created,
         )
 
         saver.save(
@@ -251,6 +252,7 @@ class SendManager(object):
             metadata=artifact.metadata,
             description=artifact.description,
             aliases=artifact.aliases,
+            use_after_commit=artifact.use_after_commit,
         )
 
     def finish(self):
