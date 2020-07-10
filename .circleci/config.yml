@@ -53,16 +53,7 @@ jobs:
             - run:
                   name: Install python dependencies
                   command: |
-<<<<<<< HEAD
                       pip install tox
-=======
-                      . venv/bin/activate
-                      pip --version
-                      pip install cmake==3.13.3 numpy==1.16.0
-                      pip install -r requirements_dev.txt --upgrade
-                      python install-ml.py
-                      pip install -e .[dev]
->>>>>>> 896861a6... Artifacts cache & download improvements. (#1124)
             - save_cache:
                   paths:
                       - ./venv
