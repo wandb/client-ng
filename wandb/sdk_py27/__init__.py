@@ -12,3 +12,4 @@ from .wandb_settings import Settings  # noqa: F401
 from .wandb_setup import setup  # noqa: F401
 from .wandb_summary import Summary  # noqa: F401
 from .wandb_watch import watch  # noqa: F401
+from .wandb_artifacts import Artifact  #noqa: F401

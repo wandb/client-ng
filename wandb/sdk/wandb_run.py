@@ -15,6 +15,7 @@ import shutil
 
 import click
 import wandb
+from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.util import sentry_set_scope
 from wandb.viz import Visualize
@@ -359,6 +360,37 @@ class RunManaged(Run):
     def watch(self, models, criterion=None, log="gradients", log_freq=100, idx=None):
         logger.info("Watching")
         # wandb.run.watch(watch)
+
+    def use_artifact(self, artifact, type=None, aliases=None):
+        r = self._run_obj
+        api = internal.Api(default_settings={
+            'entity': r.entity,
+            'project': r.project,
+        })
+        api.set_current_run_id(self.id)
+
+        if isinstance(artifact, str):
+            if type is None:
+                raise ValueError('type required')
+            public_api = public.Api()
+            artifact = public_api.artifact(type=type, name=artifact)
+            api.use_artifact(artifact.id)
+            return artifact
+        else:
+            if type is not None:
+                raise ValueError('cannot specify type when passing Artifact object')
+            if isinstance(aliases, str):
+                aliases = [aliases]
+            if isinstance(artifact, wandb.Artifact):
+                artifact.finalize()
+                self._backend.interface.send_artifact(self, artifact, aliases,
+                                                      is_user_created=True, use_after_commit=True)
+                return artifact
+            elif isinstance(artifact, public.Artifact):
+                api.use_artifact(artifact.id)
+                return artifact
+            else:
+                raise ValueError('You must pass an artifact name (e.g. "pedestrian-dataset:v1"), an instance of wandb.Artifact, or wandb.Api().artifact() to use_artifact')
 
     def log_artifact(self, artifact, aliases=['latest']):
         if not isinstance(artifact, wandb_artifacts.Artifact):

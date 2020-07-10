@@ -1298,6 +1298,54 @@ class Api(object):
             open_file.close()
         return responses
 
+    def use_artifact(self, artifact_id, entity_name=None, project_name=None, run_name=None):
+        query = gql('''
+        mutation UseArtifact(
+            $entityName: String!,
+            $projectName: String!,
+            $runName: String!,
+            $artifactID: ID!
+        ) {
+            useArtifact(input: {
+                entityName: $entityName,
+                projectName: $projectName,
+                runName: $runName,
+                artifactID: $artifactID
+            }) {
+                artifact {
+                    id
+                    digest
+                    description
+                    state
+                    createdAt
+                    labels
+                    metadata
+                }
+            }
+        }
+        ''')
+        entity_name = entity_name or self.settings('entity')
+        project_name = project_name or self.settings('project')
+        run_name = run_name or self.current_run_id
+
+        print({
+            'entityName': entity_name,
+            'projectName': project_name,
+            'runName': run_name,
+            'artifactID': artifact_id,
+        })
+
+        response = self.gql(query, variable_values={
+            'entityName': entity_name,
+            'projectName': project_name,
+            'runName': run_name,
+            'artifactID': artifact_id,
+        })
+
+        if response['useArtifact']['artifact']:
+            return response['useArtifact']['artifact']
+        return None
+
     def _status_request(self, url, length):
         """Ask google how much we've uploaded"""
         return requests.put(

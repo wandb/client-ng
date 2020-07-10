@@ -13,12 +13,12 @@ from six.moves.urllib.parse import urlparse
 
 from wandb.compat import tempfile as compat_tempfile
 
-from wandb.apis import InternalApi, Progress
+from wandb.internal.progress import Progress
+from wandb.apis import InternalApi
 from wandb.errors.error import CommError
 from wandb import artifacts_cache
 from wandb import util
-from wandb import termwarn, termlog
-from wandb.proto import wandb_internal_pb2
+from wandb.errors.term import termwarn, termlog
 
 
 def md5_string(string):
@@ -48,24 +48,8 @@ def bytes_to_hex(bytestr):
     return codecs.getencoder('hex')(bytestr)[0]
 
 
-class ServerManifestV1(object):
-    """This implements the same artifact digest algorithm as the server."""
-
-    # hash must be the base64 encoded md5 checksum of the file at path.
-    ArtifactManifestEntry = collections.namedtuple('ArtifactManifestEntry', ('path', 'hash'))
-
-    def __init__(self, entries):
-        # lexicographic sort. paths must be unique, so sort doesn't ever visit hash
-        self.entries = sorted(entries)
-
-
 class Artifact(object):
     """An artifact object you can write files into, and pass to log_artifact."""
-
-    # A local manifest contains the path to the local file in addition to the path within
-    # the artifact.
-    LocalArtifactManifestEntry = collections.namedtuple('LocalArtifactManifestEntry', (
-        'path', 'hash', 'local_path'))
 
     def __init__(self, name, type, description=None, metadata=None):
         if not re.match('^[a-zA-Z0-9_\-.]+$', name):
@@ -73,7 +57,6 @@ class Artifact(object):
         # TODO: this shouldn't be a property of the artifact. It's a more like an
         # argument to log_artifact.
         self._storage_policy = WandbStoragePolicy()
-        self._file_specs = {}
         self._api = InternalApi()
         self._final = False
         self._digest = None
@@ -83,7 +66,6 @@ class Artifact(object):
         self._added_new = False
         # You can write into this directory when creating artifact files
         self._artifact_dir = compat_tempfile.TemporaryDirectory(missing_ok_on_cleanup=True)
-        self.server_manifest = None
         self.type = type
         self.name = name
         self.description = description
@@ -204,19 +186,6 @@ class Artifact(object):
 
         # mark final after all files are added
         self._final = True
-
-        # Add the manifest itself as a file.
-        with tempfile.NamedTemporaryFile('w+', suffix=".json", delete=False) as fp:
-            json.dump(self._manifest.to_manifest_json(), fp, indent=4)
-            self._file_specs['wandb_manifest.json'] = fp.name
-            manifest_file = fp.name
-
-        # Calculate the server manifest
-        file_entries = []
-        for name, local_path in self._file_specs.items():
-            file_entries.append(self.LocalArtifactManifestEntry(
-                name, md5_file_b64(local_path), os.path.abspath(local_path)))
-        self.server_manifest = ServerManifestV1(file_entries)
         self._digest = self._manifest.digest()
 
         # If there are new files, move them into the artifact cache. We do this
@@ -235,17 +204,6 @@ class Artifact(object):
                 entry.local_path = os.path.join(final_artifact_dir, rel_path)
             for entry in self._manifest.entries.values():
                 remap_entry(entry)
-
-    def _make_proto(self):
-        if not self._final:
-            raise ValueError('Can only serialize finalized artifacts')
-        artifact = wandb_internal_pb2.ArtifactData()
-        artifact.type = self.type
-        artifact.name = self.name
-        artifact.digest = self.digest
-        artifact.metadata = self.metadata
-        artifact.manifest = self.manifest._make_proto()
-        return artifact
 
 
 class ArtifactManifest(object):
@@ -319,11 +277,13 @@ class ArtifactManifestV1(ArtifactManifest):
 
         entries = {
             name: ArtifactManifestEntry(
-                name, val.get('ref'), val['digest'],
+                path=name,
+                digest=val['digest'],
+                ref=val.get('ref'),
                 size=val.get('size'),
+                local_path=val.get('local_path'),
                 extra=val.get('extra'),
-                local_path=val.get('local_path'))
-            for name, val in manifest_json['contents'].items()
+            ) for name, val in manifest_json['contents'].items()
         }
 
         return cls(artifact, storage_policy_cls.from_config(storage_policy_config), entries)
@@ -367,18 +327,6 @@ class ArtifactManifestV1(ArtifactManifest):
             hasher.update('{}:{}\n'.format(name, entry.digest).encode())
         return hasher.hexdigest()
 
-    def _make_proto(self):
-        manifest = wandb_internal_pb2.ArtifactManifest()
-        manifest.version = self.version()
-        manifest.storage_policy = self.storage_policy
-        for k, v in self.storage_policy.config:
-            cfg = manifest.storage_policy_config.add()
-            cfg.key = k
-            cfg.value_json = json.dumps(v)
-        for entry in sorted(self.entries.values(), key=lambda k: k.path):
-            manifest.contents.add(entry._make_proto())
-        return manifest
-
 
 class ArtifactManifestEntry(object):
 
@@ -399,19 +347,6 @@ class ArtifactManifestEntry(object):
             summary = 'digest: %s' % self.digest
 
         return "<ManifestEntry %s>" % summary
-
-    def _make_proto(self):
-        entry = wandb_internal_pb2.ArtifactManifestEntry()
-        entry.path = self.path
-        entry.ref = self.ref
-        entry.digest = self.digest
-        entry.size = self.size
-        entry.local_path = self.local_path
-        for k, v in self.extra.items():
-            extra = entry.extra.add()
-            extra.key = k
-            extra.value_json = json.dumps(v)
-        return entry
 
 
 class StoragePolicy(object):
