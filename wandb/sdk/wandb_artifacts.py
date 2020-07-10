@@ -206,11 +206,17 @@ class Artifact(object):
         if self._added_new:
             # Update the file entries for new files to point at their new location.
             def remap_entry(entry):
-                if entry.local_path is None or not entry.local_path.startswith(self._artifact_dir.name):
+                if entry.local_path is None or not entry.local_path.startswith(
+                    self._artifact_dir.name
+                ):
                     return entry
-                rel_path = os.path.relpath(entry.local_path, start=self._artifact_dir.name)
+                rel_path = os.path.relpath(
+                    entry.local_path, start=self._artifact_dir.name
+                )
                 local_path = os.path.join(self._artifact_dir.name, rel_path)
-                cache_path, hit = self._cache.check_md5_obj_path(entry.digest, entry.size)
+                cache_path, hit = self._cache.check_md5_obj_path(
+                    entry.digest, entry.size
+                )
                 if not hit:
                     shutil.copyfile(local_path, cache_path)
                 entry.local_path = cache_path
@@ -220,13 +226,12 @@ class Artifact(object):
 
 
 class ArtifactManifest(object):
-
     @classmethod
     # TODO: we don't need artifact here.
     def from_manifest_json(cls, artifact, manifest_json):
-        if 'version' not in manifest_json:
-            raise ValueError('Invalid manifest format. Must contain version field.')
-        version = manifest_json['version']
+        if "version" not in manifest_json:
+            raise ValueError("Invalid manifest format. Must contain version field.")
+        version = manifest_json["version"]
         for sub in cls.__subclasses__():
             if sub.version() == version:
                 return sub.from_manifest_json(artifact, manifest_json)
@@ -248,7 +253,7 @@ class ArtifactManifest(object):
 
     def add_entry(self, entry):
         if entry.path in self.entries:
-            raise ValueError('Cannot add the same path twice: %s' % entry.path)
+            raise ValueError("Cannot add the same path twice: %s" % entry.path)
         self.entries[entry.path] = entry
 
 
@@ -349,7 +354,6 @@ class ArtifactManifestEntry(object):
 
 
 class StoragePolicy(object):
-
     @classmethod
     def lookup_by_name(cls, name):
         for sub in cls.__subclasses__():
@@ -374,7 +378,9 @@ class StoragePolicy(object):
     def store_file(self, artifact_id, entry, preparer, progress_callback=None):
         raise NotImplementedError
 
-    def store_reference(self, artifact, path, name=None, checksum=True, max_objects=None):
+    def store_reference(
+        self, artifact, path, name=None, checksum=True, max_objects=None
+    ):
         raise NotImplementedError
 
     def load_reference(self, artifact, name, manifest_entry, local=False):
@@ -382,10 +388,9 @@ class StoragePolicy(object):
 
 
 class WandbStoragePolicy(StoragePolicy):
-
     @classmethod
     def name(cls):
-        return 'wandb-storage-policy-v1'
+        return "wandb-storage-policy-v1"
 
     @classmethod
     def from_config(cls, config):
@@ -397,11 +402,9 @@ class WandbStoragePolicy(StoragePolicy):
         file_handler = LocalFileHandler()
 
         self._api = InternalApi()
-        self._handler = MultiHandler(handlers=[
-            s3,
-            gcs,
-            file_handler,
-        ], default_handler=TrackingHandler())
+        self._handler = MultiHandler(
+            handlers=[s3, gcs, file_handler,], default_handler=TrackingHandler()
+        )
 
         self._cache = artifacts_cache.get_artifacts_cache()
 
@@ -410,30 +413,32 @@ class WandbStoragePolicy(StoragePolicy):
         retry_strategy = requests.packages.urllib3.util.retry.Retry(
             backoff_factor=1,
             total=16,
-            status_forcelist=(308, 409, 429, 500, 502, 503, 504))
+            status_forcelist=(308, 409, 429, 500, 502, 503, 504),
+        )
         self._session = requests.Session()
         adapter = requests.adapters.HTTPAdapter(
-            max_retries=retry_strategy,
-            pool_connections=64,
-            pool_maxsize=64)
-        self._session.mount('http://', adapter)
-        self._session.mount('https://', adapter)
+            max_retries=retry_strategy, pool_connections=64, pool_maxsize=64
+        )
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
 
     def config(self):
         return None
 
     def load_file(self, artifact, name, manifest_entry):
-        path, hit = self._cache.check_md5_obj_path(manifest_entry.digest, manifest_entry.size)
+        path, hit = self._cache.check_md5_obj_path(
+            manifest_entry.digest, manifest_entry.size
+        )
         if hit:
             return path
 
         response = self._session.get(
             self._file_url(
-                self._api,
-                self._api.settings('entity'),
-                manifest_entry.digest),
+                self._api, self._api.settings("entity"), manifest_entry.digest
+            ),
             auth=("api", self._api.api_key),
-            stream=True)
+            stream=True,
+        )
         response.raise_for_status()
 
         with open(path, "wb") as file:
@@ -441,15 +446,21 @@ class WandbStoragePolicy(StoragePolicy):
                 file.write(data)
         return path
 
-    def store_reference(self, artifact, path, name=None, checksum=True, max_objects=None):
-        return self._handler.store_path(artifact, path, name=name, checksum=checksum, max_objects=max_objects)
+    def store_reference(
+        self, artifact, path, name=None, checksum=True, max_objects=None
+    ):
+        return self._handler.store_path(
+            artifact, path, name=name, checksum=checksum, max_objects=max_objects
+        )
 
     def load_reference(self, artifact, name, manifest_entry, local=False):
         return self._handler.load_path(self._cache, manifest_entry, local)
 
     def _file_url(self, api, entity_name, md5):
         md5_hex = base64.b64decode(md5).hex()
-        return '{}/artifacts/{}/{}'.format(api.settings("base_url"), entity_name, md5_hex)
+        return "{}/artifacts/{}/{}".format(
+            api.settings("base_url"), entity_name, md5_hex
+        )
 
     def store_file(self, artifact_id, entry, preparer, progress_callback=None):
         # write-through cache
@@ -457,23 +468,27 @@ class WandbStoragePolicy(StoragePolicy):
         if not hit:
             shutil.copyfile(entry.local_path, cache_path)
 
-        resp = preparer.prepare(lambda: {
-            "artifactID": artifact_id,
-            "name": entry.path,
-            "md5": entry.digest,
-        })
+        resp = preparer.prepare(
+            lambda: {
+                "artifactID": artifact_id,
+                "name": entry.path,
+                "md5": entry.digest,
+            }
+        )
 
         exists = resp.upload_url is None
         if not exists:
             with open(entry.local_path, "rb") as file:
                 # This fails if we don't send the first byte before the signed URL
                 # expires.
-                r = self._session.put(resp.upload_url,
-                                 headers={
-                                     header.split(":", 1)[0]: header.split(":", 1)[1]
-                                     for header in (resp.upload_headers or {})
-                                 },
-                                 data=Progress(file, callback=progress_callback))
+                r = self._session.put(
+                    resp.upload_url,
+                    headers={
+                        header.split(":", 1)[0]: header.split(":", 1)[1]
+                        for header in (resp.upload_headers or {})
+                    },
+                    data=Progress(file, callback=progress_callback),
+                )
                 r.raise_for_status()
         return exists
 

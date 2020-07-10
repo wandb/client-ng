@@ -372,8 +372,11 @@ class RunManaged(Run):
             public_api = public.Api()
             artifact = public_api.artifact(type=type, name=artifact)
             if type is not None and type != artifact.type:
-                raise ValueError('Supplied type {} does not match type {} of artifact {}'.format(
-                    type, artifact.type, artifact.name))
+                raise ValueError(
+                    "Supplied type {} does not match type {} of artifact {}".format(
+                        type, artifact.type, artifact.name
+                    )
+                )
             api.use_artifact(artifact.id)
             return artifact
         else:
