@@ -1,6 +1,7 @@
 import logging
 import time
 import os
+import re
 import json
 import six
 import yaml
@@ -425,8 +426,6 @@ class Api(object):
         """
         if name is None:
             raise ValueError('You must specify name= to fetch an artifact.')
-        if type is not None:
-            wandb.termwarn("Type argument is deprecated and will be removed in a future release.")
         entity, project, artifact_name = self._parse_artifact_path(name)
         return Artifact(self.client, entity, project, artifact_name)
 
@@ -1923,7 +1922,6 @@ class ArtifactCollection(object):
         return "<ArtifactCollection {}>".format(self.name)
 
 
-
 class Artifact(object):
 
     def __init__(self, client, entity, project, name, attrs=None):
@@ -1951,6 +1949,10 @@ class Artifact(object):
     #     # paths don't include the object type (which makes them hard to distinguish).
     #     # We should maybe use URIs here.
     #     return '%s/%s/artifact/%s/%s' % (self.entity, self.project, self.artifact_type_name, self.artifact_name)
+
+    @property
+    def manifest(self):
+        return self._load_manifest()
 
     @property
     def digest(self):
@@ -2035,7 +2037,7 @@ class Artifact(object):
         nfiles = len(manifest.entries)
         size = sum(e.size for e in manifest.entries.values())
         log = False
-        if nfiles  > 5000 or size > 50 * 1024 * 1024:
+        if nfiles > 5000 or size > 50 * 1024 * 1024:
             log = True
         if log:
             termlog('Downloading large artifact %s, %.2fMB. %s files... ' % (
@@ -2047,6 +2049,7 @@ class Artifact(object):
         import multiprocessing.dummy  # this uses threads
         import shutil
         pool = multiprocessing.dummy.Pool(32)
+
         def download_file(name):
             # download file into cache
             cache_path = self.get_path(name).download()
@@ -2086,7 +2089,7 @@ class Artifact(object):
         ref_count = 0
         for entry in manifest.entries.values():
             if entry.ref is None:
-                if artifacts.md5_file_b64(os.path.join(dirpath, entry.path)) != entry.digest:
+                if wandb_artifacts.md5_file_b64(os.path.join(dirpath, entry.path)) != entry.digest:
                     raise ValueError('Digest mismatch for file: %s' % entry.path)
             else:
                 ref_count += 1

@@ -8,8 +8,9 @@ import shutil
 import requests
 from six.moves.urllib.parse import urlparse
 
-from wandb.compat import tempfile as compat_tempfile
+import wandb
 
+from wandb.compat import tempfile as compat_tempfile
 from wandb.internal.progress import Progress
 from wandb.apis import InternalApi
 from wandb.errors.error import CommError
@@ -433,9 +434,7 @@ class WandbStoragePolicy(StoragePolicy):
             return path
 
         response = self._session.get(
-            self._file_url(
-                self._api, self._api.settings("entity"), manifest_entry.digest
-            ),
+            self._file_url(self._api, artifact.entity, manifest_entry.digest),
             auth=("api", self._api.api_key),
             stream=True,
         )
