@@ -85,7 +85,7 @@ class FilePusher(object):
             time.sleep(0.25)
         dedupe_fraction = summary['deduped_bytes'] / float(summary['total_bytes'])
         if dedupe_fraction > 0.01:
-            wandb.termlog('✨ W&B sync reduced upload amount by %.1f%%             ' %
+            wandb.termlog('W&B sync reduced upload amount by %.1f%%             ' %
                           (dedupe_fraction * 100))
         # clear progress line.
         wandb.termlog(' ' * 79)
