@@ -426,7 +426,8 @@ class RunManaged(Run):
                     /local/directory
                     /local/directory/file.txt
                     s3://bucket/path
-                You can also pass an Artifact object created by calling `wandb.Artifact`.
+                You can also pass an Artifact object created by calling
+                `wandb.Artifact`.
             name (str, optional): An artifact name. May be prefixed with entity/project.
                 Valid names can be in the following forms:
                     name:version
@@ -435,7 +436,8 @@ class RunManaged(Run):
                 This will default to the basename of the path prepended with the current
                 run id  if not specified.
             type (str): The type of artifact to log, examples include "dataset", "model"
-            aliases (list, optional): Aliases to apply to this artifact, defaults to ["latest"]
+            aliases (list, optional): Aliases to apply to this artifact,
+                defaults to ["latest"]
         Returns:
             A :obj:`Artifact` object.
         """
@@ -451,11 +453,13 @@ class RunManaged(Run):
             elif "://" in artifact_or_path:
                 artifact.add_reference(artifact_or_path)
             else:
-                raise ValueError("path must be a file, directory or external reference like s3://bucket/path")
+                raise ValueError("path must be a file, directory or external"
+                                 "reference like s3://bucket/path")
         else:
             artifact = artifact_or_path
         if not isinstance(artifact, wandb.Artifact):
-            raise ValueError('You must pass an instance of wandb.Artifact or a valid file path to log_artifact')
+            raise ValueError('You must pass an instance of wandb.Artifact or a '
+                             'valid file path to log_artifact')
         if isinstance(aliases, str):
             aliases = [aliases]
         artifact.finalize()
