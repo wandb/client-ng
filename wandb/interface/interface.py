@@ -16,176 +16,17 @@ import wandb
 from wandb import data_types
 from wandb.interface import constants
 from wandb.proto import wandb_internal_pb2  # type: ignore
+from wandb.util import (
+    WandBJSONEncoderOld,
+    get_h5_typename,
+    json_dumps_safer,
+    json_dumps_safer_history,
+    json_friendly,
+    maybe_compress_summary
+)
+from sys import getsizeof
 
 logger = logging.getLogger("wandb")
-
-
-def is_numpy_array(obj):
-    return np and isinstance(obj, np.ndarray)
-
-
-def is_tf_tensor(obj):
-    import tensorflow  # type: ignore
-
-    return isinstance(obj, tensorflow.Tensor)
-
-
-def is_tf_tensor_typename(typename):
-    return typename.startswith("tensorflow.") and (
-        "Tensor" in typename or "Variable" in typename
-    )
-
-
-def is_tf_eager_tensor_typename(typename):
-    return typename.startswith("tensorflow.") and ("EagerTensor" in typename)
-
-
-def is_pytorch_tensor(obj):
-    import torch  # type: ignore
-
-    return isinstance(obj, torch.Tensor)
-
-
-def is_pytorch_tensor_typename(typename):
-    return typename.startswith("torch.") and (
-        "Tensor" in typename or "Variable" in typename
-    )
-
-
-def get_full_typename(o):
-    """We determine types based on type names so we don't have to import
-    (and therefore depend on) PyTorch, TensorFlow, etc.
-    """
-    instance_name = o.__class__.__module__ + "." + o.__class__.__name__
-    if instance_name in ["builtins.module", "__builtin__.module"]:
-        return o.__name__
-    else:
-        return instance_name
-
-
-def get_h5_typename(o):
-    typename = get_full_typename(o)
-    if is_tf_tensor_typename(typename):
-        return "tensorflow.Tensor"
-    elif is_pytorch_tensor_typename(typename):
-        return "torch.Tensor"
-    else:
-        return o.__class__.__module__.split(".")[0] + "." + o.__class__.__name__
-
-
-def json_friendly(obj):
-    """Convert an object into something that's more becoming of JSON"""
-    converted = True
-    typename = get_full_typename(obj)
-
-    if is_tf_eager_tensor_typename(typename):
-        obj = obj.numpy()
-    elif is_tf_tensor_typename(typename):
-        obj = obj.eval()
-    elif is_pytorch_tensor_typename(typename):
-        try:
-            if obj.requires_grad:
-                obj = obj.detach()
-        except AttributeError:
-            pass  # before 0.4 is only present on variables
-
-        try:
-            obj = obj.data
-        except RuntimeError:
-            pass  # happens for Tensors before 0.4
-
-        if obj.size():
-            obj = obj.numpy()
-        else:
-            return obj.item(), True
-    if is_numpy_array(obj):
-        if obj.size == 1:
-            obj = obj.flatten()[0]
-        elif obj.size <= 32:
-            obj = obj.tolist()
-    elif np and isinstance(obj, np.generic):
-        obj = obj.item()
-    elif isinstance(obj, bytes):
-        obj = obj.decode("utf-8")
-    elif isinstance(obj, (datetime, date)):
-        obj = obj.isoformat()
-    else:
-        converted = False
-    # if getsizeof(obj) > VALUE_BYTES_LIMIT:
-    #    wandb.termwarn("Serializing object of type {} that is {} bytes".format(
-    #                   type(obj).__name__, getsizeof(obj)))
-
-    return obj, converted
-
-
-def maybe_compress_summary(obj, h5_typename):
-    if np and isinstance(obj, np.ndarray) and obj.size > 32:
-        return (
-            {
-                "_type": h5_typename,  # may not be ndarray
-                "var": np.var(obj).item(),
-                "mean": np.mean(obj).item(),
-                "min": np.amin(obj).item(),
-                "max": np.amax(obj).item(),
-                "10%": np.percentile(obj, 10),
-                "25%": np.percentile(obj, 25),
-                "75%": np.percentile(obj, 75),
-                "90%": np.percentile(obj, 90),
-                "size": obj.size,
-            },
-            True,
-        )
-    else:
-        return obj, False
-
-
-class WandBJSONEncoder(json.JSONEncoder):
-    """A JSON Encoder that handles some extra types."""
-
-    def default(self, obj):
-        if hasattr(obj, "json_encode"):
-            return obj.json_encode()
-        # if hasattr(obj, 'to_json'):
-        #     return obj.to_json()
-        tmp_obj, converted = json_friendly(obj)
-        if converted:
-            return tmp_obj
-        return json.JSONEncoder.default(self, obj)
-
-
-class WandBJSONEncoderOld(json.JSONEncoder):
-    """A JSON Encoder that handles some extra types."""
-
-    def default(self, obj):
-        tmp_obj, converted = json_friendly(obj)
-        tmp_obj, compressed = maybe_compress_summary(tmp_obj, get_h5_typename(obj))
-        if converted:
-            return tmp_obj
-        return json.JSONEncoder.default(self, tmp_obj)
-
-
-def maybe_compress_history(obj):
-    if np and isinstance(obj, np.ndarray) and obj.size > 32:
-        return wandb.Histogram(obj, num_bins=32).to_json(), True
-    else:
-        return obj, False
-
-
-def json_dumps_safer_history(obj, **kwargs):
-    """Convert obj to json, with some extra encodable types, including histograms"""
-    return json.dumps(obj, cls=WandBHistoryJSONEncoder, **kwargs)
-
-
-class WandBHistoryJSONEncoder(json.JSONEncoder):
-    """A JSON Encoder that handles some extra types.
-    This encoder turns numpy like objects with a size > 32 into histograms"""
-
-    def default(self, obj):
-        obj, converted = json_friendly(obj)
-        obj, compressed = maybe_compress_history(obj)
-        if converted:
-            return obj
-        return json.JSONEncoder.default(self, obj)
 
 
 class BackendSender(object):
@@ -255,13 +96,10 @@ class BackendSender(object):
     def _make_config(self, config_dict, obj=None):
         config = obj or wandb_internal_pb2.ConfigData()
         for k, v in six.iteritems(config_dict):
-            try:
-                value_json = json.dumps(v)
-                update = config.update.add()
-                update.key = k
-                update.value_json = value_json
-            except TypeError:
-                pass
+            update = config.update.add()
+            update.key = k
+            update.value_json = json_dumps_safer(json_friendly(v)[0])
+
         return config
 
     def _make_stats(self, stats_dict):
@@ -271,7 +109,7 @@ class BackendSender(object):
         for k, v in six.iteritems(stats_dict):
             item = stats.item.add()
             item.key = k
-            item.value_json = json.dumps(v)
+            item.value_json = json_dumps_safer(json_friendly(v)[0])
         return stats
 
     def _summary_encode(self, value, path_from_root):
@@ -315,7 +153,7 @@ class BackendSender(object):
         for k, v in six.iteritems(data):
             update = summary.update.add()
             update.key = k
-            update.value_json = json.dumps(v, cls=WandBJSONEncoderOld)
+            update.value_json = json.dumps(json_friendly(v)[0], cls=WandBJSONEncoderOld)
         return summary
 
     def _make_files(self, files_dict):

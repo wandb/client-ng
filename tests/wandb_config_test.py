@@ -21,3 +21,4 @@ def test_locked_set():
     s.update_locked(dict(this=2, that=4), "sweep")
     s.this = 8
     assert s.this == 2
+
