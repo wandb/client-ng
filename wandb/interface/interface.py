@@ -255,9 +255,13 @@ class BackendSender(object):
     def _make_config(self, config_dict, obj=None):
         config = obj or wandb_internal_pb2.ConfigData()
         for k, v in six.iteritems(config_dict):
-            update = config.update.add()
-            update.key = k
-            update.value_json = json.dumps(v)
+            try:
+                value_json = json.dumps(v)
+                update = config.update.add()
+                update.key = k
+                update.value_json = value_json
+            except TypeError:
+                pass
         return config
 
     def _make_stats(self, stats_dict):
