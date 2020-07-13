@@ -343,7 +343,6 @@ def put(path, name, description, type, alias):
 
     wandb.termlog("    artifact = run.use_artifact(\"{path}\")\n".format(
         path=artifact_path,
-        type=type
     ), prefix=False)
 
 

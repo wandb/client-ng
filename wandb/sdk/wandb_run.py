@@ -20,7 +20,6 @@ from wandb.data_types import _datatypes_set_callback
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
-from . import wandb_artifacts
 from . import wandb_config
 from . import wandb_history
 from . import wandb_summary
