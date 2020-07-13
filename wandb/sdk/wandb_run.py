@@ -367,7 +367,8 @@ class RunManaged(Run):
         the returned object to get the contents locally.
 
         Args:
-            artifact_or_name (str or Artifact): An artifact name. May be prefixed with entity/project. Valid names
+            artifact_or_name (str or Artifact): An artifact name.
+            May be prefixed with entity/project. Valid names
                 can be in the following forms:
                     name:version
                     name:alias
@@ -425,13 +426,14 @@ class RunManaged(Run):
                     /local/directory
                     /local/directory/file.txt
                     s3://bucket/path
-                You can also pass an Artifact object created by calling `wandb.Artifact`
-            name (str, optional): An artifact name. May be prefixed with entity/project. Valid names
-                can be in the following forms:
+                You can also pass an Artifact object created by calling `wandb.Artifact`.
+            name (str, optional): An artifact name. May be prefixed with entity/project.
+                Valid names can be in the following forms:
                     name:version
                     name:alias
                     digest
-                this will default to the basename of the path prepended with the current run id  if not specified
+                This will default to the basename of the path prepended with the current
+                run id  if not specified.
             type (str): The type of artifact to log, examples include "dataset", "model"
             aliases (list, optional): Aliases to apply to this artifact, defaults to ["latest"]
         Returns:
