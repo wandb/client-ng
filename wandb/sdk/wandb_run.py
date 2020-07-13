@@ -441,7 +441,7 @@ class RunManaged(Run):
         Returns:
             A :obj:`Artifact` object.
         """
-        aliases = aliases or ['latest']
+        aliases = aliases or ["latest"]
         if isinstance(artifact_or_path, str):
             if name is None:
                 name = "run-%s-%s" % (self.id, os.path.basename(artifact_or_path))
@@ -453,13 +453,17 @@ class RunManaged(Run):
             elif "://" in artifact_or_path:
                 artifact.add_reference(artifact_or_path)
             else:
-                raise ValueError("path must be a file, directory or external"
-                                 "reference like s3://bucket/path")
+                raise ValueError(
+                    "path must be a file, directory or external"
+                    "reference like s3://bucket/path"
+                )
         else:
             artifact = artifact_or_path
         if not isinstance(artifact, wandb.Artifact):
-            raise ValueError('You must pass an instance of wandb.Artifact or a '
-                             'valid file path to log_artifact')
+            raise ValueError(
+                "You must pass an instance of wandb.Artifact or a "
+                "valid file path to log_artifact"
+            )
         if isinstance(aliases, str):
             aliases = [aliases]
         artifact.finalize()

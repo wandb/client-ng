@@ -51,7 +51,7 @@ class Artifact(object):
     @property
     def entity(self):
         # TODO: querying for default entity a good idea here?
-        return self._api.settings('entity') or self._api.viewer().get("entity")
+        return self._api.settings("entity") or self._api.viewer().get("entity")
 
     @property
     def project(self):
