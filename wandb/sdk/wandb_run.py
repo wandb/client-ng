@@ -20,10 +20,10 @@ from wandb.data_types import _datatypes_set_callback
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
+from . import wandb_artifacts
 from . import wandb_config
 from . import wandb_history
 from . import wandb_summary
-from . import wandb_artifacts
 
 
 logger = logging.getLogger("wandb")
@@ -365,7 +365,7 @@ class RunManaged(Run):
 
     def use_artifact(self, artifact, type=None, aliases=None):
         r = self._run_obj
-        api = internal.Api(default_settings={"entity": r.entity, "project": r.project,})
+        api = internal.Api(default_settings={"entity": r.entity, "project": r.project})
         api.set_current_run_id(self.id)
 
         if isinstance(artifact, str):
@@ -397,10 +397,12 @@ class RunManaged(Run):
                 return artifact
             else:
                 raise ValueError(
-                    'You must pass an artifact name (e.g. "pedestrian-dataset:v1"), an instance of wandb.Artifact, or wandb.Api().artifact() to use_artifact'
+                    'You must pass an artifact name (e.g. "pedestrian-dataset:v1"), an instance of wandb.Artifact, or wandb.Api().artifact() to use_artifact'  # noqa: E501
                 )
 
-    def log_artifact(self, artifact, aliases=["latest"]):
+    def log_artifact(self, artifact, aliases=None):
+        if aliases is None:
+            aliases = ["latest"]
         if not isinstance(artifact, wandb_artifacts.Artifact):
             raise ValueError(
                 "You must pass an instance of wandb.Artifact to log_artifact"
