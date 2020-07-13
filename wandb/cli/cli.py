@@ -8,8 +8,8 @@ import click
 from click.exceptions import ClickException
 import six
 import wandb
-from wandb import Error
 from wandb import env, util
+from wandb import Error
 from wandb import wandb_agent
 from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
@@ -315,7 +315,7 @@ def put(path, name, description, type, alias):
     api.set_setting("project", project)
     artifact = wandb.Artifact(name=artifact_name, type=type, description=description)
     artifact_path = "{entity}/{project}/{name}:{alias}".format(entity=entity,
-        project=project, name=artifact_name, alias=alias[0])
+                                                               project=project, name=artifact_name, alias=alias[0])
     if os.path.isdir(path):
         wandb.termlog("Uploading directory {path} to: \"{artifact_path}\" ({type})".format(
             path=path, type=type, artifact_path=artifact_path))
@@ -334,8 +334,8 @@ def put(path, name, description, type, alias):
     run = wandb.init(entity=entity, project=project, config={"path": path}, job_type="cli_put")
     # We create the artifact manually to get the current version
     res = api.create_artifact(type, artifact_name, artifact.digest,
-        entity_name=entity, project_name=project, run_name=run.id, description=description,
-        aliases=[{"artifactCollectionName": artifact_name, "alias": a} for a in alias])
+                              entity_name=entity, project_name=project, run_name=run.id, description=description,
+                              aliases=[{"artifactCollectionName": artifact_name, "alias": a} for a in alias])
     artifact_path = artifact_path.split(":")[0] + ":" + res.get("version", "latest")
     # Re-create the artifact and actually upload any files needed
     run.log_artifact(artifact, aliases=alias)
@@ -388,14 +388,17 @@ def ls(path, type):
     else:
         types = public_api.artifact_types(path)
 
-    def human_size(bytes, units=['', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']):
+    def human_size(bytes, units=None):
+        units = units or ['', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']
         return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
 
     for kind in types:
         for collection in kind.collections():
-            versions = public_api.artifact_versions(kind.type, "/".join([kind.entity, kind.project, collection.name]), per_page=1)
+            versions = public_api.artifact_versions(kind.type, "/".join([kind.entity, kind.project, collection.name]),
+                                                    per_page=1)
             latest = next(versions)
-            print("{:<15s}{:<15s}{:>15s} {:<20s}".format(kind.type, latest.updated_at, human_size(latest.size), latest.name))
+            print("{:<15s}{:<15s}{:>15s} {:<20s}".format(kind.type, latest.updated_at, human_size(latest.size),
+                                                         latest.name))
 
 
 @cli.command(context_settings=CONTEXT, help="Pull files from Weights & Biases")

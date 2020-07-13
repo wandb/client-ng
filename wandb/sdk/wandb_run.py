@@ -417,7 +417,7 @@ class RunManaged(Run):
                     'You must pass an artifact name (e.g. "pedestrian-dataset:v1"), an instance of wandb.Artifact, or wandb.Api().artifact() to use_artifact'  # noqa: E501
                 )
 
-    def log_artifact(self, artifact_or_path, name=None, type=None, aliases=['latest']):
+    def log_artifact(self, artifact_or_path, name=None, type=None, aliases=None):
         """ Declare an artifact as output of a run.
 
         Args:
@@ -438,6 +438,7 @@ class RunManaged(Run):
         Returns:
             A :obj:`Artifact` object.
         """
+        aliases = aliases or ['latest']
         if isinstance(artifact_or_path, str):
             if name is None:
                 name = "run-%s-%s" % (self.id, os.path.basename(artifact_or_path))
