@@ -239,7 +239,7 @@ def wandb_internal(
 
     run_meta = None
     if not settings._disable_meta:
-        # We'll garther the meta now, but wait until we have a run to persist by wiring
+        # We'll gather the meta now, but wait until we have a run to persist by wiring
         # this through to the sender.
         # If we try to persist now, there may not be a run yet, and we'll error out.
         run_meta = meta.Meta(
