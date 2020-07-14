@@ -8,6 +8,7 @@ Tests for the `wandb.apis.PublicApi` module.
 import os
 import json
 import pytest
+import platform
 
 import wandb
 from wandb import Api
@@ -203,7 +204,8 @@ def test_artifact_get_path(runner, mock_server, api):
     with runner.isolated_filesystem():
         path = art.get_path("digits.h5")
         res = path.download()
-        path = "/.cache/wandb/artifacts/obj/md5/4d/e489e31c57834a21b8be7111dab613"
+        path = os.path.join(".cache", "wandb", "artifacts", "obj", "md5", "4d",
+                            "e489e31c57834a21b8be7111dab613")
         assert res == os.path.expanduser("~") + path
 
 
@@ -211,14 +213,22 @@ def test_artifact_file(runner, mock_server, api):
     with runner.isolated_filesystem():
         art = api.artifact("entity/project/mnist:v0", type="dataset")
         path = art.file()
-        assert path == "./artifacts/mnist:v0/digits.h5"
+        if platform.system() == "Windows":
+            part = "mnist-v0"
+        else:
+            part = "mnist:v0"
+        assert path == os.path.join(".", "artifacts", part, "digits.h5")
 
 
 def test_artifact_download(runner, mock_server, api):
     with runner.isolated_filesystem():
         art = api.artifact("entity/project/mnist:v0", type="dataset")
         path = art.download()
-        assert path == "./artifacts/mnist:v0"
+        if platform.system() == "Windows":
+            part = "mnist-v0"
+        else:
+            part = "mnist:v0"
+        assert path == os.path.join(".", "artifacts", part)
 
 
 def test_artifact_run_used(runner, mock_server, api):
