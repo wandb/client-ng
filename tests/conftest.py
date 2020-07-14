@@ -1,12 +1,15 @@
 import pytest
 import time
+import os
 import requests
 from tests import utils
 from multiprocessing import Process
-from wandb import util
+# from wandb import util
 import click
 from click.testing import CliRunner
 import webbrowser
+
+DUMMY_API_KEY = '1824812581259009ca9981580f8f8a9012409eee'
 
 
 @pytest.fixture
@@ -19,7 +22,21 @@ def runner(monkeypatch, mocker):
     #                    'project_name': 'test_model', 'files': ['weights.h5'],
     #                    'attach': False, 'team_name': 'Manual Entry'})
     monkeypatch.setattr(webbrowser, 'open_new_tab', lambda x: True)
+    mocker.patch('wandb.sdk.wandb_login.prompt', lambda *args, **kwargs: DUMMY_API_KEY)
     return CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def local_netrc(monkeypatch):
+    """Never use our real credentials, put them in an isolated dir"""
+    with CliRunner().isolated_filesystem():
+        # TODO: this seems overkill...
+        origexpand = os.path.expanduser
+
+        def expand(path):
+            return os.path.realpath("netrc") if "netrc" in path else origexpand(path)
+        monkeypatch.setattr(os.path, "expanduser", expand)
+        yield
 
 
 def default_ctx():
