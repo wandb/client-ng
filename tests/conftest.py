@@ -1,6 +1,7 @@
 import pytest
 import time
 import os
+import sys
 import requests
 from tests import utils
 from multiprocessing import Process
@@ -22,7 +23,12 @@ def runner(monkeypatch, mocker):
     #                    'project_name': 'test_model', 'files': ['weights.h5'],
     #                    'attach': False, 'team_name': 'Manual Entry'})
     monkeypatch.setattr(webbrowser, 'open_new_tab', lambda x: True)
-    mocker.patch('wandb.sdk.wandb_login.prompt', lambda *args, **kwargs: DUMMY_API_KEY)
+    if sys.version_info < (3, 5):
+        sdk = "sdk_py27"
+    else:
+        sdk = "sdk"
+    mocker.patch('wandb.%s.wandb_login.prompt' % sdk,
+                 lambda *args, **kwargs: DUMMY_API_KEY)
     return CliRunner()
 
 
@@ -54,6 +60,10 @@ def mock_server(mocker):
     ctx = default_ctx()
     app = create_app(ctx)
     mock = utils.RequestsMock(app, ctx)
+    if sys.version_info < (3, 5):
+        sdk = "sdk_py27"
+    else:
+        sdk = "sdk"
     mocker.patch("gql.transport.requests.requests", mock)
     mocker.patch("wandb.internal.file_stream.requests", mock)
     mocker.patch("wandb.internal.internal_api.requests", mock)
@@ -61,7 +71,7 @@ def mock_server(mocker):
     mocker.patch("wandb.apis.internal_runqueue.requests", mock)
     mocker.patch("wandb.apis.public.requests", mock)
     mocker.patch("wandb.util.requests", mock)
-    mocker.patch("wandb.sdk.wandb_artifacts.requests", mock)
+    mocker.patch("wandb.%s.wandb_artifacts.requests" % sdk, mock)
     return mock
 
 
