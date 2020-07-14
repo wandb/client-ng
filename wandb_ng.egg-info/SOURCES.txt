@@ -5,7 +5,6 @@ pyproject.toml
 setup.cfg
 setup.py
 wandb/__init__.py
-wandb/artifacts_cache.py
 wandb/data_types.py
 wandb/env.py
 wandb/py.typed
