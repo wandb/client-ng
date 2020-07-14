@@ -242,6 +242,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _start_datetime=None,
         console=None,
         disabled=None,  # alias for mode=dryrun, not supported yet
+        reinit=None,
         # compute environment
         jupyter=None,
         windows=None,
@@ -455,9 +456,11 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
 
     def apply_init(self, args):
         # strip out items where value is None
+        print("apply", args)
         param_map = dict(
             name="run_name", id="run_id", tags="run_tags", group="run_group",
         )
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
+        print("apply2", args)
         self.update(args)
         self.run_id = self.run_id or _generate_id()

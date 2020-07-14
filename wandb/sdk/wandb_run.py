@@ -49,6 +49,7 @@ class RunManaged(Run):
         _datatypes_set_callback(self._datatypes_callback)
 
         self._settings = settings
+        self._wl = None
         self._backend = None
         self._reporter = None
         self._data = dict()
@@ -204,6 +205,9 @@ class RunManaged(Run):
         self.summary.update(row)
         self._backend.interface.send_history(row)
 
+    def _set_library(self, library):
+        self._wl = library
+
     def _set_backend(self, backend):
         self._backend = backend
 
@@ -224,6 +228,9 @@ class RunManaged(Run):
 
     def join(self):
         self._backend.cleanup()
+
+        if len(self._wl._global_run_stack) > 0:
+            self._wl._global_run_stack.pop()
 
     def _get_project_url(self):
         s = self._settings
@@ -262,7 +269,14 @@ class RunManaged(Run):
             )
         )
 
+    def _console_start(self):
+        pass
+
+    def _console_stop(self):
+        pass
+
     def on_start(self):
+        self._console_capture()
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
             run_state_str = "Syncing run"
@@ -274,9 +288,14 @@ class RunManaged(Run):
         print("")
 
     def on_finish(self):
+        self._console_stop()
+        pass
+
+    def on_final(self):
         # check for warnings and errors, show log file locations
         # if self._run_obj:
         #    self._display_run()
+        print("DEBUG on finish")
         if self._reporter:
             warning_lines = self._reporter.warning_lines
             if warning_lines:

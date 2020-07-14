@@ -141,6 +141,9 @@ class Config(object):
         if self._callback:
             self._callback(data=self._as_dict())
 
+    def get(self, *args):
+        return self._items.get(*args)
+
     def setdefaults(self, d):
         d = parse_config(d)
         for k, v in six.iteritems(d):

@@ -88,6 +88,7 @@ wandb/proto/wandb_internal_codegen.py
 wandb/proto/wandb_internal_pb2.py
 wandb/proto/wandb_server_pb2.py
 wandb/proto/wandb_server_pb2_grpc.py
+wandb/ray/__init__.py
 wandb/sdk/__init__.py
 wandb/sdk/wandb_config.py
 wandb/sdk/wandb_history.py

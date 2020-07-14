@@ -172,7 +172,6 @@ class _WandbInit(object):
             "magic",
             "config_exclude_keys",
             "config_include_keys",
-            "reinit",
             "anonymous",
             "dir",
             "allow_val_change",
@@ -326,10 +325,14 @@ class _WandbInit(object):
 
         self._restore()
 
-        self.backend.cleanup()
-        # TODO(jhr): no warning allowed
         if self.run:
             self.run.on_finish()
+
+        self.backend.cleanup()
+
+        # TODO(jhr): no warning allowed
+        if self.run:
+            self.run.on_final()
 
     def _callback(self, name, data):
         logger.info("callback: %s, %s", name, data)
@@ -398,6 +401,15 @@ class _WandbInit(object):
         s = self.settings
         config = self.config
 
+        print("init", s.reinit)
+        if s.reinit:
+            print("stack", self.wl._global_run_stack)
+            if len(self.wl._global_run_stack) > 0:
+                if len(self.wl._global_run_stack) > 1:
+                    print("If you want to track multiple runs concurrently in wandb you should use multi-processing not threads")
+                print("DEBUG: join")
+                wandb.join()
+
         if s.mode == "noop":
             # TODO(jhr): return dummy object
             return None
@@ -441,10 +453,13 @@ class _WandbInit(object):
         # resuming needs access to the server, check server_status()?
 
         run = RunManaged(config=config, settings=s)
+        run._set_library(self.wl)
         run._set_backend(backend)
         run._set_reporter(self._reporter)
         # TODO: pass mode to backend
         # run_synced = None
+
+        self.wl._global_run_stack.append(run)
 
         backend._hack_set_run(run)
 
@@ -463,6 +478,7 @@ class _WandbInit(object):
         self.backend = backend
         set_global(run=run, config=run.config, log=run.log, join=run.join)
         self._reporter.set_context(run=run)
+
         run.on_start()
 
         logger.info("atexit reg")
@@ -490,30 +506,31 @@ def getcaller():
 
 
 def init(
-    settings: Union[Settings, Dict[str, Any], str, None] = None,
-    entity: Optional[str] = None,
-    team: Optional[str] = None,
-    project: Optional[str] = None,
-    mode: Optional[str] = None,
-    group: Optional[str] = None,
     job_type: Optional[str] = None,
-    tags: Optional[List] = None,
-    name: Optional[str] = None,
+    dir=None,
     config: Union[Dict, None] = None,  # TODO(jhr): type is a union for argparse/absl
+    project: Optional[str] = None,
+    entity: Optional[str] = None,
+    reinit: bool = None,
+    tags: Optional[List] = None,
+    team: Optional[str] = None,
+    group: Optional[str] = None,
+    name: Optional[str] = None,
     notes: Optional[str] = None,
     magic: bool = None,  # TODO(jhr): type is union
     config_exclude_keys=None,
     config_include_keys=None,
-    reinit: bool = None,
     anonymous: bool = None,
-    dir=None,
-    allow_val_change=None,
+    disable: bool = None,
+    offline: bool = None,
+    allow_val_change: bool = None,
     resume=None,
     force=None,
-    tensorboard=None,
+    tensorboard=None,  # alias for sync_tensorboard
     sync_tensorboard=None,
     monitor_gym=None,
     id=None,
+    settings: Union[Settings, Dict[str, Any], str, None] = None,
 ) -> Run:
     """Initialize a wandb Run.
 
