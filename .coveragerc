@@ -4,4 +4,4 @@ source =
     tests/
 omit =
     wandb/vendor/*
-    wandb/sdk_py26/*
+    wandb/sdk_py27/*
