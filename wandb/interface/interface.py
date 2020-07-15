@@ -5,26 +5,22 @@ Manage backend sender.
 
 """
 
-from datetime import date, datetime
 import json
 import logging
 
-import numpy as np  # type: ignore
 import six
 from six.moves import queue
-import wandb
 from wandb import data_types
 from wandb.interface import constants
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import (
-    WandBJSONEncoderOld,
     get_h5_typename,
     json_dumps_safer,
     json_dumps_safer_history,
     json_friendly,
-    maybe_compress_summary
+    maybe_compress_summary,
+    WandBJSONEncoderOld,
 )
-from sys import getsizeof
 
 logger = logging.getLogger("wandb")
 

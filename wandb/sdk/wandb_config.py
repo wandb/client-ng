@@ -12,9 +12,15 @@ import six
 import wandb
 from wandb.lib import filesystem
 from wandb.lib.term import terminfo
-import yaml
-from collections.abc import Sequence
 from wandb.util import json_friendly
+import yaml
+
+try:
+    # Since python 3
+    from collections.abc import Sequence
+except ImportError:
+    # Won't work after python 3.8
+    from collections import Sequence
 
 logger = logging.getLogger("wandb")
 
@@ -183,9 +189,12 @@ class Config(object):
         if not allow_val_change:
             if key in self._items and val != self._items[key]:
                 raise ConfigError(
-                    'Attempted to change value of key "{}" from {} to {}\nIf you really want to do this, pass allow_val_change=True to config.update()'.format(
-                        key, self._items[key], val
-                    )
+                    (
+                        'Attempted to change value of key "{}" '
+                        "from {} to {}\n"
+                        "If you really want to do this, pass"
+                        " allow_val_change=True to config.update()"
+                    ).format(key, self._items[key], val)
                 )
         return key, val
 
