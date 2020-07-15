@@ -878,13 +878,15 @@ class Image(BatchableMedia):
                 masks_final[key] = ImageMask(masks[key], key)
             self._masks = masks_final
 
+        PILImage = util.get_module(
+            "PIL.Image", required='wandb.Image needs the PIL package. To get it, run "pip install pillow".')
+
         if isinstance(data_or_path, six.string_types):
             self._set_file(data_or_path, is_tmp=False)
+            self._image = PILImage.open(data_or_path)
         else:
             data = data_or_path
 
-            PILImage = util.get_module(
-                "PIL.Image", required='wandb.Image needs the PIL package. To get it, run "pip install pillow".')
             if util.is_matplotlib_typename(util.get_full_typename(data)):
                 buf = six.BytesIO()
                 util.ensure_matplotlib_figure(data).savefig(buf)
@@ -907,11 +909,12 @@ class Image(BatchableMedia):
                 self._image = PILImage.fromarray(
                     self.to_uint8(data), mode=mode or self.guess_mode(data))
 
-            self._width, self._height = self._image.size
-
-            tmp_path = os.path.join(MEDIA_TMP.name, util.generate_id() + '.png')
+            tmp_path = os.path.join(
+                MEDIA_TMP.name, util.generate_id() + '.png')
             self._image.save(tmp_path, transparency=None)
             self._set_file(tmp_path, is_tmp=True)
+
+        self._width, self._height = self._image.size
 
     @classmethod
     def get_media_subdir(cls):
@@ -1022,10 +1025,11 @@ class Image(BatchableMedia):
         sprite.save(os.path.join(base, fname), transparency=None)
         meta = {"width": width, "height": height, "format": "png",
                 "count": num_images_to_log, "_type": "images"}
-        # TODO: hacky way to enable image grouping for now
-        grouping = images[0]._grouping
-        if grouping:
-            meta["grouping"] = grouping
+
+        for i, image in enumerate(images[:num_images_to_log]):
+            if not image.is_bound():
+                image.bind_to_run(run, key, step, id_=i)
+
 
         captions = Image.all_captions(images)
 
@@ -1077,11 +1081,11 @@ class Image(BatchableMedia):
                 all_box_groups.append(None)
         if all_box_groups and not all(x is None for x in all_box_groups):
             return all_box_groups
-        else: 
+        else:
             return False
 
     @classmethod
-    def all_captions(cls, images ):
+    def all_captions(cls, images):
         if images[0]._caption != None:
             return [i._caption for i in images]
         else:
