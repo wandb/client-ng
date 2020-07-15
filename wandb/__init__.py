@@ -27,6 +27,7 @@ setup = wandb_sdk.setup
 save = wandb_sdk.save
 watch = wandb_sdk.watch
 login = wandb_sdk.login
+Artifact = wandb_sdk.Artifact
 Settings = wandb_sdk.Settings
 
 from wandb.apis import InternalApi, PublicApi
@@ -58,6 +59,7 @@ from wandb import superagent
 from wandb.viz import visualize
 from wandb import plots
 
+
 # Used to make sure we don't use some code in the incorrect process context
 _IS_INTERNAL_PROCESS = False
 
@@ -88,6 +90,8 @@ join = _preinit.PreInitCallable("wandb.join")
 
 keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras')
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
+tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
+xgboost = _lazyloader.LazyLoader('wandb.xgboost', globals(), 'wandb.framework.xgboost')
 
 def ensure_configured():
     global api

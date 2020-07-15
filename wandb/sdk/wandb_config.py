@@ -151,6 +151,8 @@ class Config(object):
         d = self._sanitize_dict(d)
         for k, v in six.iteritems(d):
             self._items.setdefault(k, v)
+        if self._callback:
+            self._callback(data=self._as_dict())
 
     def update_locked(self, d, user=None):
         if user not in self._users:
