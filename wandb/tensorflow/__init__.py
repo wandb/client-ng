@@ -1,8 +1,8 @@
 import re
-import six
 import time
-import wandb
 
+import six
+import wandb
 
 # We have atleast the default namestep and a global step to track
 # TODO: reset this structure on wandb.join
