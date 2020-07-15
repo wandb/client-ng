@@ -859,11 +859,12 @@ class Image(BatchableMedia):
         self._width = None
         self._height = None
         self._image = None
-        
-        self._boxes = None 
-        if boxes: 
+
+        self._boxes = None
+        if boxes:
             if not isinstance(boxes, dict):
-                raise ValueError("Images \"boxes\" argument must be a dictionary")
+                raise ValueError(
+                    "Images \"boxes\" argument must be a dictionary")
             boxes_final = {}
             for key in boxes:
                 boxes_final[key] = BoundingBoxes2D(boxes[key], key)
@@ -994,9 +995,7 @@ class Image(BatchableMedia):
         """
         Combines a list of images into a single sprite returning meta information
         """
-        from PIL import Image as PILImage
-        base = os.path.join(run.dir, cls.get_media_subdir())
-        width, height = images[0]._image.size
+
         num_images_to_log = len(images)
 
         if num_images_to_log > Image.MAX_THUMBNAILS:
@@ -1005,31 +1004,28 @@ class Image(BatchableMedia):
             num_images_to_log = Image.MAX_THUMBNAILS
             images = images[:num_images_to_log]
 
-        if width * num_images_to_log > Image.MAX_DIMENSION:
-            max_images_by_dimension = Image.MAX_DIMENSION // width
-            logging.warning('Only {} images will be uploaded. The maximum total width for a set of thumbnails is 65,500px, or {} images, each with a width of {} pixels.'.format(
-                max_images_by_dimension, max_images_by_dimension, width))
-            num_images_to_log = max_images_by_dimension
+        for i, obj in enumerate(images):
+            if not obj.is_bound():
+                obj.bind_to_run(run, key, step, id_=i)
 
-        total_width = width * num_images_to_log
-        sprite = PILImage.new(
-            mode='RGB',
-            size=(total_width, height),
-            color=(0, 0, 0))
-        for i, image in enumerate(images[:num_images_to_log]):
-            location = width * i
-            sprite.paste(image._image, (location, 0))
-        fname = '{}_{}.png'.format(key, step)
-        # fname may contain a slash so we create the directory
-        util.mkdir_exists_ok(os.path.dirname(os.path.join(base, fname)))
-        sprite.save(os.path.join(base, fname), transparency=None)
-        meta = {"width": width, "height": height, "format": "png",
-                "count": num_images_to_log, "_type": "images"}
+        jsons = [obj.to_json(run) for obj in images]
 
-        for i, image in enumerate(images[:num_images_to_log]):
-            if not image.is_bound():
-                image.bind_to_run(run, key, step, id_=i)
+        for obj in jsons:
+            if not obj['path'].startswith(cls.get_media_subdir()):
+                raise ValueError('Files in an array of Object3D\'s must be in the {} directory, not {}'.format(
+                    cls.get_media_subdir(), obj['path']))
 
+        num_images_to_log = len(images)
+        width, height = images[0]._image.size
+
+        meta = {
+            "_type": "images/individual",
+            "width": width,
+            "height": height,
+            "format": "png",
+            "count": num_images_to_log,
+            'objects': jsons,
+        }
 
         captions = Image.all_captions(images)
 
