@@ -132,7 +132,7 @@ class Meta(object):
             # chroot jails or docker containers.  Return user id in these cases.
             username = str(os.getuid())
 
-        if self._settings.get("anonymous") != "true":
+        if self._settings.anonymous != "true":
             self.data["host"] = os.environ.get(env.HOST, socket.gethostname())
             self.data["username"] = os.getenv(env.USERNAME, username)
             self.data["executable"] = sys.executable
