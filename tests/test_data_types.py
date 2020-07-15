@@ -114,8 +114,8 @@ def test_image_accepts_masks(mocked_run):
 
 
 def test_image_accepts_masks_without_class_labels(mocked_run):
-    img = wandb.Image(image, masks={
-                        "overlay": dissoc(standard_mask, "class_labels")})
+    img = wandb.Image(image, masks={"overlay":
+                                    dissoc(standard_mask, "class_labels")})
     img.bind_to_run(mocked_run, "images", 0)
     img_json = img.to_json(mocked_run)
     path = img_json["masks"]["overlay"]["path"]

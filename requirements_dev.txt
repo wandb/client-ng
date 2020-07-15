@@ -8,8 +8,8 @@ pandas
 numpy
 matplotlib
 soundfile
-moviepy
-imageio
+moviepy; python_version >= '3.6'
+imageio; python_version >= '3.6'
 pytest-flask
 pytest-mock
 tensorflow==1.15

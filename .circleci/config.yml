@@ -64,6 +64,8 @@ jobs:
                       tox -v -e << parameters.toxenv >>
     win:
         executor: win/default
+        environment:
+            WIN_DIR: "C:\\Windows"
         steps:
             - checkout
             - run:
