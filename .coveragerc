@@ -2,3 +2,6 @@
 source =
     wandb/
     tests/
+omit =
+    wandb/vendor/*
+    wandb/sdk_py26/*

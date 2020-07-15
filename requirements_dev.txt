@@ -4,6 +4,12 @@ coveralls
 tox==3.7
 pip
 Pillow
+pandas
+numpy
+matplotlib
+soundfile
+moviepy
+imageio
 pytest-flask
 pytest-mock
 tensorflow==1.15
