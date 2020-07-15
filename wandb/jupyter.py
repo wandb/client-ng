@@ -1,14 +1,18 @@
 import logging
+import re
+
 import requests
 from requests.compat import urljoin
-import re
 
 logger = logging.getLogger(__name__)
 
 
 def notebook_metadata():
     """Attempts to query jupyter for the path and name of the notebook file"""
-    error_message = "Failed to query for notebook name, you can set it manually with the WANDB_NOTEBOOK_NAME environment variable"
+    error_message = (
+        "Failed to query for notebook name, you can set it manually with "
+        "the WANDB_NOTEBOOK_NAME environment variable"
+    )
     try:
         import ipykernel
         from notebook.notebookapp import list_running_servers
@@ -33,7 +37,8 @@ def notebook_metadata():
             logger.error(error_message)
             return {}
         for nn in res:
-            # TODO: wandb/client#400 found a case where res returned an array of strings...
+            # TODO: wandb/client#400 found a case where res returned an array of
+            # strings...
             if isinstance(nn, dict) and nn.get("kernel") and "notebook" in nn:
                 if nn["kernel"]["id"] == kernel_id:
                     return {
