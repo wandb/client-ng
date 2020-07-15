@@ -6,4 +6,4 @@ pip
 Pillow
 pytest-flask
 pytest-mock
-tensorflow==1.15
+tensorflow==1.15.2
