@@ -74,7 +74,8 @@ class Meta(object):
         try:
             pynvml.nvmlInit()
             self.data["gpu"] = pynvml.nvmlDeviceGetName(
-                pynvml.nvmlDeviceGetHandleByIndex(0)).decode("utf8")
+                pynvml.nvmlDeviceGetHandleByIndex(0)
+            ).decode("utf8")
             self.data["gpu_count"] = pynvml.nvmlDeviceGetCount()
         except pynvml.NVMLError:
             pass
@@ -105,7 +106,7 @@ class Meta(object):
                 self.data["codePath"] = self._settings.code_program
                 self.data["program"] = os.path.basename(self._settings.code_program)
             else:
-                self.data["program"] = '<python with no main file>'
+                self.data["program"] = "<python with no main file>"
                 if _get_python_type() != "python":
                     if os.getenv(env.NOTEBOOK_NAME):
                         self.data["program"] = os.getenv(env.NOTEBOOK_NAME)
@@ -113,7 +114,10 @@ class Meta(object):
                         meta = jupyter.notebook_metadata()
                         if meta.get("path"):
                             if "fileId=" in meta["path"]:
-                                self.data["colab"] = "https://colab.research.google.com/drive/"+meta["path"].split("fileId=")[1]
+                                self.data["colab"] = (
+                                    "https://colab.research.google.com/drive/"
+                                    + meta["path"].split("fileId=")[1]
+                                )
                                 self.data["program"] = meta["name"]
                             else:
                                 self.data["program"] = meta["path"]
@@ -127,7 +131,7 @@ class Meta(object):
             # chroot jails or docker containers.  Return user id in these cases.
             username = str(os.getuid())
 
-        if self.settings().get('anonymous') != 'true':
+        if self.settings().get("anonymous") != "true":
             self.data["host"] = os.environ.get(env.HOST, socket.gethostname())
             self.data["username"] = os.getenv(env.USERNAME, username)
             self.data["executable"] = sys.executable
