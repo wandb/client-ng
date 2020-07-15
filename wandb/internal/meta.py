@@ -14,9 +14,10 @@ from shutil import copyfile
 import socket
 import sys
 
-from wandb import _get_python_type, env, jupyter, util
+from wandb import env, jupyter, util
 from wandb.interface import interface
 from wandb.internal import git_repo
+from wandb.lib.ipython import _get_python_type
 from wandb.vendor.pynvml import pynvml
 
 
