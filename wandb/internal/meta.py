@@ -4,16 +4,20 @@ meta.
 """
 
 from datetime import datetime
+import getpass
 import json
 import logging
+import multiprocessing
 import os
 import platform
 from shutil import copyfile
+import socket
 import sys
 
-from wandb import util
+from wandb import env, jupyter, util, _get_python_type
 from wandb.interface import interface
 from wandb.internal import git_repo
+from wandb.vendor.pynvml import pynvml
 
 
 METADATA_FNAME = "wandb-metadata.json"
@@ -65,6 +69,26 @@ class Meta(object):
             self._settings._start_time
         ).isoformat()
 
+        if env.get_docker():
+            self.data["docker"] = env.get_docker()
+        try:
+            pynvml.nvmlInit()
+            self.data["gpu"] = pynvml.nvmlDeviceGetName(
+                pynvml.nvmlDeviceGetHandleByIndex(0)).decode("utf8")
+            self.data["gpu_count"] = pynvml.nvmlDeviceGetCount()
+        except pynvml.NVMLError:
+            pass
+        try:
+            self.data["cpu_count"] = multiprocessing.cpu_count()
+        except NotImplementedError:
+            pass
+        # TODO: we should use the cuda library to collect this
+        if os.path.exists("/usr/local/cuda/version.txt"):
+            with open("/usr/local/cuda/version.txt") as f:
+                self.data["cuda"] = f.read().split(" ")[-1].strip()
+        self.data["args"] = sys.argv[1:]
+        self.data["state"] = "running"
+
     def _setup_git(self):
         if self._git.enabled:
             self.data["git"] = {
@@ -80,7 +104,37 @@ class Meta(object):
             if self._settings.code_program is not None:
                 self.data["codePath"] = self._settings.code_program
                 self.data["program"] = os.path.basename(self._settings.code_program)
+            else:
+                self.data["program"] = '<python with no main file>'
+                if _get_python_type() != "python":
+                    if os.getenv(env.NOTEBOOK_NAME):
+                        self.data["program"] = os.getenv(env.NOTEBOOK_NAME)
+                    else:
+                        meta = jupyter.notebook_metadata()
+                        if meta.get("path"):
+                            if "fileId=" in meta["path"]:
+                                self.data["colab"] = "https://colab.research.google.com/drive/"+meta["path"].split("fileId=")[1]
+                                self.data["program"] = meta["name"]
+                            else:
+                                self.data["program"] = meta["path"]
+                                self.data["root"] = meta["root"]
             self._setup_git()
+
+        try:
+            username = getpass.getuser()
+        except KeyError:
+            # getuser() could raise KeyError in restricted environments like
+            # chroot jails or docker containers.  Return user id in these cases.
+            username = str(os.getuid())
+
+        if self.settings().get('anonymous') != 'true':
+            self.data["host"] = os.environ.get(env.HOST, socket.gethostname())
+            self.data["username"] = os.getenv(env.USERNAME, username)
+            self.data["executable"] = sys.executable
+        else:
+            self.data.pop("email", None)
+            self.data.pop("root", None)
+
         if self._settings.save_code:
             self._save_code()
 
