@@ -114,10 +114,10 @@ class Meta(object):
                         meta = jupyter.notebook_metadata()
                         if meta.get("path"):
                             if "fileId=" in meta["path"]:
-                                # leaving this line long because string
-                                # concatenation over multiple lines doesn't
-                                # play nice with flake8
-                                self.data["colab"] = ("https://colab.research.google.com/drive/" + meta["path"].split("fileId=")[1]) # noqa
+                                self.data["colab"] = (
+                                    "https://colab.research.google.com/drive/"
+                                    + meta["path"].split("fileId=")[1] # noqa
+                                )
                                 self.data["program"] = meta["name"]
                             else:
                                 self.data["program"] = meta["path"]
