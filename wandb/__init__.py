@@ -89,6 +89,7 @@ join = _preinit.PreInitCallable("wandb.join")
 
 keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras')
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
+tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
 
 __all__ = [
     "__version__",
