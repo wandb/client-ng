@@ -117,7 +117,7 @@ class Meta(object):
                             if "fileId=" in meta["path"]:
                                 self.data["colab"] = (
                                     "https://colab.research.google.com/drive/"
-                                    + meta["path"].split("fileId=")[1] # noqa
+                                    + meta["path"].split("fileId=")[1]  # noqa
                                 )
                                 self.data["program"] = meta["name"]
                             else:
