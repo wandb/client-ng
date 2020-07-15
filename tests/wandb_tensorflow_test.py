@@ -5,10 +5,11 @@ import pprint
 import six
 import wandb
 from wandb import tensorflow as wandb_tensorflow
+from wandb import wandb_sdk
 
 
 def test_tf_log():
-    history = wandb.sdk.History()
+    history = wandb_sdk.History()
     summaries_logged = []
 
     def spy_cb(row):
