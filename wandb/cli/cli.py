@@ -147,10 +147,9 @@ def init(ctx):
         if entity == "Manual Entry":
             entity = click.prompt("Enter the name of the team you want to use")
     else:
-        entity = click.prompt("What username or team should we use?",
-                              default=viewer.get('entity', 'models'))
+        entity = viewer.get('entity') or click.prompt("What username or team should we use?")
 
-    project = click.prompt("Enter the name of the project you want to use")#prompt_for_project(ctx, entity)
+    project = click.prompt("Enter the name of the project you want to use")  # prompt_for_project(ctx, entity)
 
     api.set_setting('entity', entity, persist=True)
     api.set_setting('project', project, persist=True)
@@ -160,8 +159,8 @@ def init(ctx):
     with open(os.path.join(wandb_dir(), '.gitignore'), "w") as file:
         file.write("*\n!settings")
 
-    click.echo(click.style("This directory is configured!  Next, track a run:\n", fg="green") +
-               textwrap.dedent("""\
+    click.echo(click.style("This directory is configured!  Next, track a run:\n",
+               fg="green") + textwrap.dedent("""\
         * In your training script:
             {code1}
             {code2}
