@@ -19,11 +19,10 @@ def test_artifact_download(runner, git_repo, mock_server):
     assert os.path.exists(path)
 
 
-def test_artifact_upload(runner, git_repo, mock_server):
+def test_artifact_upload(runner, git_repo, mock_server, mocker, mocked_run):
     with open("artifact.txt", "w") as f:
         f.write("My Artifact")
-    os.environ["WANDB_MODE"] = "mock"
-    wandb._IS_INTERNAL_PROCESS = False # TODO: this is rather unfortunate and shouldn't be needed
+    mocker.patch('wandb.init', lambda *args, **kwargs: mocked_run)
     result = runner.invoke(cli.artifact, ["put", "artifact.txt", "-n", "test/simple"])
     print(result.output)
     print(result.exception)

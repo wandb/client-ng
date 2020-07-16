@@ -2,10 +2,8 @@ import requests
 import json
 import os
 from tests.mock_server import create_app
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
+from _pytest.config import get_config
+from pytest_mock import _get_mock_module
 
 
 def subdict(d, expected_dict):
@@ -33,15 +31,16 @@ def mock_server():
     ctx = default_ctx()
     app = create_app(ctx)
     mock = RequestsMock(app, ctx)
+    mocker = _get_mock_module(get_config())
     # We mock out all requests libraries, couldn't find a way to mock the core lib
-    patch("gql.transport.requests.requests", mock).start()
-    patch("wandb.internal.file_stream.requests", mock).start()
-    patch("wandb.internal.internal_api.requests", mock).start()
-    patch("wandb.internal.update.requests", mock).start()
-    patch("wandb.apis.internal_runqueue.requests", mock).start()
-    patch("wandb.apis.public.requests", mock).start()
-    patch("wandb.util.requests", mock).start()
-    patch("wandb.wandb_sdk.wandb_artifacts.requests", mock).start()
+    mocker.patch("gql.transport.requests.requests", mock).start()
+    mocker.patch("wandb.internal.file_stream.requests", mock).start()
+    mocker.patch("wandb.internal.internal_api.requests", mock).start()
+    mocker.patch("wandb.internal.update.requests", mock).start()
+    mocker.patch("wandb.apis.internal_runqueue.requests", mock).start()
+    mocker.patch("wandb.apis.public.requests", mock).start()
+    mocker.patch("wandb.util.requests", mock).start()
+    mocker.patch("wandb.wandb_sdk.wandb_artifacts.requests", mock).start()
     print("Patched requests everywhere", os.getpid())
     return mock
 
