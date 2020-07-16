@@ -23,7 +23,6 @@ import copy
 import datetime
 import getpass
 import logging
-import multiprocessing
 import os
 import platform
 import socket
@@ -32,8 +31,8 @@ import sys
 import shortuuid  # type: ignore
 import six
 import wandb
+from wandb import jupyter
 from wandb.internal import git_repo
-from wandb.vendor.pynvml import pynvml
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
@@ -273,9 +272,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _jupyter_name=None,
         _jupyter_root=None,
         _executable=None,
-        _gpu=None,
-        _gpu_count=None,
-        _cpu_count=None,
         _cuda=None,
         _args=None,
         _os=None,
@@ -417,7 +413,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             u["save_code"] = wandb.env.should_save_code()
 
         if self.jupyter:
-            meta = wandb.jupyter.notebook_metadata()
+            meta = jupyter.notebook_metadata()
             u["_jupyter_path"] = meta.get("path")
             u["_jupyter_name"] = meta.get("name")
             u["_jupyter_root"] = meta.get("root")
@@ -438,19 +434,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         u["_executable"] = sys.executable
 
         u["docker"] = wandb.env.get_docker()
-
-        try:
-            pynvml.nvmlInit()
-            u["_gpu"] = pynvml.nvmlDeviceGetName(
-                pynvml.nvmlDeviceGetHandleByIndex(0)
-            ).decode("utf8")
-            u["_gpu_count"] = pynvml.nvmlDeviceGetCount()
-        except pynvml.NVMLError:
-            pass
-        try:
-            u["_cpu_count"] = multiprocessing.cpu_count()
-        except NotImplementedError:
-            pass
 
         # TODO: we should use the cuda library to collect this
         if os.path.exists("/usr/local/cuda/version.txt"):

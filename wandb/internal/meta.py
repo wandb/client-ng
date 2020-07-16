@@ -6,6 +6,7 @@ meta.
 from datetime import datetime
 import json
 import logging
+import multiprocessing
 import os
 from shutil import copyfile
 import sys
@@ -13,6 +14,7 @@ import sys
 from wandb import util
 from wandb.interface import interface
 from wandb.internal import git_repo
+from wandb.vendor.pynvml import pynvml
 
 
 METADATA_FNAME = "wandb-metadata.json"
@@ -63,9 +65,19 @@ class Meta(object):
         ).isoformat()
 
         self.data["docker"] = self._settings.docker
-        self.data["gpu"] = self._settings._gpu
-        self.data["gpu_count"] = self._settings._gpu_count
-        self.data["cpu_count"] = self._settings._cpu_count
+
+        try:
+            pynvml.nvmlInit()
+            self.data["gpu"] = pynvml.nvmlDeviceGetName(
+                pynvml.nvmlDeviceGetHandleByIndex(0)
+            ).decode("utf8")
+            self.data["gpu_count"] = pynvml.nvmlDeviceGetCount()
+        except pynvml.NVMLError:
+            pass
+        try:
+            self.data["cpu_count"] = multiprocessing.cpu_count()
+        except NotImplementedError:
+            pass
 
         self.data["cuda"] = self._settings._cuda
         self.data["args"] = self._settings._args
