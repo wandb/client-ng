@@ -4,5 +4,7 @@ htmlcov/
 .tox/
 .mypy_cache/
 .pytest_cache/
+build/
+dist/
 *.pyc
 .python-version
