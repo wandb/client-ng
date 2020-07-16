@@ -64,8 +64,6 @@ jobs:
                       tox -v -e << parameters.toxenv >>
     win:
         executor: win/default
-        environment:
-            WINDIR: "C:\\Windows"
         steps:
             - checkout
             - run:
@@ -75,6 +73,8 @@ jobs:
             - run:
                   name: Run tests
                   shell: bash.exe
+                  environment:
+                    WINDIR: "C:\\Windows"
                   command: |
                       tox -v -e py37
     mac:
