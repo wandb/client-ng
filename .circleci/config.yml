@@ -73,8 +73,6 @@ jobs:
             - run:
                   name: Run tests
                   shell: bash.exe
-                  environment:
-                    WINDIR: "C:\\Windows"
                   command: |
                       tox -v -e py37
     mac:
