@@ -10,7 +10,10 @@ import click
 from click.testing import CliRunner
 import webbrowser
 import wandb
-from unittest.mock import MagicMock
+try:
+    from unittest.mock import MagicMock
+except ImportError: # TODO: this is only for python2
+    from mock import MagicMock
 
 DUMMY_API_KEY = '1824812581259009ca9981580f8f8a9012409eee'
 

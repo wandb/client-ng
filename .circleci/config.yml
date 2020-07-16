@@ -65,7 +65,7 @@ jobs:
     win:
         executor: win/default
         environment:
-            WIN_DIR: "C:\\Windows"
+            WINDIR: "C:\\Windows"
         steps:
             - checkout
             - run:
