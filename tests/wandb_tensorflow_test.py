@@ -107,9 +107,6 @@ def test_hook():
         history.add({})  # Flush the previous row.
 
     assert wandb_tensorflow.tf_summary_to_dict(summary) == {"c1": 42.0}
-    # TODO(adrian): there is still some kind of bug here where the history
-    # is being shared with another test that manages to add rows before this one.
-    # we just grab the last row for now
     assert summaries_logged[0]["c1"] == 42.0
 
 
