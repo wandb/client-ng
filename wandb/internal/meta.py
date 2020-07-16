@@ -4,21 +4,15 @@ meta.
 """
 
 from datetime import datetime
-import getpass
 import json
 import logging
-import multiprocessing
 import os
-import platform
 from shutil import copyfile
-import socket
 import sys
 
-from wandb import env, jupyter, util
+from wandb import util
 from wandb.interface import interface
 from wandb.internal import git_repo
-from wandb.lib.ipython import _get_python_type
-from wandb.vendor.pynvml import pynvml
 
 
 METADATA_FNAME = "wandb-metadata.json"
@@ -61,34 +55,20 @@ class Meta(object):
             copyfile(program_absolute, saved_program)
 
     def _setup_sys(self):
-        self.data["os"] = platform.platform(aliased=True)
-        self.data["python"] = platform.python_version()
-        self.data["args"] = sys.argv[1:]
-        self.data["state"] = "running"
+        self.data["os"] = self._settings._os
+        self.data["python"] = self._settings._python
         self.data["heartbeatAt"] = datetime.utcnow().isoformat()
         self.data["startedAt"] = datetime.utcfromtimestamp(
             self._settings._start_time
         ).isoformat()
 
-        if env.get_docker():
-            self.data["docker"] = env.get_docker()
-        try:
-            pynvml.nvmlInit()
-            self.data["gpu"] = pynvml.nvmlDeviceGetName(
-                pynvml.nvmlDeviceGetHandleByIndex(0)
-            ).decode("utf8")
-            self.data["gpu_count"] = pynvml.nvmlDeviceGetCount()
-        except pynvml.NVMLError:
-            pass
-        try:
-            self.data["cpu_count"] = multiprocessing.cpu_count()
-        except NotImplementedError:
-            pass
-        # TODO: we should use the cuda library to collect this
-        if os.path.exists("/usr/local/cuda/version.txt"):
-            with open("/usr/local/cuda/version.txt") as f:
-                self.data["cuda"] = f.read().split(" ")[-1].strip()
-        self.data["args"] = sys.argv[1:]
+        self.data["docker"] = self._settings.docker
+        self.data["gpu"] = self._settings._gpu
+        self.data["gpu_count"] = self._settings._gpu_count
+        self.data["cpu_count"] = self._settings._cpu_count
+
+        self.data["cuda"] = self._settings._cuda
+        self.data["args"] = self._settings._args
         self.data["state"] = "running"
 
     def _setup_git(self):
@@ -108,33 +88,27 @@ class Meta(object):
                 self.data["program"] = os.path.basename(self._settings.code_program)
             else:
                 self.data["program"] = "<python with no main file>"
-                if _get_python_type() != "python":
-                    if os.getenv(env.NOTEBOOK_NAME):
-                        self.data["program"] = os.getenv(env.NOTEBOOK_NAME)
+                if self._settings.jupyter:
+                    if self._settings.notebook_name:
+                        self.data["program"] = self._settings.notebook_name
                     else:
-                        meta = jupyter.notebook_metadata()
-                        if meta.get("path"):
-                            if "fileId=" in meta["path"]:
+                        if self._settings._jupyter_path:
+                            if "fileId=" in self._settings._jupyter_path:
                                 self.data["colab"] = (
                                     "https://colab.research.google.com/drive/"
-                                    + meta["path"].split("fileId=")[1]  # noqa
+                                    + self._settings._jupyter_path.split("fileId=")[ # noqa
+                                        1
+                                    ]
                                 )
-                                self.data["program"] = meta["name"]
+                                self.data["program"] = self._settings._jupyter_name
                             else:
-                                self.data["program"] = meta["path"]
-                                self.data["root"] = meta["root"]
+                                self.data["program"] = self._settings._jupyter_path
+                                self.data["root"] = self._settings._jupyter_root
             self._setup_git()
 
-        try:
-            username = getpass.getuser()
-        except KeyError:
-            # getuser() could raise KeyError in restricted environments like
-            # chroot jails or docker containers.  Return user id in these cases.
-            username = str(os.getuid())
-
         if self._settings.anonymous != "true":
-            self.data["host"] = os.environ.get(env.HOST, socket.gethostname())
-            self.data["username"] = os.getenv(env.USERNAME, username)
+            self.data["host"] = self._settings.host
+            self.data["username"] = self._settings.username
             self.data["executable"] = sys.executable
         else:
             self.data.pop("email", None)
