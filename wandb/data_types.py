@@ -1731,8 +1731,11 @@ def numpy_arrays_to_lists(payload):
     return payload
 
 
-def val_to_json(run, key, val, step='summary'):
+def val_to_json(run, key, val, step=None):
     # Converts a wandb datatype to its JSON representation.
+    if step == None:
+        raise ValueError("val_to_json must be called with a step argument")
+
 
     converted = val
     typename = util.get_full_typename(val)

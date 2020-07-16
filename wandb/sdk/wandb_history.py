@@ -30,7 +30,7 @@ class History(object):
         self._step += 1
         self._data.update(row)
         if self._callback:
-            self._callback(row=self._data)
+            self._callback(row=self._data, step=self._step)
         self._data = dict()
 
     def add(self, d):
