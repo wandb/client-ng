@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from functools import wraps
 import logging
 import os
@@ -344,7 +347,6 @@ def put(path, name, description, type, alias):
     wandb.termlog("    artifact = run.use_artifact(\"{path}\")\n".format(
         path=artifact_path,
     ), prefix=False)
-    wandb.join()  # TODO: without calling this our tests hang
 
 
 @artifact.command(context_settings=CONTEXT, help="Download an artifact from wandb")

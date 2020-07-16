@@ -146,11 +146,11 @@ def _get_program():
     if os.path.exists(full_path_to_program):
         relative_path = os.path.relpath(full_path_to_program, start=root)
         if "../" in relative_path:
-            logger.warn("could not save program above cwd: %s" % program)
+            logger.warning("could not save program above cwd: %s" % program)
             return None
         return relative_path
 
-    logger.warn("could not find program at %s" % program)
+    logger.warning("could not find program at %s" % program)
     return None
 
 

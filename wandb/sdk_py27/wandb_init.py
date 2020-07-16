@@ -312,6 +312,9 @@ class _WandbInit(object):
         logger.info("Logging internal logs to {}".format(settings.log_internal))
 
     def _atexit_cleanup(self):
+        if self.backend is None:
+            logger.warning("process exited without backend configured")
+            return False
         if self._atexit_cleanup_called:
             return
         self._atexit_cleanup_called = True
@@ -355,7 +358,7 @@ class _WandbInit(object):
                 self._out_redir = out_redir
                 self._err_redir = err_redir
                 logger.info("redirect2")
-            except OSError as e:
+            except (OSError, AttributeError) as e:
                 logger.error("failed to redirect", exc_info=e)
             return
 

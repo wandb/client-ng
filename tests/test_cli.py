@@ -23,7 +23,7 @@ def test_artifact_upload(runner, git_repo, mock_server):
     with open("artifact.txt", "w") as f:
         f.write("My Artifact")
     os.environ["WANDB_MODE"] = "mock"
-    wandb._IS_INTERNAL_PROCESS = False
+    wandb._IS_INTERNAL_PROCESS = False # TODO: this is rather unfortunate and shouldn't be needed
     result = runner.invoke(cli.artifact, ["put", "artifact.txt", "-n", "test/simple"])
     print(result.output)
     print(result.exception)

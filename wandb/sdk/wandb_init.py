@@ -358,7 +358,7 @@ class _WandbInit(object):
                 self._out_redir = out_redir
                 self._err_redir = err_redir
                 logger.info("redirect2")
-            except OSError as e:
+            except (OSError, AttributeError) as e:
                 logger.error("failed to redirect", exc_info=e)
             return
 
