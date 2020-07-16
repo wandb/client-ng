@@ -1,3 +1,4 @@
+import wandb
 from wandb.cli import cli
 import traceback
 import platform
@@ -21,8 +22,8 @@ def test_artifact_download(runner, git_repo, mock_server):
 def test_artifact_upload(runner, git_repo, mock_server):
     with open("artifact.txt", "w") as f:
         f.write("My Artifact")
-    print("YO PID", os.getpid())
     os.environ["WANDB_MODE"] = "mock"
+    wandb._IS_INTERNAL_PROCESS = False
     result = runner.invoke(cli.artifact, ["put", "artifact.txt", "-n", "test/simple"])
     print(result.output)
     print(result.exception)
