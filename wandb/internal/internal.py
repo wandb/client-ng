@@ -206,6 +206,7 @@ def _mock_requests():
     print("!!! Mocking all server calls for tests")
     sys.path.insert(1, path)
     from tests.utils import mock_server
+
     mock_server()
 
 

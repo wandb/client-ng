@@ -232,22 +232,18 @@ class RunManaged(Run):
         Add singleton can be called many times in one run and it will only be
         updated when the value changes. The last value logged will be the one
         persisted to the server"""
-        value_extra = {
-            'type': type,
-            'key': key,
-            'value': value
-        }
+        value_extra = {"type": type, "key": key, "value": value}
 
-        if type not in self.config['_wandb']:
-            self.config['_wandb'][type] = {}
+        if type not in self.config["_wandb"]:
+            self.config["_wandb"][type] = {}
 
-        if type in self.config['_wandb'][type]:
-            old_value = self.config['_wandb'][type][key]
+        if type in self.config["_wandb"][type]:
+            old_value = self.config["_wandb"][type][key]
         else:
             old_value = None
 
         if value_extra != old_value:
-            self.config['_wandb'][type][key] = value_extra
+            self.config["_wandb"][type][key] = value_extra
             self.config.persist()
 
     def log(self, data, step=None, commit=True, sync=None):
