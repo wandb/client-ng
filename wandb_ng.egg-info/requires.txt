@@ -16,7 +16,6 @@ protobuf
 prompt_toolkit
 PyYAML
 numpy
-typing
 
 [aws]
 boto3
