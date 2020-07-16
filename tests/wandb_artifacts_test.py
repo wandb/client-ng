@@ -2,6 +2,7 @@ import os
 import pytest
 from wandb import util
 import wandb
+import platform
 
 
 def mock_boto(artifact, path=False):
@@ -127,10 +128,15 @@ def test_add_named_dir(runner):
         artifact = wandb.Artifact(type='dataset', name='my-arty')
         artifact.add_dir('.', name='subdir')
 
-        assert artifact.digest == 'a757208d042e8627b2970d72a71bed5b'
+        if platform.system() == "Windows":
+            digest = "84eb4e81b4fe7ef81bd13971c6f80cdc"
+        else:
+            digest = 'a757208d042e8627b2970d72a71bed5b'
+
+        assert artifact.digest == digest
 
         manifest = artifact.manifest.to_manifest_json()
-        assert manifest['contents']['subdir/file1.txt'] == {
+        assert manifest['contents'][os.path.join('subdir', 'file1.txt')] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==', 'size': 5}
 
 
@@ -169,10 +175,10 @@ def test_add_reference_local_dir(runner):
         manifest = artifact.manifest.to_manifest_json()
         assert manifest['contents']['file1.txt'] == {
             'digest': 'XUFAKrxLKna5cZ2REBfFkg==',
-            'ref': 'file://' + os.getcwd() + '/file1.txt', 'size': 5}
+            'ref': 'file://' + os.path.join(os.getcwd(), 'file1.txt'), 'size': 5}
         assert manifest['contents']['file2.txt'] == {
             'digest': 'E7c+2uhEOZC+GqjxpIO8Jw==',
-            'ref': 'file://' + os.getcwd() + '/file2.txt', 'size': 4}
+            'ref': 'file://' + os.path.join(os.getcwd(), 'file2.txt'), 'size': 4}
 
 
 def test_add_s3_reference_object(runner, mocker):

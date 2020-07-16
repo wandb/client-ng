@@ -7,6 +7,7 @@ import os
 import six
 import sys
 import glob
+import platform
 import pandas as pd
 from click.testing import CliRunner
 from . import utils
@@ -416,11 +417,16 @@ def test_object3d_seq_to_json(mocked_run):
     print(obj)
     print(glob.glob(os.path.join(mocked_run.dir, "media", "**/*")))
 
-    # TODO: should these be forward slashes in Windows?
+    if platform.system() == "Windows":
+        box = "Box_7447085b.gltf"  # this is different because paths are different
+        cube = "cube_74abc928.obj"
+    else:
+        box = "Box_be115756.gltf"
+        cube = "cube_afff12bc.obj"
     assert os.path.exists(os.path.join(mocked_run.dir,
-                          "media", "object3D", "Box_be115756.gltf"))
+                          "media", "object3D", box))
     assert os.path.exists(os.path.join(mocked_run.dir,
-                          "media", "object3D", "cube_afff12bc.obj"))
+                          "media", "object3D", cube))
     assert os.path.exists(os.path.join(mocked_run.dir,
                           "media", "object3D", "pc_1_2.pts.json"))
 
