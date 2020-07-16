@@ -32,7 +32,7 @@ wandb/framework/pytorch  - pytorch integration
 
 In order to run unittests please install pyenv then run:
 ```
-tools/setup_dev_environment.sh
+./tools/setup_dev_environment.sh
 ```
 
 ## Code checks
