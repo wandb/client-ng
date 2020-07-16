@@ -344,6 +344,7 @@ def put(path, name, description, type, alias):
     wandb.termlog("    artifact = run.use_artifact(\"{path}\")\n".format(
         path=artifact_path,
     ), prefix=False)
+    wandb.join()  # TODO: without calling this our tests hang
 
 
 @artifact.command(context_settings=CONTEXT, help="Download an artifact from wandb")

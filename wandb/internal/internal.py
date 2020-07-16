@@ -228,6 +228,13 @@ def wandb_internal(
     if settings.log_internal:
         setup_logging(settings.log_internal, log_level)
 
+    if settings.mode == "mock":
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        print("!!! Mocking all server calls for tests")
+        sys.path.insert(1, path)
+        from tests.utils import mock_server
+        mock_server()
+
     pid = os.getpid()
 
     system_stats = None

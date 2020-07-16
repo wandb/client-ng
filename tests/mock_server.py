@@ -4,6 +4,7 @@ from flask import Flask, request
 import os
 from datetime import datetime
 import json
+import wandb
 
 
 def run():
@@ -369,6 +370,10 @@ def create_app(ctx):
             return ms, 200
         else:
             return b'', 500
+
+    @app.route("/pypi/<library>/json")
+    def pypi(library):
+        return b'{ "info": { "version": "%s" } }' % wandb.__version__
 
     @app.errorhandler(404)
     def page_not_found(e):
