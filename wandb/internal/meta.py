@@ -92,8 +92,4 @@ class Meta(object):
         base_name = os.path.basename(self.fname)
         files = dict(files=[(base_name,)])
 
-        if "codePath" in self.data:
-            code_bname = os.path.basename(self.data["codePath"])
-            files["files"].append((code_bname,))
-
         self._interface.send_files(files)
