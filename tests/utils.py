@@ -2,8 +2,8 @@ import requests
 import json
 import os
 from tests.mock_server import create_app
-from _pytest.config import get_config
-from pytest_mock import _get_mock_module
+from _pytest.config import get_config  # type: ignore
+from pytest_mock import _get_mock_module  # type: ignore
 
 
 def subdict(d, expected_dict):

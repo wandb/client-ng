@@ -155,7 +155,10 @@ def create_app(ctx):
                 "data": {
                     "viewer": {
                         "entity": "vanpelt",
-                        "flags": '{"code_saving_enabled": true}'
+                        "flags": '{"code_saving_enabled": true}',
+                        "teams": {
+                            "edges": []  # TODO make configurable for cli_test
+                        }
                     }
                 }
             })
