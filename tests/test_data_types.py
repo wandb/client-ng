@@ -6,6 +6,7 @@ import PIL
 import os
 import six
 import sys
+import glob
 import pandas as pd
 from click.testing import CliRunner
 from . import utils
@@ -413,6 +414,7 @@ def test_object3d_seq_to_json(mocked_run):
     ], mocked_run, "pc", 1)
 
     print(obj)
+    print(glob.glob(os.path.join(mocked_run.dir, "**")))
 
     # TODO: should these be forward slashes in Windows?
     assert os.path.exists(os.path.join(mocked_run.dir,
