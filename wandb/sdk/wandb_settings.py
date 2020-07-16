@@ -21,19 +21,19 @@ import collections
 import configparser
 import copy
 import datetime
+import getpass
 import logging
+import multiprocessing
 import os
 import platform
+import socket
 import sys
 
 import shortuuid  # type: ignore
 import six
 import wandb
 from wandb.internal import git_repo
-import getpass
-import socket
 from wandb.vendor.pynvml import pynvml
-import multiprocessing
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
