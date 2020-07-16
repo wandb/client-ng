@@ -216,9 +216,11 @@ class Media(WBValue):
                 _datatypes_callback(media_path)
             else:
                 new_path = os.path.join(base_path, '{}_{}{}'.format(rootname, self._sha256[:8], extension))
+                media_path = os.path.join(self.get_media_subdir(), file_path)
                 util.mkdir_exists_ok(os.path.dirname(new_path))
                 shutil.copy(self._path, new_path)
                 self._path = new_path
+                _datatypes_callback(media_path)
 
     def to_json(self, run):
         """Get the JSON-friendly dict that represents this object.
