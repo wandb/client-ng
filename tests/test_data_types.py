@@ -432,8 +432,8 @@ def test_object3d_seq_to_json(mocked_run):
 
     assert obj["_type"] == "object3D"
     assert obj["filenames"] == [
-        "Box_be115756.gltf",
-        "cube_afff12bc.obj",
+        box,
+        cube,
         "pc_1_2.pts.json",
     ]
 
