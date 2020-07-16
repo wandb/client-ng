@@ -8,6 +8,8 @@ pandas
 numpy
 matplotlib
 soundfile
+boto3
+google-cloud-storage
 moviepy; python_version >= '3.6'
 imageio; python_version >= '3.6'
 pytest-flask
