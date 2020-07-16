@@ -312,6 +312,9 @@ class _WandbInit(object):
         logger.info("Logging internal logs to {}".format(settings.log_internal))
 
     def _atexit_cleanup(self):
+        if self.backend is None:
+            logger.warning("process exited without backend configured")
+            return False
         if self._atexit_cleanup_called:
             return
         self._atexit_cleanup_called = True

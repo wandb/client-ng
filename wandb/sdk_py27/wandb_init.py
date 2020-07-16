@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 
-from six import raise_from
+from six import raise_from, reraise
 import wandb
 from wandb.backend.backend import Backend
 from wandb.errors import Error
@@ -349,11 +349,14 @@ class _WandbInit(object):
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
-            out_redir.install()
-            err_redir.install()
-            self._out_redir = out_redir
-            self._err_redir = err_redir
-            logger.info("redirect2")
+            try:
+                out_redir.install()
+                err_redir.install()
+                self._out_redir = out_redir
+                self._err_redir = err_redir
+                logger.info("redirect2")
+            except OSError as e:
+                logger.error("failed to redirect", exc_info=e)
             return
 
         return
@@ -454,7 +457,7 @@ class _WandbInit(object):
             run._set_run_obj(ret.run)
         elif s.mode in ("offline", "dryrun"):
             backend.interface.send_run(run)
-        elif s.mode in ("async", "run"):
+        elif s.mode in ("async", "run", "mock"):
             ret = backend.interface.send_run_sync(run, timeout=10)
             # TODO: on network error, do async run save
             backend.interface.send_run(run)
@@ -560,6 +563,7 @@ def init(
         # Need to build delay into this sentry capture because our exit hooks
         # mess with sentry's ability to send out errors before the program ends.
         sentry_exc(e, delay=True)
-        raise_from(Exception("problem"), e)
+        reraise(*sys.exc_info())
+        #  raise_from(Exception("problem"), e)
 
     return run

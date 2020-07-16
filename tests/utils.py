@@ -1,8 +1,11 @@
 import requests
 import json
 import os
-from unittest.mock import patch
 from tests.mock_server import create_app
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 
 def subdict(d, expected_dict):
