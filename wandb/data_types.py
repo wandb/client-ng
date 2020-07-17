@@ -995,7 +995,7 @@ class Image(BatchableMedia):
     @classmethod
     def seq_to_json(cls, images, run, key, step):
         """
-        Combines a list of images into a single sprite returning meta information
+        Combines a list of images into a meta dictionary object describing the child images.
         """
 
         num_images_to_log = len(images)
@@ -1014,7 +1014,7 @@ class Image(BatchableMedia):
 
         for obj in jsons:
             if not obj['path'].startswith(cls.get_media_subdir()):
-                raise ValueError('Files in an array of Object3D\'s must be in the {} directory, not {}'.format(
+                raise ValueError('Files in an array of Image\'s must be in the {} directory, not {}'.format(
                     cls.get_media_subdir(), obj['path']))
 
         num_images_to_log = len(images)
@@ -1711,7 +1711,7 @@ def history_dict_to_json(run, payload, step=None):
         if isinstance(val, dict):
             payload[key] = history_dict_to_json(run, val, step=step)
         else:
-            payload[key] = val_to_json(run, key, val, step=step)
+            payload[key] = val_to_json(run, key, val, namespace=step)
 
     return payload
 
@@ -1732,24 +1732,24 @@ def numpy_arrays_to_lists(payload):
     return payload
 
 
-def val_to_json(run, key, val, step=None):
+def val_to_json(run, key, val, namespace=None):
     # Converts a wandb datatype to its JSON representation.
-    if step == None:
-        raise ValueError("val_to_json must be called with a step argument")
-
+    if namespace == None:
+        raise ValueError(
+            "val_to_json must be called with a namespace(a step number, or 'summary') argument")
 
     converted = val
     typename = util.get_full_typename(val)
 
     if util.is_pandas_data_frame(val):
-        assert step == 'summary', "We don't yet support DataFrames in History."
-        return data_frame_to_json(val, run, key, step)
+        assert namespace == 'summary', "We don't yet support DataFrames in History."
+        return data_frame_to_json(val, run, key, namespace)
     elif util.is_matplotlib_typename(typename) or util.is_plotly_typename(typename):
         val = Plotly.make_plot_media(val)
     elif isinstance(val, collections.Sequence) and all(isinstance(v, WBValue) for v in val):
         # This check will break down if Image/Audio/... have child classes.
         if len(val) and isinstance(val[0], BatchableMedia) and all(isinstance(v, type(val[0])) for v in val):
-            return val[0].seq_to_json(val, run, key, step)
+            return val[0].seq_to_json(val, run, key, namespace)
         else:
             # TODO(adrian): Good idea to pass on the same key here? Maybe include
             # the array index?
@@ -1758,11 +1758,11 @@ def val_to_json(run, key, val, step=None):
             # This used to happen. The frontend doesn't handle heterogenous arrays
             #raise ValueError(
             #    "Mixed media types in the same list aren't supported")
-            return [val_to_json(run, key, v, step=step) for v in val]
+            return [val_to_json(run, key, v, namespace=namespace) for v in val]
 
     if isinstance(val, WBValue):
         if isinstance(val, Media) and not val.is_bound():
-            val.bind_to_run(run, key, step)
+            val.bind_to_run(run, key, namespace)
         return val.to_json(run)
 
     return converted
@@ -1825,7 +1825,8 @@ def data_frame_to_json(df, run, key, step):
     for col_name, series in df.items():
         for i, val in enumerate(series):
             if isinstance(val, WBValue):
-                series.iat[i] = six.text_type(json.dumps(val_to_json(run, key, val, step)))
+                series.iat[i] = six.text_type(
+                    json.dumps(val_to_json(run, key, val, namespace=step)))
 
     # We have to call this wandb_run_id because that name is treated specially by
     # our filtering code
