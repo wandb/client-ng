@@ -1030,12 +1030,13 @@ class Image(BatchableMedia):
 
         num_images_to_log = len(images)
         width, height = images[0]._image.size
+        format = images[0]._image.format
 
         meta = {
             "_type": "images/separated",
             "width": width,
             "height": height,
-            "format": "png",
+            "format": format,
             "count": num_images_to_log,
         }
 
