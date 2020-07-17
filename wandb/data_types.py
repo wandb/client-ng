@@ -199,25 +199,20 @@ class Media(WBValue):
                 extension = self._extension
                 rootname = os.path.basename(self._path)[:-len(extension)]
 
+            if id_ is None:
+                id_ = self._sha256[:8]
+
+            file_path = '{}_{}_{}{}'.format(key, step, id_, extension)
+            media_path = os.path.join(self.get_media_subdir(), file_path)
+            new_path = os.path.join(base_path, file_path)
+            util.mkdir_exists_ok(os.path.dirname(new_path))
+
             if self._is_tmp:
-                if id_ is None:
-                    id_ = self._sha256[:8]
-                # cling below
-                file_path = '{}_{}_{}{}'.format(key, step, id_, extension)
-                media_path = os.path.join(self.get_media_subdir(), file_path)
-                new_path = os.path.join(base_path, file_path)
-                # cling above
-                util.mkdir_exists_ok(os.path.dirname(new_path))
-
                 shutil.move(self._path, new_path)
-
                 self._path = new_path
                 self._is_tmp = False
                 _datatypes_callback(media_path)
             else:
-                new_path = os.path.join(base_path, '{}_{}{}'.format(rootname, self._sha256[:8], extension))
-                media_path = os.path.join(self.get_media_subdir(), new_path)
-                util.mkdir_exists_ok(os.path.dirname(new_path))
                 shutil.copy(self._path, new_path)
                 self._path = new_path
                 _datatypes_callback(media_path)
@@ -1030,7 +1025,7 @@ class Image(BatchableMedia):
 
         num_images_to_log = len(images)
         width, height = images[0]._image.size
-        format = images[0]._image.format
+        format = jsons[0]["format"]
 
         meta = {
             "_type": "images/separated",
