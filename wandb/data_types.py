@@ -1026,7 +1026,6 @@ class Image(BatchableMedia):
             "height": height,
             "format": "png",
             "count": num_images_to_log,
-            'objects': jsons,
         }
 
         captions = Image.all_captions(images)
