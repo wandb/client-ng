@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.29'
+__version__ = '0.0.31'
 
 import sys
 
@@ -81,6 +81,7 @@ from wandb.lib.ipython import _get_python_type
 
 # globals
 Api = PublicApi
+api = InternalApi()
 run = None
 config = _preinit.PreInitObject("wandb.config")
 summary = _preinit.PreInitObject("wandb.summary")
@@ -91,6 +92,10 @@ keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras'
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
 tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
 xgboost = _lazyloader.LazyLoader('wandb.xgboost', globals(), 'wandb.framework.xgboost')
+
+def ensure_configured():
+    global api
+    api = InternalApi()
 
 __all__ = [
     "__version__",
