@@ -1013,7 +1013,8 @@ class Image(BatchableMedia):
         jsons = [obj.to_json(run) for obj in images]
 
         for obj in jsons:
-            if not obj['path'].startswith(cls.get_media_subdir()):
+            expected = util.to_forward_slash_path(cls.get_media_subdir())
+            if not obj['path'].startswith(expected):
                 raise ValueError('Files in an array of Image\'s must be in the {} directory, not {}'.format(
                     cls.get_media_subdir(), obj['path']))
 
