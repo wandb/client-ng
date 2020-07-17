@@ -62,6 +62,7 @@ jobs:
                   name: Run tests
                   command: |
                       tox -v -e << parameters.toxenv >>
+                  no_output_timeout: 2m
     win:
         executor: win/default
         steps:
@@ -75,6 +76,7 @@ jobs:
                   shell: bash.exe
                   command: |
                       tox -v -e py37
+                  no_output_timeout: 2m
     mac:
         macos:
             xcode: 11.4.1
@@ -88,6 +90,7 @@ jobs:
                   name: Run tests
                   command: |
                       python3 -m tox -v -e py37
+                  no_output_timeout: 2m
     final:
         docker:
             - image: python:3.7
