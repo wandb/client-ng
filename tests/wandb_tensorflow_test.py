@@ -29,7 +29,7 @@ def test_tf_log():
     history = wandb_sdk.History()
     summaries_logged = []
 
-    def spy_cb(row, namespace=None):
+    def spy_cb(row, step=None):
         summaries_logged.append(row)
 
     history._set_callback(spy_cb)
