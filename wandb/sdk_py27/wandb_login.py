@@ -55,15 +55,20 @@ def login(settings=None, relogin=None, key=None):
             key = getpass.getpass("Enter your authorization code:\n")
         else:
             wandb.termlog(
-                "{}: {}".format(authorize_str, click.style(authorize_link_str,
-                                fg="blue"))
+                "{}: {}".format(
+                    authorize_str, click.style(authorize_link_str, fg="blue")
+                )
             )
             key = prompt(u"Enter api key: ", is_password=True)
     elif in_jupyter:
-        wandb.termwarn(("If you're specifying your api key in code, ensure this "
-                        "code is not shared publically.\nConsider setting the "
-                        "WANDB_API_KEY environment variable, or running "
-                        "`wandb login` from the command line."))
+        wandb.termwarn(
+            (
+                "If you're specifying your api key in code, ensure this "
+                "code is not shared publically.\nConsider setting the "
+                "WANDB_API_KEY environment variable, or running "
+                "`wandb login` from the command line."
+            )
+        )
 
     apikey.write_key(settings, key)
     return
