@@ -92,7 +92,7 @@ keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras'
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
 tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
 xgboost = _lazyloader.LazyLoader('wandb.xgboost', globals(), 'wandb.framework.xgboost')
-xgboost = _lazyloader.LazyLoader('wandb.lightgbm', globals(), 'wandb.framework.lightgbm')
+lightgbm = _lazyloader.LazyLoader('wandb.lightgbm', globals(), 'wandb.framework.lightgbm')
 
 def ensure_configured():
     global api
