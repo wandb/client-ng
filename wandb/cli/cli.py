@@ -78,9 +78,11 @@ def cli(ctx):
 
 @cli.command(context_settings=CONTEXT, help="Login to Weights & Biases")
 @click.option("--relogin", default=None, is_flag=True, help="Force relogin if already logged in.")
+@click.option("--anonymously", default=False, is_flag=True, help="Log in anonymously")
 @display_error
-def login(relogin):
-    wandb.login(relogin=relogin)
+def login(relogin, anonymously):
+    anon_mode = "must" if anonymously else "never"
+    wandb.login(relogin=relogin, anonymous=anon_mode)
 
 
 @cli.command(context_settings=CONTEXT, help="Run a SUPER agent", hidden=True)
