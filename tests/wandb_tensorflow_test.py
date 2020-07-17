@@ -89,7 +89,7 @@ def test_hook():
     history = wandb_sdk.History()
     summaries_logged = []
 
-    def spy_cb(row):
+    def spy_cb(row, step=None):
         summaries_logged.append(row)
 
     history._set_callback(spy_cb)
