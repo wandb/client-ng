@@ -163,14 +163,12 @@ class BackendSender(object):
         if isinstance(value, dict):
             json_value = {}
             for key, value in six.iteritems(value):
-                json_value[key] = self._summary_encode(
-                    value, path_from_root + (key,))
+                json_value[key] = self._summary_encode(value, path_from_root + (key,))
             return json_value
         else:
             path = ".".join(path_from_root)
             friendly_value, converted = json_friendly(
-                data_types.val_to_json(
-                    self._run, path, value, namespace="summary")
+                data_types.val_to_json(self._run, path, value, namespace="summary")
             )
             json_value, compressed = maybe_compress_summary(
                 friendly_value, get_h5_typename(value)
