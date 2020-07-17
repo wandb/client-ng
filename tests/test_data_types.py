@@ -152,16 +152,13 @@ def test_image_seq_to_json(mocked_run):
     assert utils.subdict(meta, meta_expected) == meta_expected
 
 
-def test_transform_caps_at_65500(caplog, mocked_run):
-    large_image = np.random.randint(255, size=(10, 1000))
-    large_list = [wandb.Image(large_image)] * 100
+def test_max_images(caplog, mocked_run):
+    large_image = np.random.randint(255, size=(10, 10))
+    large_list = [wandb.Image(large_image)] * 200
     meta = wandb.Image.seq_to_json(large_list, mocked_run, "test2", 0)
-    expected = {'_type': 'images/separated', 'count': 100, 'height': 10, 'width': 1000}
+    expected = {'_type': 'images/separated', 'count': data_types.Image.MAX_THUMBNAILS, 'height': 10, 'width': 10}
     assert utils.subdict(meta, expected) == expected
-    assert os.path.exists(os.path.join(mocked_run.dir, "media/images/test2_0.png"))
-    assert ('Only 65 images will be uploaded. The maximum total width for a '
-            'set of thumbnails is 65,500px, or 65 images, each with a width of '
-            '1000 pixels.') in caplog.text
+    assert os.path.exists(os.path.join(mocked_run.dir, "media/images/test_2_0.png"))
 
 
 def test_audio_sample_rates():
