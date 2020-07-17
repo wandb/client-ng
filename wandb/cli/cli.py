@@ -17,6 +17,7 @@ from wandb import Error
 from wandb import wandb_agent
 from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
+from wandb.old.settings import Settings
 from wandb.sync import SyncManager
 import yaml
 
@@ -81,10 +82,25 @@ def cli(ctx):
 
 
 @cli.command(context_settings=CONTEXT, help="Login to Weights & Biases")
+@click.argument("key", nargs=-1)
+@click.option("--cloud", is_flag=True, help="Login to the cloud instead of local")
+@click.option("--host", default=None, help="Login to a specific instance of W&B")
 @click.option("--relogin", default=None, is_flag=True, help="Force relogin if already logged in.")
 @display_error
-def login(relogin):
-    wandb.login(relogin=relogin)
+def login(key, host, cloud, relogin):
+    api = InternalApi()
+    if host == "https://api.wandb.ai" or (host is None and cloud):
+        api.clear_setting("base_url", globally=True, persist=True)
+        # To avoid writing an empty local settings file, we only clear if it exists
+        if os.path.exists(Settings._local_path()):
+            api.clear_setting("base_url", persist=True)
+    elif host:
+        if not host.startswith("http"):
+            raise ClickException("host must start with http(s)://")
+        api.set_setting("base_url", host.strip("/"), globally=True, persist=True)
+    key = key[0] if len(key) > 0 else None
+
+    wandb.login(relogin=relogin, key=key)
 
 
 @cli.command(context_settings=CONTEXT, help="Run a SUPER agent", hidden=True)

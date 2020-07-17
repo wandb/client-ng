@@ -30,7 +30,7 @@ def run():
         ],
         "files": {
             # Special weights url meant to be used with api_mocks#download_url
-            "edges": [{"node": {"name": "weights.h5", "sizeBytes": 20, 
+            "edges": [{"node": {"name": "weights.h5", "sizeBytes": 20, 'md5': "XXX",
                                 "url": request.url_root + "/storage?file=weights.h5"}}]
         },
         'tags': [],
@@ -135,6 +135,14 @@ def create_app(ctx):
                 'data': {
                     'project': {
                         'run': run()
+                    }
+                }
+            })
+        if "query Model(" in body["query"]:
+            return json.dumps({
+                'data': {
+                    'model': {
+                        'bucket': run()
                     }
                 }
             })

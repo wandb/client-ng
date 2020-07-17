@@ -200,16 +200,6 @@ def _check_process(settings, pid):
         os._exit(-1)
 
 
-def _mock_requests():
-    """Mocks all server requests to `mock_server.py` used in tests"""
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    print("!!! Mocking all server calls for tests")
-    sys.path.insert(1, path)
-    from tests.utils import mock_server
-
-    mock_server()
-
-
 def wandb_internal(  # noqa: C901
     settings,
     notify_queue,

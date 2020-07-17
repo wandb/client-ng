@@ -19,8 +19,14 @@ class Api(object):
     def git(self):
         return self.api.git
 
+    def file_current(self, *args):
+        return self.api.file_current(*args)
+
+    def download_file(self, *args, **kwargs):
+        return self.api.download_file(*args, **kwargs)
+
     def set_current_run_id(self, run_id):
-        self.api.set_current_run_id(run_id)
+        return self.api.set_current_run_id(run_id)
 
     def viewer(self):
         return self.api.viewer()
