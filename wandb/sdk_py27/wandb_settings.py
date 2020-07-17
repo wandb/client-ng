@@ -95,6 +95,7 @@ env_settings = dict(
     host=None,
     username=None,
     disable_code=None,
+    wandb_dir="WANDB_DIR",
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
     run_tags="WANDB_TAGS",
