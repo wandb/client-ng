@@ -156,7 +156,7 @@ def test_transform_caps_at_65500(caplog, mocked_run):
     large_image = np.random.randint(255, size=(10, 1000))
     large_list = [wandb.Image(large_image)] * 100
     meta = wandb.Image.seq_to_json(large_list, mocked_run, "test2", 0)
-    expected = {'_type': 'images', 'count': 65, 'height': 10, 'width': 1000}
+    expected = {'_type': 'images/separted', 'count': 100, 'height': 10, 'width': 1000}
     assert utils.subdict(meta, expected) == expected
     assert os.path.exists(os.path.join(mocked_run.dir, "media/images/test2_0.png"))
     assert ('Only 65 images will be uploaded. The maximum total width for a '
