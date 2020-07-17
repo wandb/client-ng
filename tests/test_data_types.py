@@ -144,7 +144,7 @@ def test_image_seq_to_json(mocked_run):
                           'test_summary.png'))
 
     meta_expected = {
-        '_type': 'images',
+        '_type': 'images/separated',
         'count': 1,
         'height': 28,
         'width': 28,

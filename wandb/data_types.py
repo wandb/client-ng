@@ -1032,7 +1032,7 @@ class Image(BatchableMedia):
         width, height = images[0]._image.size
 
         meta = {
-            "_type": "images/individual",
+            "_type": "images/separated",
             "width": width,
             "height": height,
             "format": "png",
