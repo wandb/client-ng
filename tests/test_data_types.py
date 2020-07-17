@@ -139,9 +139,9 @@ def test_cant_serialize_to_other_run(mocked_run, test_settings):
 
 def test_image_seq_to_json(mocked_run):
     wb_image = wandb.Image(image)
-    meta = wandb.Image.seq_to_json([wb_image], mocked_run, "test", 'summary')
+    meta = wandb.Image.seq_to_json([wb_image], mocked_run, "test", 0)
     assert os.path.exists(os.path.join(mocked_run.dir, 'media', 'images',
-                          'test_summary.png'))
+                          'test_0_0.png'))
 
     meta_expected = {
         '_type': 'images/separated',
@@ -156,7 +156,7 @@ def test_transform_caps_at_65500(caplog, mocked_run):
     large_image = np.random.randint(255, size=(10, 1000))
     large_list = [wandb.Image(large_image)] * 100
     meta = wandb.Image.seq_to_json(large_list, mocked_run, "test2", 0)
-    expected = {'_type': 'images/separted', 'count': 100, 'height': 10, 'width': 1000}
+    expected = {'_type': 'images/separated', 'count': 100, 'height': 10, 'width': 1000}
     assert utils.subdict(meta, expected) == expected
     assert os.path.exists(os.path.join(mocked_run.dir, "media/images/test2_0.png"))
     assert ('Only 65 images will be uploaded. The maximum total width for a '
