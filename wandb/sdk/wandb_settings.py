@@ -67,10 +67,10 @@ defaults = dict(
     base_url="https://api.wandb.ai",
     show_warnings=2,
     summary_warnings=5,
-    _mode=Field(str, ("auto", "noop", "mock", "online", "offline", "dryrun", "run",)),
+    _mode=Field(str, ("auto", "noop", "online", "offline", "dryrun", "run",)),
     _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
-    _console=Field(str, ("auto", "redirect", "off", "mock", "file", "iowrap",)),
+    _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
 )
 

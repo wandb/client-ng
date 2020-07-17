@@ -238,9 +238,6 @@ def wandb_internal(  # noqa: C901
     if settings.log_internal:
         setup_logging(settings.log_internal, log_level)
 
-    if settings.mode == "mock":
-        _mock_requests()
-
     pid = os.getpid()
 
     system_stats = None

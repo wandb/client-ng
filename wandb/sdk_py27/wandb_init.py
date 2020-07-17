@@ -460,7 +460,7 @@ class _WandbInit(object):
             run._set_run_obj(ret.run)
         elif s.mode in ("offline", "dryrun"):
             backend.interface.send_run(run)
-        elif s.mode in ("async", "run", "mock"):
+        elif s.mode in ("async", "run"):
             ret = backend.interface.send_run_sync(run, timeout=10)
             # TODO: on network error, do async run save
             backend.interface.send_run(run)
