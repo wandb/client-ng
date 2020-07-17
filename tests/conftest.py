@@ -113,6 +113,7 @@ def live_mock_server(request):
 
 @pytest.fixture
 def wandb_init_run(runner, mocker, mock_server, capsys):
+    wandb._IS_INTERNAL_PROCESS = False
     mocker.patch('wandb.wandb_sdk.wandb_init.Backend', utils.BackendMock)
     run = wandb.init(settings=wandb.Settings(console="off", mode="offline"))
     yield run
