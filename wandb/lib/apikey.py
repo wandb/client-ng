@@ -39,14 +39,14 @@ def prompt_api_key(
     input_callback = input_callback or getpass.getpass
     api = api or InternalApi()
     anon_mode = settings.anonymous or "never"
-    jupyter = settings.jupyter or "false"
+    jupyter = settings.jupyter or False
     app_url = settings.base_url.replace("//api.", "//app.")
 
     choices = [choice for choice in LOGIN_CHOICES]
     if anon_mode == "never":
         # Omit LOGIN_CHOICE_ANON as a choice if the env var is set to never
         choices.remove(LOGIN_CHOICE_ANON)
-    if jupyter == "true" or no_offline:
+    if jupyter or no_offline:
         choices.remove(LOGIN_CHOICE_DRYRUN)
 
     if anon_mode == "must":
@@ -120,7 +120,7 @@ def prompt_api_key(
         # the browser callback if one is supplied.
         key, anonymous = (
             browser_callback()
-            if jupyter == "true" and browser_callback
+            if jupyter and browser_callback
             else (None, False)
         )
 

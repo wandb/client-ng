@@ -32,7 +32,7 @@ def _validate_anonymous_setting(anon_str):
     return anon_str in ["must", "allow", "never"]
 
 
-def login(settings=None, api=None, relogin=None, anonymous=None):
+def login(settings=None, api=None, relogin=None, key=None, anonymous=None):
     """Log in to W&B.
 
     Args:
@@ -78,7 +78,20 @@ def login(settings=None, api=None, relogin=None, anonymous=None):
         )
         return
 
-    apikey.prompt_api_key(settings, api=api)
+    jupyter = settings.jupyter or False
+    if key:
+        if jupyter:
+            wandb.termwarn(
+                (
+                    "If you're specifying your api key in code, ensure this "
+                    "code is not shared publically.\nConsider setting the "
+                    "WANDB_API_KEY environment variable, or running "
+                    "`wandb login` from the command line."
+                )
+            )
+        apikey.write_key(settings, key)
+    else:
+        apikey.prompt_api_key(settings, api=api)
     return
 
 
