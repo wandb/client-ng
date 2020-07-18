@@ -3,7 +3,6 @@ import time
 import datetime
 import os
 import requests
-import nbformat
 from contextlib import contextmanager
 from tests import utils
 from multiprocessing import Process
@@ -13,6 +12,10 @@ import webbrowser
 import wandb
 import git
 from wandb.internal.git_repo import GitRepo
+try:
+    import nbformat
+except ImportError:  # TODO: no fancy notebook fun in python2
+    pass
 
 try:
     from unittest.mock import MagicMock

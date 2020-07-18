@@ -30,8 +30,18 @@ wandb/framework/pytorch  - pytorch integration
 
 ## Setup development environment
 
-In order to run unittests please install pyenv then run:
+In order to run unittests please install pyenv:
+
+```shell
+curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+# put the output in your ~/.bashrc
 ```
+```
+
+then run:
+
+
+```shell
 ./tools/setup_dev_environment.sh
 ```
 
@@ -61,7 +71,7 @@ If you make changes to `requirements_dev.txt` that are used by tests, you need t
 tox -e py37 --recreate
 ```
 
-### Fixtures
+### Pytest Fixtures
 
 `tests/conftest.py` contains a number of helpful fixtures automatically exposed to all tests as arguments for testing the app:
 
@@ -72,7 +82,7 @@ tox -e py37 --recreate
 - `mock_server` - mocks all calls to the `requests` module with sane defaults.  You can customize `tests/utils/mock_server.py` to use context or add api calls.
 - `live_mock_server` - actually starts a background process to serve up mock_server requests
 - `git_repo` — places the test context into an isolated git repository
-- `notebook` — gives you a context manager for reading a notebook providing `execute_cell`.  See `tests/utils/notebook_client.py`
+- `notebook` — gives you a context manager for reading a notebook providing `execute_cell`.  See `tests/utils/notebook_client.py` and `tests/test_notebooks.py`.  This uses `live_mock_server` to enable actual api calls in a notebook context.
 
 ## Live development
 
