@@ -52,15 +52,15 @@ def login(settings=None, api=None, relogin=None, key=None, anonymous=None):
     settings = settings or {}
     api = api or InternalApi()
 
-    anon_setting = anonymous or os.environ.get(env.ANONYMOUS)
-    if anon_setting is not None:
-        if not _validate_anonymous_setting(anon_setting):
+    if anonymous is not None:
+        # TODO: Move this check into wandb_settings probably.
+        if not _validate_anonymous_setting(anonymous):
             wandb.termwarn(
-                "Invalid value entered for argument `anonymous` to "
+                "Invalid value passed for argument `anonymous` to "
                 "wandb.login(). Can be 'must', 'allow', or 'never'."
             )
             return
-        settings.update({"anonymous": anon_setting})
+        settings.update({"anonymous": anonymous})
 
     wl = wandb.setup(settings=settings)
     settings = wl.settings()
