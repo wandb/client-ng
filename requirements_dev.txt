@@ -15,4 +15,4 @@ imageio; python_version >= '3.6'
 pytest-flask
 pytest-mock
 pytest-timeout
-tensorflow==1.15
+tensorflow

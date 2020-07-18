@@ -87,6 +87,12 @@ config = _preinit.PreInitObject("wandb.config")
 summary = _preinit.PreInitObject("wandb.summary")
 log = _preinit.PreInitCallable("wandb.log")
 join = _preinit.PreInitCallable("wandb.join")
+# record of patched libraries
+patched = {
+    "tensorboard": [],
+    "keras": [],
+    "gym": []
+}
 
 keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras')
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')

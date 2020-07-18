@@ -43,22 +43,37 @@ In order to run unittests please install pyenv then run:
 
 ## Testing
 
-tests can be found in `tests/`.  We use tox to run tests, you can run all tests with:
+Tests can be found in `tests/`.  We use tox to run tests, you can run all tests with:
 
 ```shell
 tox
 ```
 
-to run specific tests in a specific environment:
+You should run this before you make a commit.  To run specific tests in a specific environment:
 
 ```shell
-tox -e py37 -- tests/test_public_api.py
+tox -e py37 -- tests/test_public_api.py -k substring_of_test
 ```
 
 If you make changes to `requirements_dev.txt` that are used by tests, you need to recreate the python environments with:
 
 ```shell
 tox -e py37 --recreate
+```
+
+## Live development
+
+To get a basic dev environment you can run:
+
+```shell
+tox -e dev
+```
+
+You can enter any of the tox environments and install a live dev build with:
+
+```shell
+source .tox/py37/bin/activate
+pip install -e .
 ```
 
 ## Library Objectives
