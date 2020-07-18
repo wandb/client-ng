@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.32'
+__version__ = '0.0.33'
 
 import sys
 
@@ -98,6 +98,7 @@ keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras'
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
 tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
 xgboost = _lazyloader.LazyLoader('wandb.xgboost', globals(), 'wandb.framework.xgboost')
+lightgbm = _lazyloader.LazyLoader('wandb.lightgbm', globals(), 'wandb.framework.lightgbm')
 
 def ensure_configured():
     global api
