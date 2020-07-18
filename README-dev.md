@@ -61,19 +61,34 @@ If you make changes to `requirements_dev.txt` that are used by tests, you need t
 tox -e py37 --recreate
 ```
 
+### Fixtures
+
+`tests/conftest.py` contains a number of helpful fixtures automatically exposed to all tests as arguments for testing the app:
+
+- `local_netrc` - used automatically for all tests and patches the netrc logic to avoid interacting with your system .netrc
+- `runner` — exposes a click.CliRunner object which can be used by calling `.isolated_filesystem()`.  This also mocks out calls for login returning a dummy api key.
+- `mocked_run` - returns a mocked out run object that replaces the backend interface with a MagicMock so no actual api calls are made.
+- `wandb_init_run` - returns a fully functioning run with a mocked out interface (the result of calling wandb.init).  No api's are actually called, but you can access what apis were called via `run._backend.{summary,history,files}`.  See `test/utils/mock_backend.py` and `tests/frameworks/test_keras.py`
+- `mock_server` - mocks all calls to the `requests` module with sane defaults.  You can customize `tests/utils/mock_server.py` to use context or add api calls.
+- `live_mock_server` - actually starts a background process to serve up mock_server requests
+- `git_repo` — places the test context into an isolated git repository
+- `notebook` — gives you a context manager for reading a notebook providing `execute_cell`.  See `tests/utils/notebook_client.py`
+
 ## Live development
-
-To get a basic dev environment you can run:
-
-```shell
-tox -e dev
-```
 
 You can enter any of the tox environments and install a live dev build with:
 
 ```shell
 source .tox/py37/bin/activate
 pip install -e .
+```
+
+There's also a tox dev environment using Python 3, more info here: https://tox.readthedocs.io/en/latest/example/devenv.html
+
+TODO: There are lots of cool things we could do with this, currently it just puts us in iPython.
+
+```shell
+tox -e dev
 ```
 
 ## Library Objectives

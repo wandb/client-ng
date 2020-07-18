@@ -1,10 +1,43 @@
-"""Mock Server for simple calls the cli and public api makes"""
+"""Mock Server for simple calls the cli and public api make"""
 
 from flask import Flask, request
 import os
+import sys
 from datetime import datetime
 import json
 import wandb
+from .mock_requests import RequestsMock
+# TODO: remove once python2 ripped out
+if sys.version_info < (3, 5):
+    from mock import patch
+else:
+    from unittest.mock import patch
+
+
+def default_ctx():
+    return {
+        "fail_count": 0,
+        "page_count": 0,
+        "page_times": 2,
+        "files": {},
+    }
+
+
+def mock_server():
+    ctx = default_ctx()
+    app = create_app(ctx)
+    mock = RequestsMock(app, ctx)
+    # We mock out all requests libraries, couldn't find a way to mock the core lib
+    patch("gql.transport.requests.requests", mock).start()
+    patch("wandb.internal.file_stream.requests", mock).start()
+    patch("wandb.internal.internal_api.requests", mock).start()
+    patch("wandb.internal.update.requests", mock).start()
+    patch("wandb.apis.internal_runqueue.requests", mock).start()
+    patch("wandb.apis.public.requests", mock).start()
+    patch("wandb.util.requests", mock).start()
+    patch("wandb.wandb_sdk.wandb_artifacts.requests", mock).start()
+    print("Patched requests everywhere", os.getpid())
+    return mock
 
 
 def run():

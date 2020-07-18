@@ -3,6 +3,8 @@ import time
 import datetime
 import os
 import requests
+import nbformat
+from contextlib import contextmanager
 from tests import utils
 from multiprocessing import Process
 import click
@@ -88,12 +90,11 @@ def mock_server():
 
 @pytest.fixture
 def live_mock_server(request):
-    from tests.mock_server import create_app
     if request.node.get_closest_marker('port'):
         port = request.node.get_closest_marker('port').args[0]
     else:
         port = 8765
-    app = create_app(utils.default_ctx())
+    app = utils.create_app(utils.default_ctx())
     server = Process(target=app.run, kwargs={"port": port, "debug": True,
                                              "use_reloader": False})
     server.start()
@@ -109,6 +110,32 @@ def live_mock_server(request):
     yield server
     server.terminate()
     server.join()
+
+
+@pytest.fixture
+def notebook(live_mock_server):
+    @contextmanager
+    def notebook_loader(nb_path, kernel_name="wandb_python", **kwargs):
+        with open(utils.notebook_path("setup.ipynb")) as f:
+            setupnb = nbformat.read(f, as_version=4)
+            setupcell = setupnb['cells'][0]
+            client_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                          ".."))
+            # We inject the path of the client lib so we can load mocks
+            new_source = setupcell['source'].replace("__WANDB_PATH__", client_path)
+            setupcell['source'] = new_source
+
+        with open(utils.notebook_path(nb_path)) as f:
+            nb = nbformat.read(f, as_version=4)
+        nb['cells'].insert(0, setupcell)
+
+        client = utils.WandbNotebookClient(nb)
+        with client.setup_kernel(**kwargs):
+            # Run setup commands for mocks
+            client.execute_cell(0, store_history=False)
+            yield client
+
+    return notebook_loader
 
 
 @pytest.fixture

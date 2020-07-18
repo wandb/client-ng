@@ -12,7 +12,7 @@ boto3
 google-cloud-storage
 moviepy; python_version >= '3.6'
 imageio; python_version >= '3.6'
-pytest-flask
-pytest-mock
-pytest-timeout
 tensorflow
+ipython
+ipykernel
+nbclient; python_version >= '3.6'
