@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 import json
 import wandb
-from .mock_requests import RequestsMock
+from tests.utils.mock_requests import RequestsMock
 # TODO: remove once python2 ripped out
 if sys.version_info < (3, 5):
     from mock import patch
@@ -429,4 +429,4 @@ def create_app(ctx):
 
 if __name__ == '__main__':
     app = create_app(default_ctx())
-    app.run(debug=True)
+    app.run(debug=True, port=int(os.environ.get("PORT", 8547)))

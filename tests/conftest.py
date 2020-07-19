@@ -5,7 +5,8 @@ import os
 import requests
 from contextlib import contextmanager
 from tests import utils
-from multiprocessing import Process
+# from multiprocessing import Process
+import subprocess
 import click
 from click.testing import CliRunner
 import webbrowser
@@ -105,17 +106,20 @@ def mock_server():
 @pytest.fixture
 def live_mock_server(request):
     port = utils.free_port()
-    app = utils.create_app(utils.default_ctx())
-
-    def worker(app, port):
-        app.run(host="localhost", port=port, use_reloader=False, threaded=True)
-
-    server = Process(target=worker, args=(app, port))
+    #  TODO: Windows can't pickle
+    #  app = utils.create_app(utils.default_ctx())
+    #  def worker(app, port):
+    #    app.run(host="localhost", port=port, use_reloader=False, threaded=True)
+    #  server = Process(target=worker, args=(app, port))
+    #  server.start()
+    command = ["python", "./utils/mock_server.py"]
+    env = os.environ
+    env["PORT"] = str(port)
+    env["PYTHONPATH"] = os.getcwd()
+    server = subprocess.Popen(command, env=env)
     server.base_url = "http://localhost:%s" % port
-    server.start()
-    for i in range(10):
+    for i in range(5):
         try:
-            time.sleep(0.1)
             res = requests.get("%s/storage" % server.base_url, timeout=1)
             if res.status_code == 200:
                 break
@@ -124,7 +128,10 @@ def live_mock_server(request):
             print("timed out")
     yield server
     server.terminate()
-    server.join()
+    try:
+        server.join()
+    except AttributeError:  # Popen mode
+        server.wait()
 
 
 @pytest.fixture
