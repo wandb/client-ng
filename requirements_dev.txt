@@ -15,6 +15,7 @@ imageio; python_version >= '3.5'
 ipython
 ipykernel
 nbclient; python_version >= '3.5'
+sklearn
 tensorflow
 torch; python_version >= '3.5' and sys_platform == 'darwin'
 torchvision; python_version >= '3.5' and sys_platform == 'darwin'
