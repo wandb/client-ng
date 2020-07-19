@@ -71,6 +71,13 @@ If you make changes to `requirements_dev.txt` that are used by tests, you need t
 tox -e py37 --recreate
 ```
 
+To debug issues with leaving files open, you can pass `--open-files` to pytest to have tests fail that leave open files:
+https://github.com/astropy/pytest-openfile
+
+```shell
+tox -e py37 -- --open-files
+```
+
 ### Pytest Fixtures
 
 `tests/conftest.py` contains a number of helpful fixtures automatically exposed to all tests as arguments for testing the app:
