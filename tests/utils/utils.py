@@ -1,4 +1,5 @@
 import os
+import socket
 
 
 def subdict(d, expected_dict):
@@ -17,3 +18,11 @@ def notebook_path(path):
     """Returns the path to a notebook"""
     return os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "..", "notebooks", path)
+
+
+def free_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+
+    _, port = sock.getsockname()
+    return port

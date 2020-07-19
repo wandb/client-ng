@@ -17,5 +17,7 @@ ipython
 ipykernel
 nbclient; python_version >= '3.5'
 tensorflow
-torch; python_version >= '3.5'
-torchvision; python_version >= '3.5'
+torch; python_version >= '3.5' and sys_platform == 'darwin'
+torchvision; python_version >= '3.5' and sys_platform == 'darwin'
+torch==1.5.1+cpu; python_version >= '3.5' and sys_platform != 'darwin'
+torchvision==0.6.1+cpu; python_version >= '3.5' and sys_platform != 'darwin'

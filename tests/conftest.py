@@ -104,18 +104,16 @@ def mock_server():
 
 @pytest.fixture
 def live_mock_server(request):
-    if request.node.get_closest_marker('port'):
-        port = request.node.get_closest_marker('port').args[0]
-    else:
-        port = 8765
+    port = utils.free_port()
     app = utils.create_app(utils.default_ctx())
     server = Process(target=app.run, kwargs={"port": port, "debug": True,
                                              "use_reloader": False})
+    server.base_url = "http://localhost:%s" % port
     server.start()
-    for i in range(5):
+    for i in range(10):
         try:
-            time.sleep(1)
-            res = requests.get("http://localhost:%s/storage" % port, timeout=1)
+            time.sleep(0.1)
+            res = requests.get("%s/storage" % server.base_url, timeout=1)
             if res.status_code == 200:
                 break
             print("Attempting to connect but got: %s", res)
@@ -133,10 +131,9 @@ def notebook(live_mock_server):
         with open(utils.notebook_path("setup.ipynb")) as f:
             setupnb = nbformat.read(f, as_version=4)
             setupcell = setupnb['cells'][0]
-            client_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                          ".."))
-            # We inject the path of the client lib so we can load mocks
-            new_source = setupcell['source'].replace("__WANDB_PATH__", client_path)
+            # Ensure the notebooks talks to our mock server
+            new_source = setupcell['source'].replace("__WANDB_BASE_URL__",
+                                                     live_mock_server.base_url)
             setupcell['source'] = new_source
 
         with open(utils.notebook_path(nb_path)) as f:
