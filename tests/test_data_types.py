@@ -286,7 +286,8 @@ def test_molecule(runner, mocked_run):
         mol = wandb.Molecule("test.pdb")
         wandb.Molecule.seq_to_json([mol], mocked_run, "rad", "summary")
         print(glob.glob(os.path.join(mocked_run.dir, "media/**/*")))
-        assert os.path.exists(os.path.join(mocked_run.dir, "media/molecule/rad_summary_0.pdb"))
+        assert os.path.exists(os.path.join(mocked_run.dir,
+                                           "media/molecule/rad_summary_0.pdb"))
 
 
 def test_html_str(mocked_run):
