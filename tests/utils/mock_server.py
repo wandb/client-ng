@@ -203,6 +203,20 @@ def create_app(ctx):
                     }
                 }
             })
+        if "query Sweep(" in body["query"]:
+            return json.dumps({
+                "data": {
+                    "project": {
+                        "sweep": {
+                            "id": "1234",
+                            "name": "fun-sweep-10",
+                            "bestLoss": 0.33,
+                            "config": "",
+                            "runs": paginated(run(), ctx)
+                        }
+                    }
+                }
+            })
         if "mutation UpsertBucket(" in body["query"]:
             return json.dumps({
                 "data": {

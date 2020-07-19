@@ -1,5 +1,6 @@
 import random
 import sys
+import os
 import pytest
 import numpy
 import tensorflow
@@ -187,3 +188,50 @@ def test_image_from_docker_args_sha():
             "3ddd2547d83a056804cac6aac48d46c5394a76df76b672539c4d2476eba38177")
     image = util.image_from_docker_args([dsha])
     assert image == dsha
+
+
+def test_safe_for_json():
+    res = util.make_safe_for_json({
+        "nan": float("nan"),
+        "inf": float("+inf"),
+        "ninf": float("-inf"),
+        "str": "str",
+        "seq": [float("nan"), 1],
+        "map": {"foo": 1, "nan": float("nan")}
+    })
+    assert res == {'inf': 'Infinity',
+                   'map': {'foo': 1, 'nan': 'NaN'},
+                   'nan': 'NaN',
+                   'ninf': '-Infinity',
+                   'seq': ['NaN', 1],
+                   'str': 'str'}
+
+
+def test_write_netrc():
+    api_key = "X" * 40
+    util.write_netrc("http://localhost", "vanpelt", api_key)
+    with open(os.path.expanduser("~/.netrc")) as f:
+        assert f.read() == ("machine localhost\n"
+                            "  login vanpelt\n"
+                            "  password %s\n" % api_key)
+
+
+def test_find_runner():
+    res = util.find_runner(__file__)
+    assert "python" in res[0]
+
+
+def test_parse_sweep_id():
+    parts = {"name": "test/test/test"}
+    util.parse_sweep_id(parts)
+    assert parts == {
+        "name": "test",
+        "entity": "test",
+        "project": "test"
+    }
+
+
+def test_sizeof_fmt():
+    assert util.sizeof_fmt(1000) == "1000.0B"
+    assert util.sizeof_fmt(1000000) == "976.6KiB"
+    assert util.sizeof_fmt(5000000) == "4.8MiB"

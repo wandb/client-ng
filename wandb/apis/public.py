@@ -317,17 +317,6 @@ class Api(object):
             return entity, parts[0], parts[1]
         return parts
 
-    def _parse_project_path(self, path):
-        """Returns project and entity for project specified by path"""
-        project = self.settings['project']
-        entity = self.settings['entity'] or self.default_entity
-        if path is None:
-            return entity, project
-        parts = path.split('/', 1)
-        if len(parts) == 1:
-            return entity, path
-        return parts
-
     def projects(self, entity=None, per_page=200):
         """Get projects for a given entity.
         Args:
