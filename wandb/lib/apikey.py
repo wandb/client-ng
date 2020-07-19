@@ -4,10 +4,7 @@ apikey util.
 """
 
 import getpass
-import os
-import stat
 import sys
-import textwrap
 
 from six.moves import input
 import wandb
