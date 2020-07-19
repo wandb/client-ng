@@ -26,3 +26,27 @@ def free_port():
 
     _, port = sock.getsockname()
     return port
+
+
+def assert_deep_lists_equal(a, b, indices=None):
+    try:
+        assert a == b
+    except ValueError:
+        assert len(a) == len(b)
+
+        # pytest's list diffing breaks at 4d so we track them ourselves
+        if indices is None:
+            indices = []
+            top = True
+        else:
+            top = False
+
+        for i, (x, y) in enumerate(zip(a, b)):
+            try:
+                assert_deep_lists_equal(x, y, indices)
+            except AssertionError:
+                indices.append(i)
+                raise
+            finally:
+                if top and indices:
+                    print('Diff at index: %s' % list(reversed(indices)))
