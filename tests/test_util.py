@@ -1,11 +1,16 @@
 import random
-
+import sys
+import pytest
 import numpy
 import tensorflow
-import torch
 
 from . import utils
 from wandb import util
+
+try:
+    import torch
+except ImportError:
+    pass
 
 
 def pt_variable(nested_list, requires_grad=True):
@@ -43,60 +48,70 @@ def tensorflow_json_friendly_test(orig_data):
     json_friendly_test(orig_data, v)
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_0d():
     a = nested_list()
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_1d_1x1():
     a = nested_list(1)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_1d():
     a = nested_list(3)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_1d_large():
     a = nested_list(300)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_2d():
     a = nested_list(3, 3)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_2d_large():
     a = nested_list(300, 300)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_3d():
     a = nested_list(3, 3, 3)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_4d():
     a = nested_list(1, 1, 1, 1)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_nd():
     a = nested_list(1, 1, 1, 1, 1, 1, 1, 1)
     json_friendly_test(a, torch.Tensor(a))
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="PyTorch no longer supports py2")
 def test_pytorch_json_nd_large():
     a = nested_list(3, 3, 3, 3, 3, 3, 3, 3)
     json_friendly_test(a, torch.Tensor(a))
