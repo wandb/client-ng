@@ -26,14 +26,14 @@ package = "grpcio-tools"
 package_version = get_pip_package_version(package)
 requirements_file = "../../requirements_build.txt"
 requirements_version = get_requirements_version(requirements_file, package)
-requirements_version += "2"
 assert package_version == requirements_version, (
         "Package {} found={} required={}".format(package, package_version, requirements_version))
 
+proto_root = os.path.join(os.path.dirname(grpc_tools.__file__), "_proto")
 os.chdir("../..")
 protoc.main((
     '',
-    '-I', 'vendor/protobuf/src',
+    '-I', proto_root,
     '-I', '.',
     '--python_out=.',
     'wandb/proto/wandb_internal.proto',
@@ -41,7 +41,7 @@ protoc.main((
 
 protoc.main((
     '',
-    '-I', 'vendor/protobuf/src',
+    '-I', proto_root,
     '-I', '.',
     '--python_out=.',
     '--grpc_python_out=.',
