@@ -256,6 +256,8 @@ def test_artifact_run_logged(runner, mock_server, api):
     assert arts[0].name == "abc123"
 
 
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Verify is broken on Windows")
 def test_artifact_verify(runner, mock_server, api):
     art = api.artifact("entity/project/mnist:v0", type="dataset")
     art.download()

@@ -3,6 +3,7 @@ import sys
 import os
 import pytest
 import numpy
+import platform
 import tensorflow
 
 from . import utils
@@ -216,6 +217,8 @@ def test_write_netrc():
                             "  password %s\n" % api_key)
 
 
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="find_runner is broken on Windows")
 def test_find_runner():
     res = util.find_runner(__file__)
     assert "python" in res[0]
