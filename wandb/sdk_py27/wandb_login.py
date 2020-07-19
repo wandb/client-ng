@@ -6,12 +6,10 @@ login.
 from __future__ import print_function
 
 import logging
-import os
 
 import click
 import requests
 import wandb
-from wandb import env
 from wandb.apis import InternalApi
 from wandb.lib import apikey
 
