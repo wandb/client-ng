@@ -80,7 +80,13 @@ if sys.version_info < (3, 5):
                     if not self._missing_ok_on_cleanup:
                         _warnings.warn("Couldn't remove temp directory %s" % self.name)
 else:
-    from tempfile import TemporaryDirectory
+    from tempfile import TemporaryDirectory as RealTemporaryDirectory
+
+    class TemporaryDirectory(RealTemporaryDirectory):
+        def __init__(self, *args, **kwargs):
+            if "missing_ok_on_cleanup" in kwargs:
+                del kwargs["missing_ok_on_cleanup"]
+            super(TemporaryDirectory, self).__init__(*args, **kwargs)
 
 
 __all__ = ["TemporaryDirectory"]

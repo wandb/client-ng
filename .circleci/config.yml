@@ -92,7 +92,9 @@ jobs:
                       pip3 install tox
             - run:
                   name: Run tests
+                  # Tests failed with Too many open files, so added ulimit
                   command: |
+                      ulimit -a 1024
                       python3 -m tox -v -e py37
                   no_output_timeout: 5m
     final:
