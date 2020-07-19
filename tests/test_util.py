@@ -118,34 +118,42 @@ def test_pytorch_json_nd_large():
     json_friendly_test(a, pt_variable(a))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_0d():
     tensorflow_json_friendly_test(nested_list())
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_1d_1x1():
     tensorflow_json_friendly_test(nested_list(1))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_1d():
     tensorflow_json_friendly_test(nested_list(3))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_1d_large():
     tensorflow_json_friendly_test(nested_list(300))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_2d():
     tensorflow_json_friendly_test(nested_list(3, 3))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_2d_large():
     tensorflow_json_friendly_test(nested_list(300, 300))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_nd():
     tensorflow_json_friendly_test(nested_list(1, 1, 1, 1, 1, 1, 1, 1))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="TF has sketchy support for py2")
 def test_tensorflow_json_nd_large():
     tensorflow_json_friendly_test(nested_list(3, 3, 3, 3, 3, 3, 3, 3))
 
