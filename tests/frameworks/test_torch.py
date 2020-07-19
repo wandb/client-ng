@@ -1,8 +1,15 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import wandb
 import pytest
+import sys
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+except ImportError:
+    pass
+
+pytestmark = pytest.mark.skipif(sys.version_info < (3, 5),
+                                reason="PyTorch no longer supports py2")
 
 
 def dummy_torch_tensor(size, requires_grad=True):
@@ -147,7 +154,7 @@ def test_double_log(wandb_init_run):
         wandb.watch(net)
 
 
-def test_sequence_net():
+def test_sequence_net(wandb_init_run):
     net = Sequence()
     graph = wandb.wandb_torch.TorchGraph.hook_torch(net)
     output = net.forward(dummy_torch_tensor(

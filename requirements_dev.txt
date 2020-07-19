@@ -11,11 +11,11 @@ matplotlib
 soundfile
 boto3
 google-cloud-storage
-moviepy; python_version >= '3.6'
-imageio; python_version >= '3.6'
+moviepy; python_version >= '3.5'
+imageio; python_version >= '3.5'
 ipython
 ipykernel
-nbclient; python_version >= '3.6'
+nbclient; python_version >= '3.5'
 tensorflow
-torch
-torchvision
+torch; python_version >= '3.5'
+torchvision; python_version >= '3.5'

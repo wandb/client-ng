@@ -137,7 +137,6 @@ def test_run_file(runner, mock_server, api):
         run = api.run("test/test/test")
         file = run.file("weights.h5")
         assert not os.path.exists("weights.h5")
-        print("YO", file.url)
         file.download()
         assert os.path.exists("weights.h5")
 

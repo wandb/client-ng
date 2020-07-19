@@ -104,6 +104,11 @@ def ensure_configured():
     global api
     api = InternalApi()
 
+def set_trace():
+    import pdb  # TODO: support other debuggers
+    #  frame = sys._getframe().f_back
+    pdb.set_trace() # TODO: pass the parent stack...
+
 __all__ = [
     "__version__",
     "init",

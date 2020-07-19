@@ -10,13 +10,12 @@ import sys
 import warnings as _warnings
 from shutil import rmtree as _rmtree
 
-from .weakref import finalize
-
 
 # XXX backport:  Rather than backporting all of mkdtemp(), we just create a
 # thin wrapper implementing its Python 3.5 signature.
 if sys.version_info < (3, 5):
     from tempfile import mkdtemp as old_mkdtemp
+    from .weakref import finalize
 
     def mkdtemp(suffix=None, prefix=None, dir=None):
         """
@@ -29,6 +28,7 @@ if sys.version_info < (3, 5):
 
 else:
     from tempfile import mkdtemp
+    from weakref import finalize
 
 
 # XXX backport: ResourceWarning was added in Python 3.2.

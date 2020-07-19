@@ -1,22 +1,23 @@
 import wandb
 import json
-from wandb.interface import interface
+from wandb.interface import constants, interface
+from multiprocessing import Process
 from _pytest.config import get_config  # type: ignore
 from pytest_mock import _get_mock_module  # type: ignore
 
 
-class ProcessMock(object):
+class ProcessMock(Process):
     def __init__(self, *args, **kwargs):
-        self.pid = 0
         self.name = "wandb_internal"
-        self.daemon = True
         self._is_alive = True
-        self.exitcode = 0
 
     def is_alive(self):
         return self._is_alive
 
     def start(self):
+        pass
+
+    def run(self):
         pass
 
     def join(self, *args):
@@ -99,4 +100,9 @@ class BackendMock(object):
         pass
 
     def cleanup(self):
-        pass
+        #  self.notify_queue.put(constants.NOTIFY_SHUTDOWN) # TODO: shut it down
+        self.req_queue.close()
+        self.resp_queue.close()
+        self.cancel_queue.close()
+        self.notify_queue.close()
+        self.process_queue.close()

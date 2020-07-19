@@ -11,6 +11,8 @@ from click.testing import CliRunner
 import webbrowser
 import wandb
 import git
+import psutil
+import atexit
 from wandb.internal.git_repo import GitRepo
 try:
     import nbformat
@@ -23,6 +25,15 @@ except ImportError:  # TODO: this is only for python2
     from mock import MagicMock
 
 DUMMY_API_KEY = '1824812581259009ca9981580f8f8a9012409eee'
+
+
+def debug(*args, **kwargs):
+    print("Open files during tests: ")
+    proc = psutil.Process()
+    print(proc.open_files())
+
+
+atexit.register(debug)
 
 
 @pytest.fixture
