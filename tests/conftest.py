@@ -112,10 +112,12 @@ def live_mock_server(request):
     #    app.run(host="localhost", port=port, use_reloader=False, threaded=True)
     #  server = Process(target=worker, args=(app, port))
     #  server.start()
-    command = ["python", "./utils/mock_server.py"]
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    path = os.path.join(root, "tests", "utils", "mock_server.py")
+    command = ["python", path]
     env = os.environ
     env["PORT"] = str(port)
-    env["PYTHONPATH"] = os.getcwd()
+    env["PYTHONPATH"] = root
     server = subprocess.Popen(command, env=env)
     server.base_url = "http://localhost:%s" % port
     for i in range(5):
@@ -136,6 +138,10 @@ def live_mock_server(request):
 
 @pytest.fixture
 def notebook(live_mock_server):
+    """This launches a live server, configures a notebook to use it, and enables
+    devs to execute arbitrary cells.  See tests/test_notebooks.py
+
+    TODO: we should launch a single server on boot and namespace requests by host"""
     @contextmanager
     def notebook_loader(nb_path, kernel_name="wandb_python", **kwargs):
         with open(utils.notebook_path("setup.ipynb")) as f:
