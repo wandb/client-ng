@@ -147,3 +147,4 @@ def wandb_init_run(runner, mocker, mock_server, capsys):
     mocker.patch('wandb.wandb_sdk.wandb_init.Backend', utils.BackendMock)
     run = wandb.init(settings=wandb.Settings(console="off", mode="offline"))
     yield run
+    wandb.join()
