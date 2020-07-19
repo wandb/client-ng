@@ -106,8 +106,11 @@ def mock_server():
 def live_mock_server(request):
     port = utils.free_port()
     app = utils.create_app(utils.default_ctx())
-    server = Process(target=app.run, kwargs={"port": port, "debug": True,
-                                             "use_reloader": False})
+
+    def worker(app, port):
+        app.run(host="localhost", port=port, use_reloader=False, threaded=True)
+
+    server = Process(target=worker, args=(app, port))
     server.base_url = "http://localhost:%s" % port
     server.start()
     for i in range(10):
