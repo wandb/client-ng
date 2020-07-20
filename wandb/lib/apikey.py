@@ -4,12 +4,12 @@ apikey util.
 """
 
 import getpass
+import os
+import stat
 import sys
+import textwrap
 
 from six.moves import input
-import stat
-import os
-import textwrap
 import wandb
 from wandb.apis import InternalApi
 from wandb.errors.term import LOG_STRING
