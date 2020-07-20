@@ -477,9 +477,9 @@ class Object3D(BatchableMedia):
             if data_or_path['type'] == 'lidar/beta':
                 data = {
                     'type': data_or_path['type'],
-                    'vectors': data_or_path['vectors'].tolist(),
-                    'points': data_or_path['points'].tolist(),
-                    'boxes': data_or_path['boxes'].tolist(),
+                    'vectors': data_or_path['vectors'].tolist() if 'vectors' in data_or_path else [],
+                    'points': data_or_path['points'].tolist() if 'points' in data_or_path else [],
+                    'boxes': data_or_path['boxes'].tolist() if 'boxes' in data_or_path else [],
                 }
             else:
                 raise ValueError("Type not supported, only 'lidar/beta' is currently supported")
@@ -1153,10 +1153,10 @@ class BoundingBoxes2D(JSONMetadata):
         else:
             self._class_labels = val["class_labels"]
 
-    def bind_to_run(self, run, key, step):
+    def bind_to_run(self, run, key, step, **kwargs):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(BoundingBoxes2D, self).bind_to_run(run, key, step)
+        super(BoundingBoxes2D, self).bind_to_run(run, key, step, **kwargs)
         run._add_singleton("bounding_box/class_labels", key + "_wandb_delimeter_" + self._key , self._class_labels)
 
 
@@ -1242,10 +1242,10 @@ class ImageMask(Media):
         image.save(tmp_path, transparency=None)
         self._set_file(tmp_path, is_tmp=True, extension=ext)
 
-    def bind_to_run(self, run, key, step):
+    def bind_to_run(self, run, key, step, **kwargs):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(ImageMask, self).bind_to_run(run, key, step)
+        super(ImageMask, self).bind_to_run(run, key, step, **kwargs)
         class_labels = self._val["class_labels"]
 
         run._add_singleton("mask/class_labels", key + "_wandb_delimeter_" + self._key , class_labels)
