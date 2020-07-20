@@ -1,0 +1,46 @@
+import numpy as np
+import wandb
+
+import image_test
+import image_mask_test
+import video_test
+import molecule_test
+import point_cloud_scene
+import object_3D
+
+wandb.init(project='image-test')
+
+
+IMG_WIDTH = 5
+IMG_HEIGHT = 5
+
+IMG_COUNT = 2
+# Step count
+N = 10
+# Log frequency
+M = 1
+
+
+def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
+    return np.concatenate(
+        (np.random.rand(h//2, w),
+         np.zeros((h//2, w))),
+        axis=0)
+
+all_tests = {
+    **image_test.all_tests,
+    **image_mask_test.all_tests
+    **video_test.all_tests
+    **molecule_mask_test.all_tests
+    **point_cloud_scene.all_tests
+    **object_3D.all_tests
+}
+
+
+
+for i in range(0, N):
+    if i % M == 0:
+        wandb.log(all_tests)
+
+import time
+time.sleep(1000)

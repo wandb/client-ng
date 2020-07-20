@@ -73,8 +73,10 @@ vectors_2 = [
 
 vectors_all = vectors + vectors_2
 
-wandb.log({
+all_tests = {
     "separate_vectors": [make_scene([v]) for v in vectors],
     "color_vectors": make_scene(vectors_2),
     "all_vectors": make_scene(vectors_all)
-})
+}
+
+wandb.log(all_tests)
