@@ -1713,6 +1713,17 @@ def numpy_arrays_to_lists(payload):
     return payload
 
 
+
+def prune_max_seq(seq):
+    # If media type has a max respect it
+    max = seq[0].MAX_ITEMS
+    items = seq
+    if max != None and max < len(seq):
+        logging.warning( "Only %i %s will be uploaded." % (max, seq[0].__class__.__name__))
+        items = seq[:max]
+    return items
+
+
 def val_to_json(run, key, val, namespace=None):
     # Converts a wandb datatype to its JSON representation.
     if namespace == None:
@@ -1730,13 +1741,7 @@ def val_to_json(run, key, val, namespace=None):
     elif isinstance(val, collections.Sequence) and all(isinstance(v, WBValue) for v in val):
         # This check will break down if Image/Audio/... have child classes.
         if len(val) and isinstance(val[0], BatchableMedia) and all(isinstance(v, type(val[0])) for v in val):
-
-            # If media type has a max respect it
-            max = val[0].MAX_ITEMS
-            items = val
-            if max != None and max < len(val):
-                logging.warning( "Only %i %s will be uploaded." % (max, val[0].__class__.__name__))
-                items = val[:max]
+            items = prune_max_seq(val)
 
             for item in items:
                 if not item.is_bound():
