@@ -161,8 +161,12 @@ def test_bad_json_tfjob(wandb_init_run):
 
 
 @pytest.mark.wandb_args(wandb_init={"dir": "/tmp"})
-@pytest.mark.skip(reason="dir not currently supported")
 def test_custom_dir(wandb_init_run):
+    assert len(glob.glob("/tmp/wandb/run-*")) > 0
+
+
+@pytest.mark.wandb_args(env={"WANDB_DIR": "/tmp"})
+def test_custom_dir_env(wandb_init_run):
     assert len(glob.glob("/tmp/wandb/run-*")) > 0
 
 
