@@ -147,7 +147,12 @@ class _WandbInit(object):
         """
         self.kwargs = kwargs
 
-        wl = wandb.setup()
+        # Some settings should be persisted across multiple runs the first
+        # time setup is called.
+        # TODO: Is this the best way to do this?
+        session_settings_keys = ["anonymous"]
+        session_settings = {k: kwargs[k] for k in session_settings_keys}
+        wl = wandb.setup(settings=session_settings)
         # Make sure we have a logger setup (might be an early logger)
         _set_logger(wl._get_logger())
 
@@ -173,6 +178,7 @@ class _WandbInit(object):
             "config_exclude_keys",
             "config_include_keys",
             "reinit",
+            "dir",
             "anonymous",
             "allow_val_change",
             "resume",
@@ -327,6 +333,7 @@ class _WandbInit(object):
             os._exit(1)
 
         self._restore()
+        #  TODO: close the logging file handler
 
         self.backend.cleanup()
         # TODO(jhr): no warning allowed
@@ -567,5 +574,4 @@ def init(
         sentry_exc(e, delay=True)
         reraise(*sys.exc_info())
         #  raise_from(Exception("problem"), e)
-
     return run

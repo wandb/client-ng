@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.32'
+__version__ = '0.0.34'
 
 import sys
 
@@ -42,6 +42,7 @@ from wandb import util
 # Move this (keras.__init__ expects it at top level)
 from wandb.data_types import Graph
 from wandb.data_types import Image
+from wandb.data_types import Plotly
 from wandb.data_types import Video
 from wandb.data_types import Audio
 from wandb.data_types import Table
@@ -49,7 +50,6 @@ from wandb.data_types import Html
 from wandb.data_types import Object3D
 from wandb.data_types import Molecule
 from wandb.data_types import Histogram
-from wandb.data_types import Graph
 
 from wandb.wandb_agent import agent
 from wandb.wandb_controller import sweep, controller
@@ -87,20 +87,49 @@ config = _preinit.PreInitObject("wandb.config")
 summary = _preinit.PreInitObject("wandb.summary")
 log = _preinit.PreInitCallable("wandb.log")
 join = _preinit.PreInitCallable("wandb.join")
+# record of patched libraries
+patched = {
+    "tensorboard": [],
+    "keras": [],
+    "gym": []
+}
 
 keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras')
 sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
 tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
 xgboost = _lazyloader.LazyLoader('wandb.xgboost', globals(), 'wandb.framework.xgboost')
 lightgbm = _lazyloader.LazyLoader('wandb.lightgbm', globals(), 'wandb.framework.lightgbm')
+docker = _lazyloader.LazyLoader('wandb.docker', globals(), 'wandb.docker')
 
 def ensure_configured():
     global api
     api = InternalApi()
+
+def set_trace():
+    import pdb  # TODO: support other debuggers
+    #  frame = sys._getframe().f_back
+    pdb.set_trace() # TODO: pass the parent stack...
 
 __all__ = [
     "__version__",
     "init",
     "setup",
     "save",
+    "sweep",
+    "agent",
+    "config",
+    "log",
+    "summary",
+    "join",
+    "Api",
+    "Graph",
+    "Image",
+    "Plotly",
+    "Video",
+    "Audio",
+    "Table",
+    "Html",
+    "Object3D",
+    "Molecule",
+    "Histogram"
 ]

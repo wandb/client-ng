@@ -3,14 +3,23 @@ import time
 import datetime
 import os
 import requests
+from contextlib import contextmanager
 from tests import utils
-from multiprocessing import Process
+# from multiprocessing import Process
+import subprocess
 import click
 from click.testing import CliRunner
 import webbrowser
 import wandb
 import git
+import psutil
+import atexit
+from wandb.lib.globals import unset_globals
 from wandb.internal.git_repo import GitRepo
+try:
+    import nbformat
+except ImportError:  # TODO: no fancy notebook fun in python2
+    pass
 
 try:
     from unittest.mock import MagicMock
@@ -18,6 +27,15 @@ except ImportError:  # TODO: this is only for python2
     from mock import MagicMock
 
 DUMMY_API_KEY = '1824812581259009ca9981580f8f8a9012409eee'
+
+
+def debug(*args, **kwargs):
+    print("Open files during tests: ")
+    proc = psutil.Process()
+    print(proc.open_files())
+
+
+atexit.register(debug)
 
 
 @pytest.fixture
@@ -63,8 +81,8 @@ def runner(monkeypatch, mocker):
     #                    'project_name': 'test_model', 'files': ['weights.h5'],
     #                    'attach': False, 'team_name': 'Manual Entry'})
     monkeypatch.setattr(webbrowser, 'open_new_tab', lambda x: True)
-    mocker.patch('wandb.wandb_sdk.wandb_login.prompt',
-                 lambda *args, **kwargs: DUMMY_API_KEY)
+    mocker.patch("wandb.lib.apikey.input", lambda x: 1)
+    mocker.patch("wandb.lib.apikey.getpass.getpass", lambda x: DUMMY_API_KEY)
     return CliRunner()
 
 
@@ -88,19 +106,24 @@ def mock_server():
 
 @pytest.fixture
 def live_mock_server(request):
-    from tests.mock_server import create_app
-    if request.node.get_closest_marker('port'):
-        port = request.node.get_closest_marker('port').args[0]
-    else:
-        port = 8765
-    app = create_app(utils.default_ctx())
-    server = Process(target=app.run, kwargs={"port": port, "debug": True,
-                                             "use_reloader": False})
-    server.start()
+    port = utils.free_port()
+    #  TODO: Windows can't pickle
+    #  app = utils.create_app(utils.default_ctx())
+    #  def worker(app, port):
+    #    app.run(host="localhost", port=port, use_reloader=False, threaded=True)
+    #  server = Process(target=worker, args=(app, port))
+    #  server.start()
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    path = os.path.join(root, "tests", "utils", "mock_server.py")
+    command = ["python", path]
+    env = os.environ
+    env["PORT"] = str(port)
+    env["PYTHONPATH"] = root
+    server = subprocess.Popen(command, env=env)
+    server.base_url = "http://localhost:%s" % port
     for i in range(5):
         try:
-            time.sleep(1)
-            res = requests.get("http://localhost:%s/storage" % port, timeout=1)
+            res = requests.get("%s/storage" % server.base_url, timeout=1)
             if res.status_code == 200:
                 break
             print("Attempting to connect but got: %s", res)
@@ -108,4 +131,88 @@ def live_mock_server(request):
             print("timed out")
     yield server
     server.terminate()
-    server.join()
+    try:
+        server.join()
+    except AttributeError:  # Popen mode
+        server.wait()
+
+
+@pytest.fixture
+def notebook(live_mock_server):
+    """This launches a live server, configures a notebook to use it, and enables
+    devs to execute arbitrary cells.  See tests/test_notebooks.py
+
+    TODO: we should launch a single server on boot and namespace requests by host"""
+    @contextmanager
+    def notebook_loader(nb_path, kernel_name="wandb_python", **kwargs):
+        with open(utils.notebook_path("setup.ipynb")) as f:
+            setupnb = nbformat.read(f, as_version=4)
+            setupcell = setupnb['cells'][0]
+            # Ensure the notebooks talks to our mock server
+            new_source = setupcell['source'].replace("__WANDB_BASE_URL__",
+                                                     live_mock_server.base_url)
+            setupcell['source'] = new_source
+
+        with open(utils.notebook_path(nb_path)) as f:
+            nb = nbformat.read(f, as_version=4)
+        nb['cells'].insert(0, setupcell)
+
+        client = utils.WandbNotebookClient(nb)
+        with client.setup_kernel(**kwargs):
+            # Run setup commands for mocks
+            client.execute_cell(0, store_history=False)
+            yield client
+
+    return notebook_loader
+
+
+def default_wandb_args():
+    """This allows us to parameterize the wandb_init_run fixture
+    The most general arg is "env", you can call:
+
+    @pytest.mark.wandb_args(env={"WANDB_API_KEY": "XXX"})
+
+    To set env vars and have them unset when the test completes.
+    """
+    return {
+        "error": None,
+        "k8s": None,
+        "sagemaker": False,
+        "tensorboard": False,
+        "resume": False,
+        "env": {},
+        "wandb_init": {},
+    }
+
+
+def mocks_from_args(mocker, args, mock_server):
+    if args["k8s"] is not None:
+        mock_server.ctx["k8s"] = args["k8s"]
+        args["env"].update(utils.mock_k8s(mocker))
+    if args["sagemaker"]:
+        args["env"].update(utils.mock_sagemaker(mocker))
+
+
+@pytest.fixture
+def wandb_init_run(request, runner, mocker, mock_server):
+    marker = request.node.get_closest_marker('wandb_args')
+    args = default_wandb_args()
+    if marker:
+        args.update(marker.kwargs)
+    try:
+        mocks_from_args(mocker, args, mock_server)
+        for k, v in args["env"].items():
+            os.environ[k] = v
+        #  TODO: likely not the right thing to do, we shouldn't be setting this
+        wandb._IS_INTERNAL_PROCESS = False
+        #  We want to run setup every time in tests
+        wandb.wandb_sdk.wandb_setup._WandbSetup._instance = None
+        mocker.patch('wandb.wandb_sdk.wandb_init.Backend', utils.BackendMock)
+        run = wandb.init(settings=wandb.Settings(console="off", mode="offline"),
+                         **args["wandb_init"])
+        yield run
+        wandb.join()
+    finally:
+        unset_globals()
+        for k, v in args["env"].items():
+            del os.environ[k]
