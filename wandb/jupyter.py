@@ -4,7 +4,11 @@ import os
 import re
 import sys
 
-from IPython.core.getipython import get_ipython
+try:
+    from IPython.core.getipython import get_ipython
+except ImportError:
+    #  python2 blows up when importing get_ipython
+    pass
 from IPython.core.magic import line_cell_magic, Magics, magics_class
 from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
 from IPython.display import display
