@@ -4,18 +4,21 @@ import os
 import re
 import sys
 
+import requests
+from requests.compat import urljoin
+import wandb
+from wandb import env
+
 try:
     from IPython.core.getipython import get_ipython
     from IPython.core.magic import line_cell_magic, Magics, magics_class
     from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
     from IPython.display import display
 except ImportError:
-    #  python2 blows up when importing get_ipython
-    pass
-import requests
-from requests.compat import urljoin
-import wandb
-from wandb import env
+    wandb.termwarn("ipython is not supported in python 2.7, upgrade to 3.x")
+
+    def magic_class():
+        pass
 
 logger = logging.getLogger(__name__)
 
