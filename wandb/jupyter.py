@@ -26,7 +26,7 @@ class Run(object):
             return '''<iframe src="%s" style="border:none;width:100%%;height:420px">
                 </iframe>''' % url
         except wandb.Error as e:
-            return "Can't display wandb interface<br/>{}".format(e.message)
+            return "Can't display wandb interface<br/>{}".format(e)
 
 
 @magics_class
@@ -147,22 +147,22 @@ class Notebook(object):
         self.outputs = {}
         self.shell = get_ipython()
 
-    def save_display(self, exc_count, dataWithMetadata):
+    def save_display(self, exc_count, data_with_metadata):
         self.outputs[exc_count] = self.outputs.get(exc_count, [])
 
         # byte values such as images need to be encoded in base64
         # otherwise nbformat.v4.new_output will throw a NotebookValidationError
-        data = dataWithMetadata["data"]
-        b64encodedData = {}
+        data = data_with_metadata["data"]
+        b64_data = {}
         for key in data:
             val = data[key]
             if isinstance(val, bytes):
-                b64encodedData[key] = b64encode(val).decode("utf-8")
+                b64_data[key] = b64encode(val).decode("utf-8")
             else:
-                b64encodedData[key] = val
+                b64_data[key] = val
 
         self.outputs[exc_count].append(
-            {"data": b64encodedData, "metadata": dataWithMetadata["metadata"]}
+            {"data": b64_data, "metadata": data_with_metadata["metadata"]}
         )
 
     def save_history(self):
@@ -177,10 +177,11 @@ class Notebook(object):
             return
         cells = []
         hist = list(self.shell.history_manager.get_range(output=True))
+        # TODO: get code_saving turned on from settings
         if len(hist) <= 1 or not env.should_save_code():
             return
         try:
-            for session, execution_count, exc in hist:
+            for _, execution_count, exc in hist:
                 if exc[1]:
                     # TODO: capture stderr?
                     outputs = [

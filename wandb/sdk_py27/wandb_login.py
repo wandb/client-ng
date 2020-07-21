@@ -6,6 +6,7 @@ login.
 from __future__ import print_function
 
 import logging
+import sys
 
 import click
 import requests
@@ -14,16 +15,6 @@ from wandb.apis import InternalApi
 from wandb.lib import apikey
 
 logger = logging.getLogger("wandb")
-
-
-def _get_python_type():
-    try:
-        if "terminal" in get_ipython().__module__:
-            return "ipython"
-        else:
-            return "jupyter"
-    except (NameError, AttributeError):
-        return "python"
 
 
 def _validate_anonymous_setting(anon_str):

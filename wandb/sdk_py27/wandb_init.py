@@ -16,6 +16,7 @@ import traceback
 
 from six import raise_from, reraise
 import wandb
+from wandb import jupyter
 from wandb.backend.backend import Backend
 from wandb.errors import Error
 from wandb.lib import filesystem, redirect, reporting
@@ -209,6 +210,9 @@ class _WandbInit(object):
         d = dict(_start_time=time.time(), _start_datetime=datetime.datetime.now(),)
         settings.update(d)
 
+        if settings.jupyter:
+            self._jupyter_setup()
+
         self._log_setup(settings)
         wl._early_logger_flush(logger)
 
@@ -265,6 +269,23 @@ class _WandbInit(object):
         os.symlink(target, tmp_name)
         os.rename(tmp_name, name)
         os.chdir(owd)
+
+    def _jupyter_setup(self):
+        self.notebook = jupyter.Notebook()
+        ipython = self.notebook.shell
+        ipython.register_magics(jupyter.WandBMagics)
+
+        # Monkey patch ipython publish to capture displayed outputs
+        if not hasattr(ipython.display_pub, "_orig_publish"):
+            ipython.display_pub._orig_publish = ipython.display_pub.publish
+
+        def publish(data, metadata=None, **kwargs):
+            ipython.display_pub._orig_publish(data, metadata=metadata, **kwargs)
+            self.notebook.save_display(ipython.execution_count,
+                                       {'data': data, 'metadata': metadata})
+        ipython.display_pub.publish = publish
+        # TODO: should we reset start or any other fancy pre or post run cell magic?
+        # ipython.events.register("pre_run_cell", reset_start)
 
     def _log_setup(self, settings):
         """Setup logging from settings."""
