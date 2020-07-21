@@ -1,11 +1,12 @@
-# most of this taken from: https://github.com/docker/docker-py/blob/master/docker/auth.py
+# originally: https://github.com/docker/docker-py/blob/master/docker/auth.py
 import base64
 import json
 import logging
-import dockerpycreds
-import six
 import os
 import platform
+
+import dockerpycreds
+import six
 
 IS_WINDOWS_PLATFORM = platform.system() == "Windows"
 DOCKER_CONFIG_FILENAME = os.path.join(".docker", "config.json")

@@ -1,10 +1,11 @@
+import logging
 import os
+import subprocess
+
 import requests
 import six
-import logging
 from wandb.docker import auth
 from wandb.docker import www_authenticate
-import subprocess
 
 entrypoint = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "wandb-entrypoint.sh"
@@ -77,8 +78,7 @@ def auth_token(registry, repo):
         info = {}
     if info.get("bearer"):
         res = requests.get(
-            info["bearer"]["realm"]
-            + "?service={}&scope=repository:{}:pull".format(
+            info["bearer"]["realm"] + "?service={}&scope=repository:{}:pull".format(
                 info["bearer"]["service"], repo
             ),
             auth=auth_info,
