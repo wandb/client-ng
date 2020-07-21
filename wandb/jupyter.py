@@ -8,10 +8,10 @@ try:
     from IPython.core.getipython import get_ipython
     from IPython.core.magic import line_cell_magic, Magics, magics_class
     from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
+    from IPython.display import display
 except ImportError:
     #  python2 blows up when importing get_ipython
     pass
-from IPython.display import display
 import requests
 from requests.compat import urljoin
 import wandb
