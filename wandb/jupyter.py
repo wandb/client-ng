@@ -17,8 +17,20 @@ try:
 except ImportError:
     wandb.termwarn("ipython is not supported in python 2.7, upgrade to 3.x")
 
-    def magic_class():
+    class Magics(object):
         pass
+
+    def magics_class(*args, **kwargs):
+        return lambda *args, **kwargs: None
+
+    def magic_arguments(*args, **kwargs):
+        return lambda *args, **kwargs: None
+
+    def argument(*args, **kwargs):
+        return lambda *args, **kwargs: None
+
+    def line_cell_magic(*args, **kwargs):
+        return lambda *args, **kwargs: None
 
 logger = logging.getLogger(__name__)
 
