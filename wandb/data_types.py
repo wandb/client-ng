@@ -1716,11 +1716,10 @@ def numpy_arrays_to_lists(payload):
 
 def prune_max_seq(seq):
     # If media type has a max respect it
-    max = seq[0].MAX_ITEMS
     items = seq
-    if max != None and max < len(seq):
-        logging.warning( "Only %i %s will be uploaded." % (max, seq[0].__class__.__name__))
-        items = seq[:max]
+    if hasattr(seq[0], "MAX_ITEMS") and seq[0].MAX_ITEMS < len(seq):
+        logging.warning( "Only %i %s will be uploaded." % (seq[0].MAX_ITEMS, seq[0].__class__.__name__))
+        items = seq[:seq[0].MAX_ITEMS]
     return items
 
 
@@ -1743,9 +1742,9 @@ def val_to_json(run, key, val, namespace=None):
         if len(val) and isinstance(val[0], BatchableMedia) and all(isinstance(v, type(val[0])) for v in val):
             items = prune_max_seq(val)
 
-            for item in items:
+            for i, item in enumerate(items):
                 if not item.is_bound():
-                    item.bind_to_run(run, key, namespace)
+                    item.bind_to_run(run, key, namespace, i)
 
             return items[0].seq_to_json(items, run, key, namespace)
         else:
