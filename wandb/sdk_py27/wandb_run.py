@@ -328,7 +328,7 @@ class RunManaged(Run):
         pass
 
     def on_start(self):
-        self._console_capture()
+        self._console_start()
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
             run_state_str = "Syncing run"

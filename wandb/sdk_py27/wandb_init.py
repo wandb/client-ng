@@ -440,7 +440,7 @@ class _WandbInit(object):
             if len(self.wl._global_run_stack) > 0:
                 if len(self.wl._global_run_stack) > 1:
                     print(
-                        "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"
+                        "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"  # noqa: E501
                     )
                 print("DEBUG: join")
                 wandb.join()
