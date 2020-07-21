@@ -31,7 +31,6 @@ import sys
 import shortuuid  # type: ignore
 import six
 import wandb
-from wandb import jupyter
 from wandb.internal import git_repo
 from wandb.lib.ipython import _get_python_type
 
@@ -405,7 +404,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             u["save_code"] = wandb.env.should_save_code()
 
         if self.jupyter:
-            meta = jupyter.notebook_metadata()
+            meta = wandb.jupyter.notebook_metadata()
             u["_jupyter_path"] = meta.get("path")
             u["_jupyter_name"] = meta.get("name")
             u["_jupyter_root"] = meta.get("root")

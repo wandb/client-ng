@@ -16,7 +16,6 @@ import traceback
 
 from six import raise_from, reraise
 import wandb
-from wandb import jupyter
 from wandb.backend.backend import Backend
 from wandb.errors import Error
 from wandb.lib import filesystem, redirect, reporting
@@ -271,9 +270,9 @@ class _WandbInit(object):
         os.chdir(owd)
 
     def _jupyter_setup(self):
-        self.notebook = jupyter.Notebook()
+        self.notebook = wandb.jupyter.Notebook()
         ipython = self.notebook.shell
-        ipython.register_magics(jupyter.WandBMagics)
+        ipython.register_magics(wandb.jupyter.WandBMagics)
 
         # Monkey patch ipython publish to capture displayed outputs
         if not hasattr(ipython.display_pub, "_orig_publish"):
