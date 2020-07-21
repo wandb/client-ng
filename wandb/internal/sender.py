@@ -40,7 +40,7 @@ def _config_dict_from_proto_list(obj_list):
 
 
 class SendManager(object):
-    def __init__(self, settings, resp_q, run_meta):
+    def __init__(self, settings, resp_q, run_meta=None):
         self._settings = settings
         self._resp_q = resp_q
         self._run_meta = run_meta
@@ -122,6 +122,7 @@ class SendManager(object):
             tags=run_tags or None,
             config=config_dict or None,
             sweep_name=run.sweep_id or None,
+            host=run.host or None,
         )
 
         if data.control.req_resp:
@@ -193,6 +194,8 @@ class SendManager(object):
         # TODO(jhr): check fs.push results?
 
     def handle_output(self, data):
+        if not self._fs:
+            return
         out = data.output
         prepend = ""
         stream = "stdout"

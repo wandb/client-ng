@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 
-from six import raise_from
+from six import raise_from, reraise
 import wandb
 from wandb.backend.backend import Backend
 from wandb.errors import Error
@@ -147,7 +147,12 @@ class _WandbInit(object):
         """
         self.kwargs = kwargs
 
-        wl = wandb.setup()
+        # Some settings should be persisted across multiple runs the first
+        # time setup is called.
+        # TODO: Is this the best way to do this?
+        session_settings_keys = ["anonymous"]
+        session_settings = {k: kwargs[k] for k in session_settings_keys}
+        wl = wandb.setup(settings=session_settings)
         # Make sure we have a logger setup (might be an early logger)
         _set_logger(wl._get_logger())
 
@@ -172,7 +177,6 @@ class _WandbInit(object):
             "magic",
             "config_exclude_keys",
             "config_include_keys",
-            "anonymous",
             "dir",
             "allow_val_change",
             "resume",
@@ -311,6 +315,9 @@ class _WandbInit(object):
         logger.info("Logging internal logs to {}".format(settings.log_internal))
 
     def _atexit_cleanup(self):
+        if self.backend is None:
+            logger.warning("process exited without backend configured")
+            return False
         if self._atexit_cleanup_called:
             return
         self._atexit_cleanup_called = True
@@ -324,6 +331,7 @@ class _WandbInit(object):
             os._exit(1)
 
         self._restore()
+        #  TODO: close the logging file handler
 
         if self.run:
             self.run.on_finish()
@@ -352,11 +360,14 @@ class _WandbInit(object):
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
-            out_redir.install()
-            err_redir.install()
-            self._out_redir = out_redir
-            self._err_redir = err_redir
-            logger.info("redirect2")
+            try:
+                out_redir.install()
+                err_redir.install()
+                self._out_redir = out_redir
+                self._err_redir = err_redir
+                logger.info("redirect2")
+            except (OSError, AttributeError) as e:
+                logger.error("failed to redirect", exc_info=e)
             return
 
         return
@@ -406,7 +417,9 @@ class _WandbInit(object):
             print("stack", self.wl._global_run_stack)
             if len(self.wl._global_run_stack) > 0:
                 if len(self.wl._global_run_stack) > 1:
-                    print("If you want to track multiple runs concurrently in wandb you should use multi-processing not threads")
+                    print(
+                        "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"
+                    )
                 print("DEBUG: join")
                 wandb.join()
 
@@ -577,6 +590,6 @@ def init(
         # Need to build delay into this sentry capture because our exit hooks
         # mess with sentry's ability to send out errors before the program ends.
         sentry_exc(e, delay=True)
-        raise_from(Exception("problem"), e)
-
+        reraise(*sys.exc_info())
+        #  raise_from(Exception("problem"), e)
     return run

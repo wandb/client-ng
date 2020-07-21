@@ -80,6 +80,9 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         self._config = None
         self._server = None
 
+        # keep track of multiple runs so we can unwind with join()s
+        self._global_run_stack = []
+
         # TODO(jhr): defer strict checks until settings are fully initialized
         #            and logging is ready
         self._early_logger = _EarlyLogger()
@@ -111,7 +114,9 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
 
         # setup defaults
         s.setdefaults()
-        s.infer_settings_from_env()
+        s._infer_settings_from_env()
+        if not s._cli_only_mode:
+            s._infer_run_settings_from_env()
 
         # move freeze to later
         # TODO(jhr): is this ok?

@@ -21,15 +21,17 @@ import collections
 import configparser
 import copy
 import datetime
+import getpass
 import logging
 import os
 import platform
+import socket
 import sys
 
 import shortuuid  # type: ignore
 import six
 import wandb
-from wandb import env
+from wandb import jupyter
 from wandb.internal import git_repo
 
 if wandb.TYPE_CHECKING:  # type: ignore
@@ -70,7 +72,7 @@ defaults = dict(
     _mode=Field(str, ("auto", "noop", "online", "offline", "dryrun", "run",)),
     _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
-    _console=Field(str, ("auto", "redirect", "off", "mock", "file", "iowrap",)),
+    _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
 )
 
@@ -89,6 +91,12 @@ env_settings = dict(
     console=None,
     config_paths=None,
     run_id=None,
+    notebook_name=None,
+    host=None,
+    username=None,
+    disable_code=None,
+    anonymous=None,
+    wandb_dir="WANDB_DIR",
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
     run_tags="WANDB_TAGS",
@@ -146,11 +154,11 @@ def _get_program():
     if os.path.exists(full_path_to_program):
         relative_path = os.path.relpath(full_path_to_program, start=root)
         if "../" in relative_path:
-            logger.warn("could not save program above cwd: %s" % program)
+            logger.warning("could not save program above cwd: %s" % program)
             return None
         return relative_path
 
-    logger.warn("could not find program at %s" % program)
+    logger.warning("could not find program at %s" % program)
     return None
 
 
@@ -240,6 +248,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         docker=None,
         _start_time=None,
         _start_datetime=None,
+        _cli_only_mode=None,  # avoid running any code specific for runs
         console=None,
         disabled=None,  # alias for mode=dryrun, not supported yet
         reinit=None,
@@ -263,6 +272,14 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _internal_check_process=8,
         _disable_meta=None,
         _disable_stats=None,
+        _jupyter_path=None,
+        _jupyter_name=None,
+        _jupyter_root=None,
+        _executable=None,
+        _cuda=None,
+        _args=None,
+        _os=None,
+        _python=None,
     ):
         kwargs = locals()
         object.__setattr__(self, "_masked_keys", set(["self", "_frozen"]))
@@ -285,7 +302,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             )
             self.update(self._load(settings_workspace), _setter="workspace")
         if _settings:
-            self.update(_settings)
+            self.update(dict(_settings))
         if _environ:
             _logger = _early_logger or logger
             inv_map = _build_inverse_map(env_prefix, env_settings)
@@ -374,7 +391,8 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         self.__dict__.update({k: v for k, v in d.items() if v is not None})
         self.__dict__.update({k: v for k, v in kwargs.items() if v is not None})
 
-    def infer_settings_from_env(self):
+    def _infer_settings_from_env(self):
+        """Modify settings based on environment (for runs and cli)."""
         d = {}
         d["jupyter"] = _get_python_type() != "python"
         d["windows"] = platform.system() == "Windows"
@@ -395,13 +413,45 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         # For code saving, only allow env var override if value from server is true, or
         # if no preference was specified.
         if (self.save_code is True or self.save_code is None) and os.getenv(
-            env.SAVE_CODE
+            wandb.env.SAVE_CODE
         ) is not None:
-            u["save_code"] = env.should_save_code()
+            u["save_code"] = wandb.env.should_save_code()
 
-        u["disable_code"] = os.getenv(env.DISABLE_CODE)
+        if self.jupyter:
+            meta = jupyter.notebook_metadata()
+            u["_jupyter_path"] = meta.get("path")
+            u["_jupyter_name"] = meta.get("name")
+            u["_jupyter_root"] = meta.get("root")
+
+        # host and username are populated by env_settings above if their env
+        # vars exist -- but if they don't, we'll fill them in here
+        if not self.host:
+            u["host"] = socket.gethostname()
+
+        if not self.username:
+            try:
+                u["username"] = getpass.getuser()
+            except KeyError:
+                # getuser() could raise KeyError in restricted environments like
+                # chroot jails or docker containers.  Return user id in these cases.
+                u["username"] = str(os.getuid())
+
+        u["_executable"] = sys.executable
+
+        u["docker"] = wandb.env.get_docker(wandb.util.image_id_from_k8s())
+
+        # TODO: we should use the cuda library to collect this
+        if os.path.exists("/usr/local/cuda/version.txt"):
+            with open("/usr/local/cuda/version.txt") as f:
+                u["_cuda"] = f.read().split(" ")[-1].strip()
+        u["_args"] = sys.argv[1:]
+        u["_os"] = platform.platform(aliased=True)
+        u["_python"] = platform.python_version()
+
         self.update(u)
 
+    def _infer_run_settings_from_env(self):
+        """Modify settings based on environment (for runs only)."""
         # If the settings say to save code, and there's not already a program file,
         # infer it now.
         if self.save_code and not self.code_program:
@@ -458,7 +508,11 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         # strip out items where value is None
         print("apply", args)
         param_map = dict(
-            name="run_name", id="run_id", tags="run_tags", group="run_group",
+            name="run_name",
+            id="run_id",
+            tags="run_tags",
+            group="run_group",
+            dir="wandb_dir",
         )
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
         print("apply2", args)

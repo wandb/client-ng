@@ -7,6 +7,7 @@ Manage wandb run.
 
 from __future__ import print_function
 
+import collections
 import json
 import logging
 import os
@@ -50,6 +51,7 @@ class RunManaged(Run):
         _datatypes_set_callback(self._datatypes_callback)
 
         self._settings = settings
+        self._wl = None
         self._backend = None
         self._reporter = None
         self._data = dict()
@@ -144,6 +146,10 @@ class RunManaged(Run):
     def id(self):
         return self._run_id
 
+    @property
+    def path(self):
+        return "/".join([self._entity, self._project, self._run_id])
+
     def project_name(self, api=None):
         # TODO(jhr): this is probably not right needed by dataframes?
         # api = api or self.api
@@ -185,7 +191,7 @@ class RunManaged(Run):
         files = dict(files=[(fname,)])
         self._backend.interface.send_files(files)
 
-    def _history_callback(self, row=None):
+    def _history_callback(self, row=None, step=None):
 
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
@@ -202,8 +208,11 @@ class RunManaged(Run):
         if visualize_persist_config:
             self._config_callback(data=self._config._as_dict())
 
+        self._backend.interface.send_history(row, step)
         self.summary.update(row)
-        self._backend.interface.send_history(row)
+
+    def _set_library(self, library):
+        self._wl = library
 
     def _set_backend(self, backend):
         self._backend = backend
@@ -242,8 +251,28 @@ class RunManaged(Run):
             self.config["_wandb"][type][key] = value_extra
             self.config.persist()
 
-    def log(self, data, step=None, commit=True, sync=None):
+    def log(self, data, step=None, commit=None, sync=None):
         # TODO(cling): sync is a noop for now
+        if not isinstance(data, collections.Mapping):
+            raise ValueError("wandb.log must be passed a dictionary")
+
+        if step is not None:
+            if self.history._step > step:
+                wandb.termwarn(
+                    (
+                        "Step must only increase in log calls.  "
+                        "Step {} < {}; dropping {}.".format(
+                            step, self.history._step, data
+                        )
+                    )
+                )
+                return
+            elif step > self.history._step:
+                self.history._flush()
+                self.history._step = step
+        elif commit is None:
+            commit = True
+        #  TODO: ensure history is pushed on exit for non-added rows
         if commit:
             self.history._row_add(data)
         else:
@@ -251,6 +280,9 @@ class RunManaged(Run):
 
     def join(self):
         self._backend.cleanup()
+
+        if len(self._wl._global_run_stack) > 0:
+            self._wl._global_run_stack.pop()
 
     def _get_project_url(self):
         s = self._settings
@@ -289,7 +321,14 @@ class RunManaged(Run):
             )
         )
 
+    def _console_start(self):
+        pass
+
+    def _console_stop(self):
+        pass
+
     def on_start(self):
+        self._console_capture()
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
             run_state_str = "Syncing run"
@@ -301,9 +340,14 @@ class RunManaged(Run):
         print("")
 
     def on_finish(self):
+        self._console_stop()
+        pass
+
+    def on_final(self):
         # check for warnings and errors, show log file locations
         # if self._run_obj:
         #    self._display_run()
+        print("DEBUG on finish")
         if self._reporter:
             warning_lines = self._reporter.warning_lines
             if warning_lines:

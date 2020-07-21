@@ -3,7 +3,6 @@ from gql.client import RetryError  # type: ignore
 from gql.transport.requests import RequestsHTTPTransport  # type: ignore
 import datetime
 import os
-import requests
 import ast
 import os
 import json
@@ -329,6 +328,7 @@ class Api(object):
             viewer {
                 id
                 entity
+                flags
                 teams {
                     edges {
                         node {
@@ -407,8 +407,8 @@ class Api(object):
                 [{"id","name","repo","dockerImage","description"}]
         """
         query = gql('''
-        query Models($entity: String, $project: String!, $sweep: String!, $specs: [JSONString!]!) {
-            model(name: $project, entityName: $entity) {
+        query Sweep($entity: String, $project: String!, $sweep: String!, $specs: [JSONString!]!) {
+            project(name: $project, entityName: $entity) {
                 sweep(sweepName: $sweep) {
                     id
                     name
@@ -448,9 +448,9 @@ class Api(object):
         project = project or self.settings('project')
         response = self.gql(query, variable_values={'entity': entity,
                                                     'project': project, 'sweep': sweep, 'specs': specs})
-        if response['model'] is None or response['model']['sweep'] is None:
+        if response['project'] is None or response['project']['sweep'] is None:
             raise ValueError("Sweep {}/{}/{} not found".format(entity, project, sweep) )
-        data = response['model']['sweep']
+        data = response['project']['sweep']
         if data:
             data['runs'] = self._flatten_edges(data['runs'])
         return data
@@ -975,7 +975,7 @@ class Api(object):
             A tuple of the file's local path and the streaming response. The streaming response is None if the file already existed and was up to date.
         """
         fileName = metadata['name']
-        path = os.path.join(out_dir or wandb_dir(), fileName)
+        path = os.path.join(out_dir or self.settings('wandb_dir'), fileName)
         if self.file_current(fileName, metadata['md5']):
             return path, None
 
@@ -1058,7 +1058,7 @@ class Api(object):
         def no_retry_4xx(e):
             if not isinstance(e, requests.HTTPError):
                 return True
-            if not(e.response.status_code >= 400 and e.response.status_code < 500):
+            if not(e.response.status_code >= 400 and e.response.status_code < 500) or e.response.status_code == 429:
                 return True
             body = json.loads(e.response.content)
             raise UsageError(body['errors'][0]['message'])
@@ -1164,7 +1164,7 @@ class Api(object):
         def no_retry_4xx(e):
             if not isinstance(e, requests.HTTPError):
                 return True
-            if not(e.response.status_code >= 400 and e.response.status_code < 500):
+            if not(e.response.status_code >= 400 and e.response.status_code < 500) or e.response.status_code == 429:
                 return True
             body = json.loads(e.response.content)
             raise UsageError(body['errors'][0]['message'])
@@ -1424,6 +1424,10 @@ class Api(object):
                     id
                     digest
                     state
+                    aliases {
+                        artifactCollectionName
+                        alias
+                    }
                 }
             }
         }
@@ -1447,6 +1451,11 @@ class Api(object):
             'metadata': json.dumps(util.make_safe_for_json(metadata)) if metadata else None,
         })
         av = response['createArtifact']['artifact']
+        # TODO: make this a part of the graph 
+        av['version'] = "latest"
+        for alias in av["aliases"]:
+            if alias["artifactCollectionName"] == artifact_collection_name and re.match(r"^v\d+$", alias["alias"]):
+                av['version'] = alias["alias"]
         return av
 
     def commit_artifact(self, artifact_id):
