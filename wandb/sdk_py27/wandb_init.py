@@ -281,8 +281,10 @@ class _WandbInit(object):
 
         def publish(data, metadata=None, **kwargs):
             ipython.display_pub._orig_publish(data, metadata=metadata, **kwargs)
-            self.notebook.save_display(ipython.execution_count,
-                                       {'data': data, 'metadata': metadata})
+            self.notebook.save_display(
+                ipython.execution_count, {"data": data, "metadata": metadata}
+            )
+
         ipython.display_pub.publish = publish
         # TODO: should we reset start or any other fancy pre or post run cell magic?
         # ipython.events.register("pre_run_cell", reset_start)
