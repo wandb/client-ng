@@ -6,11 +6,11 @@ import sys
 
 try:
     from IPython.core.getipython import get_ipython
+    from IPython.core.magic import line_cell_magic, Magics, magics_class
+    from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
 except ImportError:
     #  python2 blows up when importing get_ipython
     pass
-from IPython.core.magic import line_cell_magic, Magics, magics_class
-from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
 from IPython.display import display
 import requests
 from requests.compat import urljoin
@@ -26,7 +26,7 @@ class Run(object):
 
     def _repr_html_(self):
         try:
-            url = self.run.get_url(params={'jupyter': 'true'})
+            url = self.run._get_run_url() + "?jupyter=true"
             return '''<iframe src="%s" style="border:none;width:100%%;height:420px">
                 </iframe>''' % url
         except wandb.Error as e:
