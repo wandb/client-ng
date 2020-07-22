@@ -169,7 +169,6 @@ def get_wandb_dir(root_dir: str):
         wandb.termwarn("Path %s wasn't writable, using system temp directory" % path)
         path = os.path.join(tempfile.gettempdir(), __stage_dir__ or ("wandb" + os.sep))
 
-    print("wandb_dir", path)
     return path
 
 
