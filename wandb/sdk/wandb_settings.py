@@ -224,20 +224,20 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         settings_workspace_spec="{wandb_dir}/settings",
         settings_system=None,  # computed
         settings_workspace=None,  # computed
-        sync_dir_spec="{wandb_dir}/run-{timespec}-{run_id}",
+        sync_dir_spec="{wandb_dir}/runs/run-{timespec}-{run_id}",
         sync_file_spec="run-{timespec}-{run_id}.wandb",
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
         sync_symlink_latest_spec="{wandb_dir}/latest",
         sync_file=None,  # computed
-        log_dir_spec="{wandb_dir}/run-{timespec}-{run_id}/logs",
+        log_dir_spec="{wandb_dir}/runs/run-{timespec}-{run_id}/logs",
         log_user_spec="debug-{timespec}-{run_id}.log",
         log_internal_spec="debug-internal-{timespec}-{run_id}.log",
         log_symlink_user_spec="{wandb_dir}/debug.log",
         log_symlink_internal_spec="{wandb_dir}/debug-internal.log",
         log_user=None,  # computed
         log_internal=None,  # computed
-        files_dir_spec="{wandb_dir}/run-{timespec}-{run_id}/files",
+        files_dir_spec="{wandb_dir}/runs/run-{timespec}-{run_id}/files",
         files_dir=None,  # computed
         symlink=None,  # probed
         # where files are temporary stored when saving
