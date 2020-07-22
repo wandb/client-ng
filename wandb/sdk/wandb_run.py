@@ -13,15 +13,14 @@ import json
 import logging
 import os
 import platform
-import shutil
 
 import click
+from six import string_types
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
-from six import string_types
 
 from . import wandb_config
 from . import wandb_history
@@ -281,8 +280,9 @@ class RunManaged(Run):
         else:
             self.history._row_update(data)
 
-    def save(self, glob_str: str, base_path: Optional[str] = None,
-             policy: str = "live"):
+    def save(
+        self, glob_str: str, base_path: Optional[str] = None, policy: str = "live"
+    ):
         """ Ensure all files matching *glob_str* are synced to wandb with the policy specified.
 
         Args:
@@ -294,9 +294,10 @@ class RunManaged(Run):
         """
         if policy not in ("live", "end", "now"):
             raise ValueError(
-                'Only "live" "end" and "now" policies are currently supported.')
+                'Only "live" "end" and "now" policies are currently supported.'
+            )
         if isinstance(glob_str, bytes):
-            glob_str = glob_str.decode('utf-8')
+            glob_str = glob_str.decode("utf-8")
         if not isinstance(glob_str, string_types):
             raise ValueError("Must call wandb.save(glob_str) with glob_str a str")
 
@@ -304,13 +305,13 @@ class RunManaged(Run):
             base_path = os.path.dirname(glob_str)
         wandb_glob_str = os.path.relpath(glob_str, base_path)
         if "../" in wandb_glob_str:
-            raise ValueError(
-                "globs can't walk above base_path")
+            raise ValueError("globs can't walk above base_path")
         if (glob_str, base_path, policy) in self._saved_files:
             return []
         if glob_str.startswith("gs://") or glob_str.startswith("s3://"):
             wandb.termlog(
-                "%s is a cloud storage url, can't save file to wandb." % glob_str)
+                "%s is a cloud storage url, can't save file to wandb." % glob_str
+            )
             return []
         files = []
         # TODO: should we send this files event here for relative paths?
@@ -332,8 +333,13 @@ class RunManaged(Run):
         self._saved_files.add((glob_str, base_path, policy))
         return files
 
-    def restore(self, name: str, run_path: Optional[str] = None, replace: bool = False,
-                root: Optional[str] = None):
+    def restore(
+        self,
+        name: str,
+        run_path: Optional[str] = None,
+        replace: bool = False,
+        root: Optional[str] = None,
+    ):
         """ Downloads the specified file from cloud storage into the current run directory
         if it doesn exist.
 

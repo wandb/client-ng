@@ -11,9 +11,9 @@ import logging
 import os
 import time
 
+from wandb.filesync.dir_watcher import DirWatcher
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
-from wandb.filesync.dir_watcher import DirWatcher
 
 # from wandb.stuff import io_wrap
 
