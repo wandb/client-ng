@@ -17,7 +17,7 @@ import os
 import sys
 import threading
 
-import wandb
+from wandb.lib.config import dict_from_config_file
 from wandb.lib import server
 
 from . import wandb_settings
@@ -189,7 +189,7 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         # if config_paths was set, read in config dict
         if self._settings.config_paths:
             # TODO(jhr): handle load errors, handle list of files
-            self._config = wandb.wandb_sdk.Config._dict_from_config_file(
+            self._config = dict_from_config_file(
                 self._settings.config_paths
             )
 
