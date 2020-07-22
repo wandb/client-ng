@@ -10,6 +10,7 @@ import time
 import grpc
 from wandb.interface import constants
 from wandb.internal.internal import wandb_internal
+from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.proto import wandb_server_pb2  # type: ignore
 from wandb.proto import wandb_server_pb2_grpc  # type: ignore
 
@@ -25,6 +26,21 @@ from wandb.proto import wandb_server_pb2_grpc  # type: ignore
 #    return wandb_internal_pb2.LogResult()
 #
 
+# TODO: get from interface
+def _make_record(
+        run=None,
+        config=None,
+        files=None,
+        summary=None,
+        stats=None,
+        exit=None,
+        artifact=None,
+    ):
+    rec = wandb_internal_pb2.Record()
+    if run:
+        rec.run.CopyFrom(run)
+    return rec
+
 
 class InternalServiceServicer(wandb_server_pb2_grpc.InternalServiceServicer):
     """Provides methods that implement functionality of route guide server."""
@@ -36,6 +52,13 @@ class InternalServiceServicer(wandb_server_pb2_grpc.InternalServiceServicer):
         # self._fs = fs
         pass
 
+    def RunUpdate(self, request, context):  # noqa: N802
+        print("run update")
+        rec = _make_record(run=request)
+        self._backend._queue_process(rec)
+        result = wandb_server_pb2.RunUpdateResult()
+        return result
+        
     def Log(self, request, context):  # noqa: N802
         # self._ds.write(request)
         # d = json.loads(request.json)
@@ -130,7 +153,14 @@ class Backend:
         wandb_process.start()
 
         self.wandb_process = wandb_process
+        self.process_queue = process_queue
         self.notify_queue = notify_queue
+
+    def _queue_process(self, rec):
+        if self.wandb_process and not self.wandb_process.is_alive():
+            raise Exception("problem")
+        self.process_queue.put(rec)
+        self.notify_queue.put(constants.NOTIFY_PROCESS)
 
     def cleanup(self):
         # TODO: make _done atomic

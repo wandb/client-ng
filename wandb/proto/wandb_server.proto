@@ -9,10 +9,15 @@ service InternalService {
   rpc ServerShutdown(ServerShutdownRequest) returns (ServerShutdownResult) {}
   rpc ServerStatus(ServerStatusRequest) returns (ServerStatusResult) {}
   //rpc RunGet(RunGetRequest) returns (RunGetResult) {}
-  //rpc RunUpdate(RunUpdateRequest) returns (RunUpdateResult) {}
+  rpc RunUpdate(RunData) returns (RunUpdateResult) {}
 }
 
 message LogResult {
+  int32  code = 1;
+  string status = 2;
+}
+
+message RunUpdateResult {
   int32  code = 1;
   string status = 2;
 }

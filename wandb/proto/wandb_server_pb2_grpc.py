@@ -30,6 +30,11 @@ class InternalServiceStub(object):
         request_serializer=wandb_dot_proto_dot_wandb__server__pb2.ServerStatusRequest.SerializeToString,
         response_deserializer=wandb_dot_proto_dot_wandb__server__pb2.ServerStatusResult.FromString,
         )
+    self.RunUpdate = channel.unary_unary(
+        '/wandb_internal.InternalService/RunUpdate',
+        request_serializer=wandb_dot_proto_dot_wandb__internal__pb2.RunData.SerializeToString,
+        response_deserializer=wandb_dot_proto_dot_wandb__server__pb2.RunUpdateResult.FromString,
+        )
 
 
 class InternalServiceServicer(object):
@@ -57,6 +62,13 @@ class InternalServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def RunUpdate(self, request, context):
+    """rpc RunGet(RunGetRequest) returns (RunGetResult) {}
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_InternalServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -74,6 +86,11 @@ def add_InternalServiceServicer_to_server(servicer, server):
           servicer.ServerStatus,
           request_deserializer=wandb_dot_proto_dot_wandb__server__pb2.ServerStatusRequest.FromString,
           response_serializer=wandb_dot_proto_dot_wandb__server__pb2.ServerStatusResult.SerializeToString,
+      ),
+      'RunUpdate': grpc.unary_unary_rpc_method_handler(
+          servicer.RunUpdate,
+          request_deserializer=wandb_dot_proto_dot_wandb__internal__pb2.RunData.FromString,
+          response_serializer=wandb_dot_proto_dot_wandb__server__pb2.RunUpdateResult.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

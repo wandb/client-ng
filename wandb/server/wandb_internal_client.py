@@ -21,6 +21,12 @@ def make_log_data(data):
     return hdata
 
 
+def make_run_data(data):
+    rdata = wandb_internal_pb2.RunData()
+    rdata.run_id = data["run_id"]
+    return rdata
+
+
 class WandbInternalClient(object):
     def __init__(self):
         self._channel = None
@@ -31,6 +37,10 @@ class WandbInternalClient(object):
         stub = wandb_server_pb2_grpc.InternalServiceStub(channel)
         self._channel = channel
         self._stub = stub
+
+    def run_update(self, data):
+        req = make_run_data(data)
+        _ = self._stub.RunUpdate(req)
 
     def log(self, data):
         req = make_log_data(data)
@@ -67,6 +77,7 @@ def main():
     # print("runget:", res)
     # res = wic.run_update(res.run)
     # print("run:", res)
+    wic.run_update(dict(run_id="test_run"))
     wic.log(dict(this="that"))
     wic.shutdown()
 
