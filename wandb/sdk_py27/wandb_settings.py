@@ -104,7 +104,6 @@ env_settings = dict(
 )
 
 env_convert = dict(run_tags=lambda s: s.split(","),)
-cwd = os.getcwd()
 
 
 def _build_inverse_map(prefix, d):
@@ -169,7 +168,6 @@ def get_wandb_dir(root_dir):
         wandb.termwarn("Path %s wasn't writable, using system temp directory" % path)
         path = os.path.join(tempfile.gettempdir(), __stage_dir__ or ("wandb" + os.sep))
 
-    print("wandb_dir", path)
     return path
 
 
@@ -217,7 +215,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         config_paths=None,
         _config_dict=None,
         # directories and files
-        root_dir=cwd,
+        root_dir=None,
         wandb_dir=None,  # computed
         settings_system_spec="~/.config/wandb/settings",
         settings_workspace_spec="{wandb_dir}/settings",
@@ -525,4 +523,4 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
 
         self.update(args)
         self.run_id = self.run_id or _generate_id()
-        self.wandb_dir = get_wandb_dir(self.root_dir)
+        self.wandb_dir = get_wandb_dir(self.root_dir or "")
