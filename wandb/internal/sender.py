@@ -177,7 +177,7 @@ class SendManager(object):
         if self._fs:
             self._fs.push("wandb-summary.json", json_summary)
         summary_path = os.path.join(self._settings.files_dir, "wandb-summary.json")
-        with open(summary_path, 'w') as f:
+        with open(summary_path, "w") as f:
             f.write(json_summary)
 
     def handle_stats(self, data):
