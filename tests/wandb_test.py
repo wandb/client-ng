@@ -188,31 +188,30 @@ def test_login_anonymous(mock_server, local_netrc):
     assert wandb.api.api_key == "ANONYMOOSE" * 4
 
 
-@pytest.mark.skip(reason="Need to bring back wandb.save")
 def test_save_policy_symlink(wandb_init_run):
     with open("test.rad", "w") as f:
         f.write("something")
     wandb.save("test.rad")
-    assert wandb_init_run.socket.send.called
+    assert wandb.run._backend.files["test.rad"] == "live"
 
 
-@pytest.mark.skip(reason="Need to bring back wandb.save")
 def test_save_absolute_path(wandb_init_run):
     with open("/tmp/test.txt", "w") as f:
         f.write("something")
     wandb.save("/tmp/test.txt")
     assert os.path.exists(os.path.join(wandb_init_run.dir, "test.txt"))
+    print("WHOA", wandb.run._backend.files)
+    assert wandb.run._backend.files["test.txt"] == "live"
 
 
-@pytest.mark.skip(reason="Need to bring back wandb.save")
 def test_save_relative_path(wandb_init_run):
     with open("/tmp/test.txt", "w") as f:
         f.write("something")
-    wandb.save("/tmp/test.txt", base_path="/")
+    wandb.save("/tmp/test.txt", base_path="/", policy="now")
     assert os.path.exists(os.path.join(wandb_init_run.dir, "tmp/test.txt"))
+    assert wandb.run._backend.files["tmp/test.txt"] == "now"
 
 
-@pytest.mark.skip(reason="Need to bring back wandb.save")
 def test_save_invalid_path(wandb_init_run):
     with open("/tmp/test.txt", "w") as f:
         f.write("something")
@@ -220,7 +219,6 @@ def test_save_invalid_path(wandb_init_run):
         wandb.save("../tmp/../../*.txt", base_path="/tmp")
 
 
-@pytest.mark.skip(reason="Need to bring wandb.restore back")
 def test_restore(runner, mock_server, wandb_init_run):
     with runner.isolated_filesystem():
         mock_server.set_context("files", {"weights.h5": 10000})
@@ -228,13 +226,13 @@ def test_restore(runner, mock_server, wandb_init_run):
         assert os.path.getsize(res.name) == 10000
 
 
-@pytest.mark.args(env={"WANDB_RUN_ID": "123456"})
+@pytest.mark.wandb_args(env={"WANDB_RUN_ID": "123456"})
 @pytest.mark.skip(reason="Pipe these through mock server")
 def test_run_id(wandb_init_run):
     assert wandb.run.id == "123456"
 
 
-@pytest.mark.args(env={"WANDB_NAME": "coolio"})
+@pytest.mark.wandb_args(env={"WANDB_NAME": "coolio"})
 @pytest.mark.skip(reason="Pipe these through mock server")
 def test_run_name(wandb_init_run):
     assert wandb.run.name == "coolio"

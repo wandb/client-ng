@@ -49,7 +49,7 @@ class BackendMock(object):
         self.history = []
         self.summary = {}
         self.config = {}
-        self.files = []
+        self.files = {}
         self.mocker = _get_mock_module(get_config())
 
     def _hack_set_run(self, run):
@@ -72,7 +72,12 @@ class BackendMock(object):
         if len(rec.summary.update) > 0:
             self.summary.update(self._proto_to_dict(rec.summary.update))
         if len(rec.files.files) > 0:
-            self.files.append([f.path for f in rec.files.files])
+            for k in rec.files.files:
+                fpath = k.path
+                fpolicy = k.policy
+                # TODO(jhr): fix paths with directories
+                fname = fpath[0]
+                self.files[fname] = fpolicy
         if rec.run:
             pass
 

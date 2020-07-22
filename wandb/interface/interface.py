@@ -192,9 +192,16 @@ class BackendSender(object):
 
     def _make_files(self, files_dict):
         files = wandb_internal_pb2.FilesData()
-        for path in files_dict["files"]:
+        for path, policy in files_dict["files"]:
+            if policy == "now":
+                ptype = wandb_internal_pb2.FilesItem.PolicyType.NOW
+            elif policy == "end":
+                ptype = wandb_internal_pb2.FilesItem.PolicyType.END
+            elif policy == "live":
+                ptype = wandb_internal_pb2.FilesItem.PolicyType.LIVE
             f = files.files.add()
             f.path[:] = path
+            f.policy = ptype
         return files
 
     def _make_record(
