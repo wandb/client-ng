@@ -19,7 +19,7 @@ def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
          np.zeros((h//2, w))),
         axis=0)
 
-all_test = {
+all_tests = {
     "test_image_file_single": wandb.Image("test_summary_image_7_1.png"),
     "test_image_file_array": [wandb.Image("test_summary_image_7_1.png")],
     "test_image_data_single": wandb.Image(gen_image()),

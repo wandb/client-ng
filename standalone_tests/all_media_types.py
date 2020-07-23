@@ -1,12 +1,12 @@
 import numpy as np
 import wandb
 
-import image_test
-import image_mask_test
-import video_test
-import molecule_test
+import image
+import image_mask
+import video
+import molecule
 import point_cloud_scene
-import object_3D
+import object3D
 
 wandb.init(project='image-test')
 
@@ -28,12 +28,12 @@ def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
         axis=0)
 
 all_tests = {
-    **image_test.all_tests,
-    **image_mask_test.all_tests
-    **video_test.all_tests
-    **molecule_mask_test.all_tests
-    **point_cloud_scene.all_tests
-    **object_3D.all_tests
+    **image.all_tests,
+    **image_mask.all_tests,
+    **video.all_tests,
+    **molecule.all_tests,
+    **point_cloud_scene.all_tests,
+    **object3D.all_tests
 }
 
 
