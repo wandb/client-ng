@@ -204,6 +204,10 @@ class TorchHistory(object):
         if flat.shape == torch.Size([0]):
             # Often the whole tensor is nan or inf. Just don't log it in that case.
             return
+        # Anecdotally, this can somehow happen sometimes. Maybe a precision error
+        # in min()/max() above. Swap here to prevent a runtime error.
+        if tmin > tmax:
+            tmin, tmax = tmax, tmin
         tmin = flat.min().item()
         tmax = flat.max().item()
         if sparse_zeros:
