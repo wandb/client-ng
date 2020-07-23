@@ -5,41 +5,15 @@ from concurrent import futures
 import datetime
 import logging
 import multiprocessing
+import os
 import time
 
 import grpc
-from wandb.interface import constants
+from wandb.interface import constants, interface
 from wandb.internal.internal import wandb_internal
-from wandb.proto import wandb_internal_pb2  # type: ignore
+from wandb.lib import runid
 from wandb.proto import wandb_server_pb2  # type: ignore
 from wandb.proto import wandb_server_pb2_grpc  # type: ignore
-
-
-# from wandb.apis import internal
-# from wandb.apis import file_stream
-
-# api = internal.Api()
-# settings=dict(entity="jeff", project="uncategorized")
-
-# def log(data):
-#    d = json.loads(data.json)
-#    return wandb_internal_pb2.LogResult()
-#
-
-# TODO: get from interface
-def _make_record(
-        run=None,
-        config=None,
-        files=None,
-        summary=None,
-        stats=None,
-        exit=None,
-        artifact=None,
-    ):
-    rec = wandb_internal_pb2.Record()
-    if run:
-        rec.run.CopyFrom(run)
-    return rec
 
 
 class InternalServiceServicer(wandb_server_pb2_grpc.InternalServiceServicer):
@@ -48,27 +22,21 @@ class InternalServiceServicer(wandb_server_pb2_grpc.InternalServiceServicer):
     def __init__(self, server, backend):
         self._server = server
         self._backend = backend
-        # self._ds = ds
-        # self._fs = fs
-        pass
 
-    def RunUpdate(self, request, context):  # noqa: N802
-        print("run update")
-        rec = _make_record(run=request)
-        self._backend._queue_process(rec)
-        result = wandb_server_pb2.RunUpdateResult()
+    def RunUpdate(self, run_data, context):  # noqa: N802
+        if not run_data.run_id:
+            run_data.run_id = runid.generate_id()
+        run = self._backend._interface._send_run_sync(run_data)
+        result = wandb_server_pb2.RunUpdateResult(run=run.run)
         return result
-        
-    def Log(self, request, context):  # noqa: N802
-        # self._ds.write(request)
-        # d = json.loads(request.json)
-        # fs = self._fs.get('rfs')
-        # if fs:
-        #     #print("dump", json.dumps(d))
-        #     #fs = file_stream.FileStreamApi(api, run_id, settings=settings)
-        #     #fs.start()
-        #     x = fs.push("wandb-history.jsonl", json.dumps(d))
-        #     #fs.finish(0)
+
+    def RunExit(self, exit_data, context):  # noqa: N802
+        _ = self._backend._interface._send_exit_sync(exit_data)
+        result = wandb_server_pb2.RunExitResult()
+        return result
+
+    def Log(self, log_data, context):  # noqa: N802
+        self._backend._interface._send_history(log_data)
         result = wandb_server_pb2.LogResult()
         return result
 
@@ -82,25 +50,6 @@ class InternalServiceServicer(wandb_server_pb2_grpc.InternalServiceServicer):
         result = wandb_server_pb2.ServerStatusResult()
         return result
 
-    # def RunGet(self, request, context):
-    #     result = wandb_internal_pb2.RunGetResult()
-    #     return result
-
-    # def RunUpdate(self, request, context):
-    #     run = request.run
-    #     self._ds.write(run)
-
-    #    config = json.loads(run.config_json)
-
-    #    r = api.upsert_run(name=run.run_id, config=config, **settings)
-    #    fs = file_stream.FileStreamApi(api, run.run_id, settings=settings)
-    #    fs.start()
-    #    self._fs['rfs'] = fs
-    #    self._fs['run_id'] = run.run_id
-
-    #    result = wandb_internal_pb2.RunUpdateResult()
-    #    return result
-
 
 # TODO(jhr): this should be merged with code in backend/backend.py ensure launched
 class Backend:
@@ -109,15 +58,25 @@ class Backend:
 
     def setup(self):
         log_level = logging.DEBUG
+        start_time = time.time()
+        start_datetime = datetime.datetime.now()
+        timespec = datetime.datetime.strftime(start_datetime, "%Y%m%d_%H%M%S")
+
+        wandb_dir = "wandb"
+        run_path = "run-{}-server".format(timespec)
+        run_dir = os.path.join(wandb_dir, run_path)
+        files_dir = os.path.join(run_dir, "files")
+        sync_file = os.path.join(run_dir, "run-{}.wandb".format(start_time))
+        os.makedirs(files_dir)
         settings = dict(
-            log_internal="internal.log",
-            files_dir=".",
-            _start_time=time.time(),
-            _start_datetime=datetime.datetime.now(),
+            log_internal=os.path.join(run_dir, "internal.log"),
+            files_dir=files_dir,
+            _start_time=start_time,
+            _start_datetime=start_datetime,
             disable_code=None,
             code_program=None,
             save_code=None,
-            sync_file="run-{}.wandb".format(time.time()),
+            sync_file=sync_file,
             _internal_queue_timeout=20,
             _internal_check_process=0,
             _disable_meta=True,
@@ -153,14 +112,15 @@ class Backend:
         wandb_process.start()
 
         self.wandb_process = wandb_process
-        self.process_queue = process_queue
         self.notify_queue = notify_queue
 
-    def _queue_process(self, rec):
-        if self.wandb_process and not self.wandb_process.is_alive():
-            raise Exception("problem")
-        self.process_queue.put(rec)
-        self.notify_queue.put(constants.NOTIFY_PROCESS)
+        self._interface = interface.BackendSender(
+            process_queue=process_queue,
+            notify_queue=notify_queue,
+            request_queue=req_queue,
+            response_queue=resp_queue,
+            process=wandb_process,
+        )
 
     def cleanup(self):
         # TODO: make _done atomic
@@ -191,9 +151,6 @@ def serve(backend):
 
 
 if __name__ == "__main__":
-    # ds = datastore.DataStore()
-    # ds.open("out.dat")
-    # fs = dict()
     try:
         logging.basicConfig()
         backend = Backend()
@@ -201,7 +158,3 @@ if __name__ == "__main__":
         serve(backend)
     except KeyboardInterrupt:
         print("outer control-c")
-
-    # rfs = fs.get('rfs')
-    # if rfs:
-    #    rfs.finish(0)
