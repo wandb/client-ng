@@ -150,7 +150,7 @@ def serve(backend):
         print("control-c")
 
 
-if __name__ == "__main__":
+def main():
     try:
         logging.basicConfig()
         backend = Backend()
@@ -158,3 +158,7 @@ if __name__ == "__main__":
         serve(backend)
     except KeyboardInterrupt:
         print("outer control-c")
+
+
+if __name__ == "__main__":
+    main()
