@@ -68,8 +68,6 @@ class RunManaged(Run):
         self._notes = None
         self._tags = None
 
-        self._saved_files = set()
-
         # Pull info from settings
         self._init_from_settings(settings)
 
@@ -306,8 +304,6 @@ class RunManaged(Run):
         wandb_glob_str = os.path.relpath(glob_str, base_path)
         if "../" in wandb_glob_str:
             raise ValueError("globs can't walk above base_path")
-        if (glob_str, base_path, policy) in self._saved_files:
-            return []
         if glob_str.startswith("gs://") or glob_str.startswith("s3://"):
             wandb.termlog(
                 "%s is a cloud storage url, can't save file to wandb." % glob_str
@@ -327,10 +323,8 @@ class RunManaged(Run):
             elif not os.path.exists(wandb_path):
                 os.symlink(abs_path, wandb_path)
             files.append(wandb_path)
-        # TODO: these files must be relative to file_dir
-        files_dict = dict(files=[(f, policy) for f in files])
+        files_dict = dict(files=[(os.path.relpath(f, self.dir), policy) for f in files])
         self._backend.interface.send_files(files_dict)
-        self._saved_files.add((glob_str, base_path, policy))
         return files
 
     def restore(

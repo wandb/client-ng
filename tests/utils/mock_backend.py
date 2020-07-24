@@ -1,6 +1,6 @@
 import wandb
 import json
-from wandb.interface import constants, interface
+from wandb.interface import interface
 from multiprocessing import Process
 from _pytest.config import get_config  # type: ignore
 from pytest_mock import _get_mock_module  # type: ignore
@@ -76,8 +76,7 @@ class BackendMock(object):
                 fpath = k.path
                 fpolicy = k.policy
                 # TODO(jhr): fix paths with directories
-                fname = fpath[0]
-                self.files[fname] = fpolicy
+                self.files[fpath] = fpolicy
         if rec.run:
             pass
 

@@ -12,6 +12,7 @@ import os
 import time
 
 from wandb.filesync.dir_watcher import DirWatcher
+from wandb.interface.interface import file_enum_to_policy
 from wandb.lib.config import save_config_file_from_dict
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
@@ -160,7 +161,9 @@ class SendManager(object):
         )
         self._fs.start()
         self._pusher = FilePusher(self._api)
-        self._dir_watcher = DirWatcher(self._settings.files_dir, self._api)
+        self._dir_watcher = DirWatcher(
+            self._settings.files_dir, self._api, self._pusher
+        )
         self._run_id = run.run_id
         if self._run_meta:
             self._run_meta.write()
@@ -244,17 +247,13 @@ class SendManager(object):
         logger.info("saving file %s at %s", fname, directory)
         path = os.path.abspath(os.path.join(directory, fname))
         logger.info("saving file %s at full %s", fname, path)
-        self._pusher.file_changed(fname, path)
+        self._dir_watcher.update_policy(fname, policy)
 
     def handle_files(self, data):
         files = data.files
         for k in files.files:
-            fpath = k.path
-            fpolicy = k.policy
             # TODO(jhr): fix paths with directories
-            fname = fpath[0]
-            # TODO: this might be a glob with wandb.save...
-            self._save_file(fname, fpolicy)
+            self._save_file(k.path, file_enum_to_policy(k.policy))
 
     def handle_artifact(self, data):
         artifact = data.artifact
@@ -276,10 +275,10 @@ class SendManager(object):
         )
 
     def finish(self):
-        if self._pusher:
-            self._pusher.finish()
         if self._dir_watcher:
             self._dir_watcher.finish()
+        if self._pusher:
+            self._pusher.finish()
         if self._fs:
             # TODO(jhr): now is a good time to output pending output lines
             self._fs.finish(self._exit_code)

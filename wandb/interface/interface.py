@@ -25,6 +25,26 @@ from wandb.util import (
 logger = logging.getLogger("wandb")
 
 
+def file_policy_to_enum(policy):
+    if policy == "now":
+        enum = wandb_internal_pb2.FilesItem.PolicyType.NOW
+    elif policy == "end":
+        enum = wandb_internal_pb2.FilesItem.PolicyType.END
+    elif policy == "live":
+        enum = wandb_internal_pb2.FilesItem.PolicyType.LIVE
+    return enum
+
+
+def file_enum_to_policy(enum):
+    if enum == wandb_internal_pb2.FilesItem.PolicyType.NOW:
+        policy = "now"
+    elif enum == wandb_internal_pb2.FilesItem.PolicyType.END:
+        policy = "end"
+    elif enum == wandb_internal_pb2.FilesItem.PolicyType.LIVE:
+        policy = "live"
+    return policy
+
+
 class BackendSender(object):
     class ExceptionTimeout(Exception):
         pass
@@ -196,15 +216,9 @@ class BackendSender(object):
     def _make_files(self, files_dict):
         files = wandb_internal_pb2.FilesData()
         for path, policy in files_dict["files"]:
-            if policy == "now":
-                ptype = wandb_internal_pb2.FilesItem.PolicyType.NOW
-            elif policy == "end":
-                ptype = wandb_internal_pb2.FilesItem.PolicyType.END
-            elif policy == "live":
-                ptype = wandb_internal_pb2.FilesItem.PolicyType.LIVE
             f = files.files.add()
-            f.path[:] = path
-            f.policy = ptype
+            f.path = path
+            f.policy = file_policy_to_enum(policy)
         return files
 
     def _make_record(
@@ -267,8 +281,8 @@ class BackendSender(object):
         # returns response, err
         return rsp
 
-    def send_run(self, run_dict):
-        run = self._make_run(run_dict)
+    def send_run(self, run_obj):
+        run = self._make_run(run_obj)
         rec = self._make_record(run=run)
         self._queue_process(rec)
 
@@ -297,8 +311,8 @@ class BackendSender(object):
         resp = self._request_response(req, timeout=timeout)
         return resp
 
-    def send_run_sync(self, run_dict, timeout=None):
-        run = self._make_run(run_dict)
+    def send_run_sync(self, run_obj, timeout=None):
+        run = self._make_run(run_obj)
         return self._send_run_sync(run, timeout=timeout)
 
     def send_stats(self, stats_dict):

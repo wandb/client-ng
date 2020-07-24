@@ -1,6 +1,7 @@
 import logging
 import os
 import six
+from six.moves import queue
 import time
 
 from watchdog.observers.polling import PollingObserver
@@ -18,13 +19,20 @@ class FileEventHandler(object):
         # Convert windows paths to unix paths
         save_name = util.to_forward_slash_path(save_name)
         self.save_name = save_name
+        self._file_pusher = file_pusher
+        self._last_sync = None
         self._api = api
+
+    @property
+    def synced(self):
+        return self._last_sync == os.path.getmtime(self.file_path)
 
     def on_created(self):
         pass
 
     def on_modified(self):
-        pass
+        if not self.synced:
+            self.on_created()
 
     def on_renamed(self, new_path, new_name):
         self.file_path = new_path
@@ -32,13 +40,16 @@ class FileEventHandler(object):
         self.on_created()
 
     def finish(self):
-        pass
+        if not self.synced:
+            self.on_created()
 
 
 class PolicyNow(FileEventHandler):
     """This policy only uploads files now"""
     def on_created(self):
-        self._file_pusher.file_changed(self.save_name, self.file_path)
+        if self._last_sync is None:
+            self._file_pusher.file_changed(self.save_name, self.file_path)
+            self._last_sync = os.path.getmtime(self.file_path)
 
 
 class PolicyEnd(FileEventHandler):
@@ -48,6 +59,7 @@ class PolicyEnd(FileEventHandler):
     def finish(self):
         # We use copy=False to avoid possibly expensive copies, and because
         # user files shouldn't still be changing at the end of the run.
+        self._last_sync = os.path.getmtime(self.file_path)
         self._file_pusher.file_changed(self.save_name, self.file_path, copy=False)
 
 
@@ -101,35 +113,35 @@ class PolicyLive(FileEventHandler):
             return 0
 
         time_elapsed = self.last_uploaded()
-        if time_elapsed == 0 or time_elapsed > self.min_wait_for_size(
+        if not self.synced or time_elapsed > self.min_wait_for_size(
             self.current_size
         ):
             self.save_file()
 
-    def finish(self):
-        self._file_pusher.file_changed(self.save_name, self.file_path)
-
     def save_file(self):
+        self._last_sync = os.path.getmtime(self.file_path)
         self._last_uploaded_time = time.time()
         self._last_uploaded_size = self.current_size
         self._file_pusher.file_changed(self.save_name, self.file_path)
 
 
 class DirWatcher(object):
-    def __init__(self, root_dir, api):
+    def __init__(self, root_dir, api, file_pusher):
         self._api = api
         self._file_count = 0
         self._dir = root_dir
         self._user_file_policies = {
-            "end": [],
-            "live": [],
-            "now": []
+            "end": set(),
+            "live": set(),
+            "now": set()
         }
-        self.file_event_handlers = {}
+        self._file_pusher = file_pusher
+        self._file_event_handlers = {}
         self._file_observer = PollingObserver()
         self._file_observer.schedule(
             self._per_file_event_handler(), root_dir, recursive=True
         )
+        self._file_observer.start()
 
     @property
     def emitter(self):
@@ -137,6 +149,12 @@ class DirWatcher(object):
             return next(iter(self._file_observer.emitters))
         except StopIteration:
             return None
+
+    def update_policy(self, path, policy):
+        self._user_file_policies[policy].add(path)
+        for src_path in glob.glob(os.path.join(self._dir, path)):
+            save_name = os.path.relpath(src_path, self._dir)
+            self._get_file_event_handler(src_path, save_name).on_modified()
 
     def _per_file_event_handler(self):
         """Create a Watchdog file event handler that does different things for every file
@@ -166,7 +184,9 @@ class DirWatcher(object):
         self._file_count += 1
         # We do the directory scan less often as it grows
         if self._file_count % 100 == 0:
-            self.emitter._timeout = int(self._file_count / 100) + 1
+            emitter = self.emitter
+            if emitter:
+                emitter._timeout = int(self._file_count / 100) + 1
         save_name = os.path.relpath(event.src_path, self._dir)
         self._get_file_event_handler(event.src_path, save_name).on_created()
 
@@ -219,8 +239,30 @@ class DirWatcher(object):
         return self._file_event_handlers[save_name]
 
     def finish(self):
-        self._file_observer._timeout = 0
-        self._file_observer._stopped_event.set()
-        self._file_observer.join()
+        try:
+            # avoid hanging if we crashed before the observer was started
+            if self._file_observer.is_alive():
+                # rather unfortunatly we need to manually do a final scan of the dir
+                # with `queue_events`, then iterate through all events before stopping
+                # the observer to catch all files written.  First we need to prevent the
+                # existing thread from consuming our final events, then we process them
+                self._file_observer._timeout = 0
+                self._file_observer._stopped_event.set()
+                self._file_observer.join()
+                self.emitter.queue_events(0)
+                while True:
+                    try:
+                        self._file_observer.dispatch_events(
+                            self._file_observer.event_queue, 0)
+                    except queue.Empty:
+                        break
+                # Calling stop unschedules any inflight events so we handled them above
+                self._file_observer.stop()
+        # TODO: py2 TypeError: PyCObject_AsVoidPtr called with null pointer
+        except TypeError:
+            pass
+        # TODO: py3 SystemError: <built-in function stop> returned an error
+        except SystemError:
+            pass
         for handler in list(self._file_event_handlers.values()):
             handler.finish()

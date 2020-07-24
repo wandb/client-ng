@@ -196,7 +196,7 @@ def test_save_policy_symlink(wandb_init_run):
     with open("test.rad", "w") as f:
         f.write("something")
     wandb.save("test.rad")
-    assert wandb.run._backend.files["test.rad"] == "live"
+    assert wandb.run._backend.files["test.rad"] == 2
 
 
 def test_save_absolute_path(wandb_init_run):
@@ -205,7 +205,7 @@ def test_save_absolute_path(wandb_init_run):
     wandb.save("/tmp/test.txt")
     assert os.path.exists(os.path.join(wandb_init_run.dir, "test.txt"))
     print("WHOA", wandb.run._backend.files)
-    assert wandb.run._backend.files["test.txt"] == "live"
+    assert wandb.run._backend.files["test.txt"] == 2
 
 
 def test_save_relative_path(wandb_init_run):
@@ -213,7 +213,7 @@ def test_save_relative_path(wandb_init_run):
         f.write("something")
     wandb.save("/tmp/test.txt", base_path="/", policy="now")
     assert os.path.exists(os.path.join(wandb_init_run.dir, "tmp/test.txt"))
-    assert wandb.run._backend.files["tmp/test.txt"] == "now"
+    assert wandb.run._backend.files["tmp/test.txt"] == 0
 
 
 def test_save_invalid_path(wandb_init_run):
