@@ -17,9 +17,9 @@ from wandb.internal import git_repo
 from wandb.vendor.pynvml import pynvml
 
 if os.name == "posix" and sys.version_info[0] < 3:
-    import subprocess32 as subprocess
+    import subprocess32 as subprocess  # type: ignore[import]
 else:
-    import subprocess
+    import subprocess  # type: ignore[no-redef]
 
 
 METADATA_FNAME = "wandb-metadata.json"
