@@ -27,6 +27,7 @@ LOGIN_CHOICES = [
     LOGIN_CHOICE_DRYRUN,
 ]
 
+
 def _fixup_anon_mode(default):
     # Convert weird anonymode values from legacy settings files
     # into one of our expected values.

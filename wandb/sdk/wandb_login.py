@@ -50,9 +50,10 @@ def login(api=None, relogin=None, key=None, anonymous=None):
             return
         settings.update({"anonymous": anonymous})
 
-    # Note: This won't actually do anything if called from a codepath where wandb.setup was previously called.
-    # If wandb.setup is called further up, you must make sure the anonymous setting (and any other settings)
-    # are already properly set up there.
+    # Note: This won't actually do anything if called from a codepath where
+    # wandb.setup was previously called. If wandb.setup is called further up,
+    # you must make sure the anonymous setting (and any other settings) are
+    # already properly set up there.
     wl = wandb.setup(settings=settings)
     settings = wl.settings()
 
