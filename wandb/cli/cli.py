@@ -93,7 +93,8 @@ def cli(ctx):
 @click.option("--anonymously", default=False, is_flag=True, help="Log in anonymously")
 @display_error
 def login(key, host, cloud, relogin, anonymously):
-    wandb.setup(settings=wandb.Settings(_cli_only_mode=True))
+    anon_mode = "must" if anonymously else "never"
+    wandb.setup(settings=wandb.Settings(_cli_only_mode=True, anonymous=anon_mode))
 
     api = InternalApi()
     if host == "https://api.wandb.ai" or (host is None and cloud):
@@ -107,14 +108,17 @@ def login(key, host, cloud, relogin, anonymously):
         api.set_setting("base_url", host.strip("/"), globally=True, persist=True)
     key = key[0] if len(key) > 0 else None
 
-    anon_mode = "must" if anonymously else "never"
     wandb.login(relogin=relogin, key=key, anonymous=anon_mode)
 
 
 @cli.command(context_settings=CONTEXT, help="Run a grpc server", name="grpc-server", hidden=True)
 @display_error
 def grpc_server(project=None, entity=None):
-    from wandb.server.wandb_internal_server import main as grpc_server
+    _ = util.get_module(
+        "grpc",
+        required="grpc-server requires the grpcio library, run pip install wandb[grpc]",
+    )
+    from wandb.server.grpc_server import main as grpc_server
     grpc_server()
 
 
