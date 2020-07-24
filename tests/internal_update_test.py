@@ -26,3 +26,8 @@ def test_check_nextrelease_after_pre_avail(mock_server):
 def test_check_nextrelease_avail(mock_server):
     package = update._find_available("0.0.6")
     assert package == (wandb.__version__, False)
+
+
+def test_pypi_check(mock_server):
+     update.check_available(wandb.__version__)
+     assert mock_server.ctx["json"] is not None
