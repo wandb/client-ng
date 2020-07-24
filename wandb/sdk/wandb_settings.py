@@ -348,7 +348,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         if self.run_id:
             format_dict["run_id"] = self.run_id
         format_dict["proc"] = os.getpid()
-        format_dict["wandb_dir"] = self.wandb_dir
+        format_dict["wandb_dir"] = self.wandb_dir or "wandb"
 
         path_items = []
         for p in path:
