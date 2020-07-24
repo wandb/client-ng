@@ -3,7 +3,10 @@ import wandb
 
 import image
 import image_mask
+import image_bounding_box
 import video
+import html
+import table
 import molecule
 import point_cloud_scene
 import object3D
@@ -30,8 +33,10 @@ def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
 all_tests = {}
 all_tests.update(image.all_tests)
 all_tests.update(image_mask.all_tests)
-all_tests.update(image_bounding_boxes.all_tests)
+all_tests.update(image_bounding_box.all_tests)
 all_tests.update(video.all_tests)
+all_tests.update(html.all_tests)
+all_tests.update(table.all_tests)
 all_tests.update(molecule.all_tests)
 all_tests.update(point_cloud_scene.all_tests)
 all_tests.update(object3D.all_tests)

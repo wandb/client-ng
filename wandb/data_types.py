@@ -879,6 +879,8 @@ class Image(BatchableMedia):
         if isinstance(data_or_path, six.string_types):
             self._set_file(data_or_path, is_tmp=False)
             self._image = PILImage.open(data_or_path)
+            ext = os.path.splitext(data_or_path)[1][1:]
+            self.format = ext
         else:
             data = data_or_path
 
@@ -906,6 +908,7 @@ class Image(BatchableMedia):
 
             tmp_path = os.path.join(
                 MEDIA_TMP.name, util.generate_id() + '.png')
+            self.format = "png"
             self._image.save(tmp_path, transparency=None)
             self._set_file(tmp_path, is_tmp=True)
 
@@ -928,7 +931,7 @@ class Image(BatchableMedia):
     def to_json(self, run):
         json_dict = super(Image, self).to_json(run)
         json_dict['_type'] = 'image-file'
-        json_dict['format'] = "png"
+        json_dict['format'] = self.format
 
         if self._width is not None:
             json_dict['width'] = self._width
@@ -1127,10 +1130,10 @@ class BoundingBoxes2D(JSONMetadata):
         else:
             self._class_labels = val["class_labels"]
 
-    def bind_to_run(self, run, key, step, **kwargs):
+    def bind_to_run(self, run, key, step, i, **kwargs):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(BoundingBoxes2D, self).bind_to_run(run, key, step, **kwargs)
+        super(BoundingBoxes2D, self).bind_to_run(run, key, step, i, **kwargs)
         run._add_singleton("bounding_box/class_labels", key + "_wandb_delimeter_" + self._key , self._class_labels)
 
 
@@ -1216,10 +1219,10 @@ class ImageMask(Media):
         image.save(tmp_path, transparency=None)
         self._set_file(tmp_path, is_tmp=True, extension=ext)
 
-    def bind_to_run(self, run, key, step, **kwargs):
+    def bind_to_run(self, run, key, step, i, **kwargs):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(ImageMask, self).bind_to_run(run, key, step, **kwargs)
+        super(ImageMask, self).bind_to_run(run, key, step, i, **kwargs)
         class_labels = self._val["class_labels"]
 
         run._add_singleton("mask/class_labels", key + "_wandb_delimeter_" + self._key , class_labels)

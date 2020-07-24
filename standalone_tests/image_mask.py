@@ -3,8 +3,6 @@
 import wandb
 import numpy as np
 
-wandb.init(project="test-image-masks")
-
 n = 40
 m = 40
 
@@ -70,4 +68,6 @@ all_tests = {
     "mask_img_no_class": gen_mask_img_classless(),
 }
 
-wandb.log(all_tests)
+if __name__ == "__main__":
+    wandb.init(project="test-image-masks")
+    wandb.log(all_tests)

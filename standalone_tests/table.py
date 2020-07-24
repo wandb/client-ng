@@ -1,8 +1,6 @@
 import wandb
 import pandas as pd
 
-wandb.init(project="test-table")
-
 def gen_table(n=1):
     data = [["I love my phone", n, n], ["My phone sucks", n, n]]
     return wandb.Table(data=data, columns=["Text", "Predicted Label", "True Label"])
@@ -18,4 +16,6 @@ all_tests = {
     "table_dataframe_single": gen_df_table()
 }
 
-wandb.log(all_tests)
+if __name__ == "__main__":
+    wandb.init(project="test-table")
+    wandb.log(all_tests)

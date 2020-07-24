@@ -1,8 +1,6 @@
 import numpy as np
 import wandb
 
-wandb.init(project="lidar-scene-test")
-
 
 N_POINT = 1000
 points = np.random.rand(N_POINT, 3) * 5 - 2.5
@@ -79,4 +77,6 @@ all_tests = {
     "all_vectors": make_scene(vectors_all)
 }
 
-wandb.log(all_tests)
+if __name__ == "__main__":
+    wandb.init(project="lidar-scene-test")
+    wandb.log(all_tests)

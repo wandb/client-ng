@@ -52,11 +52,12 @@ output.write('f 5/6/6 1/12/6 8/11/6\n')
 
 all_tests = {
     "cube(in-memory)": wandb.Object3D(output, file_type="obj"),
-    "cube(file)": wandb.Object3D(open("test-files/cube.obj")),
-    "bunny(file)": wandb.Object3D(open("test-files/bunny.obj"))
+    "cube(file)": wandb.Object3D(open("../tests/fixtures/cube.obj")),
+    "files(seq)": [
+        wandb.Object3D(open("../tests/fixtures/bunny.obj")),
+        wandb.Object3D(open("../tests/fixtures/cube.obj"))
+    ]
 }
-
-
 
 N = 1
 
