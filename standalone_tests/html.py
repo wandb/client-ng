@@ -2,8 +2,6 @@ import time
 import numpy as np
 import wandb
 
-wandb.init(project='html-test')
-
 N = 10
 
 html_str = """
@@ -17,6 +15,8 @@ all_tests = {
     "html_file_str_seq": wandb.Html(html_str),
 }
 
-for i in range(0, N):
-    wandb.log(all_tests, step=i)
 
+if __name__ == "__main__":
+    wandb.init(project='html-test')
+    for i in range(0, N):
+        wandb.log(all_tests, step=i)

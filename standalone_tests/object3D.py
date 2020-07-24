@@ -3,8 +3,6 @@ from io import StringIO
 
 output = StringIO()
 
-wandb.init(project="test-object3D")
-
 # Blender v2.76 (sub 0) OBJ File: ''
 # www.blender.org
 output.write('mtllib cube.mtl\n')
@@ -52,6 +50,17 @@ output.write('f 2/12/4 6/8/4 3/4/4\n')
 output.write('f 4/13/5 3/9/5 8/11/5\n')
 output.write('f 5/6/6 1/12/6 8/11/6\n')
 
-wandb.log({"cube(in-memory)": wandb.Object3D(output, file_type="obj")})
-wandb.log({"cube(file)": wandb.Object3D(open("test-files/cube.obj"))})
-wandb.log({"bunny(file)": wandb.Object3D(open("test-files/bunny.obj"))})
+all_tests = {
+    "cube(in-memory)": wandb.Object3D(output, file_type="obj"),
+    "cube(file)": wandb.Object3D(open("test-files/cube.obj")),
+    "bunny(file)": wandb.Object3D(open("test-files/bunny.obj"))
+}
+
+
+
+N = 1
+
+if __name__ == "__main__":
+    wandb.init(project="test-object3D")
+    for i in range(N):
+        wandb.log(all_tests)

@@ -2,8 +2,6 @@ import time
 import numpy as np
 import wandb
 
-wandb.init(project='image-test')
-
 
 IMG_WIDTH = 5
 IMG_HEIGHT = 5
@@ -26,7 +24,10 @@ all_tests = {
     "test_image_data_array": [wandb.Image(gen_image()) for _ in range(IMG_COUNT)],
 }
 
-for i in range(0, N):
-    wandb.log({"i": i}, step=i)
+if __name__ == "__main__":
+    wandb.init(project='image-test')
 
-time.sleep(100)
+    for i in range(0, N):
+        log = all_tests
+        log.update({"i": i})
+        wandb.log(log, step=i)
