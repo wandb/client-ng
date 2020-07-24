@@ -178,8 +178,6 @@ class _WandbInit(object):
             "config_exclude_keys",
             "config_include_keys",
             "reinit",
-            "dir",
-            "anonymous",
             "allow_val_change",
             "resume",
             "force",
@@ -202,12 +200,14 @@ class _WandbInit(object):
                 val = kwargs.pop(key, None)
                 if val:
                     print("Ignored wandb.init() arg %s when running a sweep" % key)
-
         settings.apply_init(kwargs)
 
         # TODO(jhr): should this be moved? probably.
         d = dict(_start_time=time.time(), _start_datetime=datetime.datetime.now(),)
         settings.update(d)
+
+        if settings.jupyter:
+            self._jupyter_setup()
 
         self._log_setup(settings)
         wl._early_logger_flush(logger)
@@ -265,6 +265,25 @@ class _WandbInit(object):
         os.symlink(target, tmp_name)
         os.rename(tmp_name, name)
         os.chdir(owd)
+
+    def _jupyter_setup(self):
+        self.notebook = wandb.jupyter.Notebook()
+        ipython = self.notebook.shell
+        ipython.register_magics(wandb.jupyter.WandBMagics)
+
+        # Monkey patch ipython publish to capture displayed outputs
+        if not hasattr(ipython.display_pub, "_orig_publish"):
+            ipython.display_pub._orig_publish = ipython.display_pub.publish
+
+        def publish(data, metadata=None, **kwargs):
+            ipython.display_pub._orig_publish(data, metadata=metadata, **kwargs)
+            self.notebook.save_display(
+                ipython.execution_count, {"data": data, "metadata": metadata}
+            )
+
+        ipython.display_pub.publish = publish
+        # TODO: should we reset start or any other fancy pre or post run cell magic?
+        # ipython.events.register("pre_run_cell", reset_start)
 
     def _log_setup(self, settings):
         """Setup logging from settings."""

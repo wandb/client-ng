@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 import json
+import yaml
 import wandb
 from tests.utils.mock_requests import RequestsMock
 # TODO: remove once python2 ripped out
@@ -20,6 +21,7 @@ def default_ctx():
         "page_count": 0,
         "page_times": 2,
         "files": {},
+        "k8s": False,
     }
 
 
@@ -66,6 +68,11 @@ def run():
             "edges": [{"node": {"name": "weights.h5", "sizeBytes": 20, 'md5': "XXX",
                                 "url": request.url_root + "/storage?file=weights.h5"}}]
         },
+        "sampledHistory": ['{"loss": 0, "acc": 100}'],
+        "shouldStop": False,
+        "failed": False,
+        "stopped": False,
+        "running": True,
         'tags': [],
         'notes': None,
         'sweepName': None,
@@ -114,6 +121,9 @@ def create_app(ctx):
 
     @app.route("/graphql", methods=["POST"])
     def graphql():
+        #  TODO: in tests wandb-username is set to the test name, lets scope ctx to it
+        test_name = request.headers.get("X-WANDB-USERNAME")
+        app.logger.info("Test request from: %s", test_name)
         if "fail_times" in ctx:
             if ctx["fail_count"] < ctx["fail_times"]:
                 ctx["fail_count"] += 1
@@ -179,6 +189,14 @@ def create_app(ctx):
                     }
                 }
             })
+        if "query Models(" in body["query"]:
+            return json.dumps({
+                'data': {
+                    'models': {
+                        "edges": [{"node": {"id": "123", "name": "myname", "project": "myproj"}}]
+                    }
+                }
+            })
         if "query Projects(" in body["query"]:
             return json.dumps({
                 "data": {
@@ -210,9 +228,35 @@ def create_app(ctx):
                         "sweep": {
                             "id": "1234",
                             "name": "fun-sweep-10",
+                            "state": "running",
                             "bestLoss": 0.33,
-                            "config": "",
+                            "config": yaml.dump({"metric": {"name": "loss",
+                                                            "value": "minimize"}}),
+                            "createdAt": datetime.now().isoformat(),
+                            "heartbeatAt": datetime.now().isoformat(),
+                            "updatedAt": datetime.now().isoformat(),
+                            "earlyStopJobRunning": False,
+                            "controller": None,
+                            "scheduler": None,
                             "runs": paginated(run(), ctx)
+                        }
+                    }
+                }
+            })
+        if "mutation UpsertSweep(" in body["query"]:
+            return json.dumps({
+                "data": {
+                    "upsertSweep": {
+                        "sweep": {
+                            "name": "test",
+                            "project": {
+                                "id": "1234",
+                                "name": "test",
+                                "entity": {
+                                    "id": "1234",
+                                    "name": "test"
+                                }
+                            }
                         }
                     }
                 }
@@ -389,7 +433,7 @@ def create_app(ctx):
                     }
                 }
             })
-        print("MISSING QUERY", body["query"])
+        print("MISSING QUERY, add me to tests/mock_server.py", body["query"])
         error = {"message": "Not implemented in tests/mock_server.py", "body": body}
         return json.dumps({"errors": [error]})
 

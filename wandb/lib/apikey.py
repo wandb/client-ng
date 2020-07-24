@@ -28,6 +28,14 @@ LOGIN_CHOICES = [
 ]
 
 
+def _fixup_anon_mode(default):
+    # Convert weird anonymode values from legacy settings files
+    # into one of our expected values.
+    anon_mode = default or "never"
+    mapping = {"true": "allow", "false": "never"}
+    return mapping.get(anon_mode, anon_mode)
+
+
 def prompt_api_key(
     settings,
     api=None,
@@ -38,7 +46,7 @@ def prompt_api_key(
 ):
     input_callback = input_callback or getpass.getpass
     api = api or InternalApi()
-    anon_mode = settings.anonymous or "never"
+    anon_mode = _fixup_anon_mode(settings.anonymous)
     jupyter = settings.jupyter or False
     app_url = settings.base_url.replace("//api.", "//app.")
 
@@ -48,6 +56,11 @@ def prompt_api_key(
         choices.remove(LOGIN_CHOICE_ANON)
     if jupyter or no_offline:
         choices.remove(LOGIN_CHOICE_DRYRUN)
+
+    if jupyter and 'google.colab' in sys.modules:
+        key = wandb.jupyter.attempt_colab_login(api.app_url)
+        write_key(settings, key)
+        return key
 
     if anon_mode == "must":
         result = LOGIN_CHOICE_ANON

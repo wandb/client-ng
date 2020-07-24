@@ -27,12 +27,13 @@ import os
 import platform
 import socket
 import sys
+import tempfile
 
-import shortuuid  # type: ignore
 import six
 import wandb
-from wandb import jupyter
 from wandb.internal import git_repo
+from wandb.lib.ipython import _get_python_type
+from wandb.lib.runid import generate_id
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
@@ -59,12 +60,6 @@ source = (
 Field = collections.namedtuple("TypedField", ["type", "choices"])
 
 
-def _generate_id():
-    # ~3t run ids (36**8)
-    run_gen = shortuuid.ShortUUID(alphabet=list("0123456789abcdefghijklmnopqrstuvwxyz"))
-    return run_gen.random(8)
-
-
 defaults = dict(
     base_url="https://api.wandb.ai",
     show_warnings=2,
@@ -74,6 +69,9 @@ defaults = dict(
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
+    # anonymous might be set by a config file: "false" and "true"
+    #   or from wandb.init(anonymous=) or environment: "allow", "must", "never"
+    _anonymous=Field(str, ("allow", "must", "never", "false", "true",)),
 )
 
 # env mapping?
@@ -96,7 +94,7 @@ env_settings = dict(
     username=None,
     disable_code=None,
     anonymous=None,
-    wandb_dir="WANDB_DIR",
+    root_dir="WANDB_DIR",
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
     run_tags="WANDB_TAGS",
@@ -111,16 +109,6 @@ def _build_inverse_map(prefix, d):
         v = v or prefix + k.upper()
         inv_map[v] = k
     return inv_map
-
-
-def _get_python_type():
-    try:
-        if "terminal" in get_ipython().__module__:
-            return "ipython"
-        else:
-            return "jupyter"
-    except (NameError, AttributeError):
-        return "python"
 
 
 def _is_kaggle():
@@ -160,6 +148,24 @@ def _get_program():
 
     logger.warning("could not find program at %s" % program)
     return None
+
+
+# the setting exposed to users as `dir=` or `WANDB_DIR` is actually
+# the `root_dir`. We add the `__stage_dir__` to it to get the full
+# `wandb_dir`
+def get_wandb_dir(root_dir: str):
+    # We use the hidden version if it already exists, otherwise non-hidden.
+    if os.path.exists(os.path.join(root_dir, ".wandb")):
+        __stage_dir__ = ".wandb" + os.sep
+    else:
+        __stage_dir__ = "wandb" + os.sep
+
+    path = os.path.join(root_dir, __stage_dir__)
+    if not os.access(root_dir, os.W_OK):
+        wandb.termwarn("Path %s wasn't writable, using system temp directory" % path)
+        path = os.path.join(tempfile.gettempdir(), __stage_dir__ or ("wandb" + os.sep))
+
+    return path
 
 
 class CantTouchThis(type):
@@ -209,7 +215,8 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         config_paths=None,
         _config_dict=None,
         # directories and files
-        wandb_dir="wandb",
+        root_dir=None,
+        wandb_dir=None,  # computed
         settings_system_spec="~/.config/wandb/settings",
         settings_workspace_spec="{wandb_dir}/settings",
         settings_system=None,  # computed
@@ -251,6 +258,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _cli_only_mode=None,  # avoid running any code specific for runs
         console=None,
         disabled=None,  # alias for mode=dryrun, not supported yet
+        _save_requirements=True,
         # compute environment
         jupyter=None,
         windows=None,
@@ -417,7 +425,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             u["save_code"] = wandb.env.should_save_code()
 
         if self.jupyter:
-            meta = jupyter.notebook_metadata()
+            meta = wandb.jupyter.notebook_metadata()
             u["_jupyter_path"] = meta.get("path")
             u["_jupyter_name"] = meta.get("name")
             u["_jupyter_root"] = meta.get("root")
@@ -437,7 +445,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
 
         u["_executable"] = sys.executable
 
-        u["docker"] = wandb.env.get_docker()
+        u["docker"] = wandb.env.get_docker(wandb.util.image_id_from_k8s())
 
         # TODO: we should use the cuda library to collect this
         if os.path.exists("/usr/local/cuda/version.txt"):
@@ -510,8 +518,10 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             id="run_id",
             tags="run_tags",
             group="run_group",
-            dir="wandb_dir",
+            dir="root_dir",
         )
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
+
         self.update(args)
-        self.run_id = self.run_id or _generate_id()
+        self.run_id = self.run_id or generate_id()
+        self.wandb_dir = get_wandb_dir(self.root_dir or ".")

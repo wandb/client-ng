@@ -1,8 +1,8 @@
 import pytest
 import time
 import datetime
-import os
 import requests
+import os
 from contextlib import contextmanager
 from tests import utils
 # from multiprocessing import Process
@@ -14,7 +14,9 @@ import wandb
 import git
 import psutil
 import atexit
+from wandb.lib.globals import unset_globals
 from wandb.internal.git_repo import GitRepo
+from six.moves import urllib
 try:
     import nbformat
 except ImportError:  # TODO: no fancy notebook fun in python2
@@ -26,15 +28,43 @@ except ImportError:  # TODO: this is only for python2
     from mock import MagicMock
 
 DUMMY_API_KEY = '1824812581259009ca9981580f8f8a9012409eee'
+server = None
 
 
-def debug(*args, **kwargs):
+def test_cleanup(*args, **kwargs):
+    global server
+    server.terminate()
     print("Open files during tests: ")
     proc = psutil.Process()
     print(proc.open_files())
 
 
-atexit.register(debug)
+def start_mock_server():
+    """We start a server on boot for use by tests"""
+    global server
+    port = utils.free_port()
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    path = os.path.join(root, "tests", "utils", "mock_server.py")
+    command = ["python", path]
+    env = os.environ
+    env["PORT"] = str(port)
+    env["PYTHONPATH"] = root
+    server = subprocess.Popen(command, env=env)
+    server._port = port
+    server.base_url = "http://localhost:%i" % server._port
+    for i in range(5):
+        try:
+            res = requests.get("%s/storage" % server.base_url, timeout=1)
+            if res.status_code == 200:
+                break
+            print("Attempting to connect but got: %s", res)
+        except requests.exceptions.RequestException:
+            print("timed out")
+    return server
+
+
+atexit.register(test_cleanup)
+start_mock_server()
 
 
 @pytest.fixture
@@ -72,13 +102,13 @@ def mocked_run(runner, test_settings):
 
 @pytest.fixture
 def runner(monkeypatch, mocker):
-    # whaaaaat = util.vendor_import("whaaaaat")
+    whaaaaat = wandb.util.vendor_import("whaaaaat")
     # monkeypatch.setattr('wandb.cli.api', InternalApi(
     #    default_settings={'project': 'test', 'git_tag': True}, load_settings=False))
     monkeypatch.setattr(click, 'launch', lambda x: 1)
-    # monkeypatch.setattr(whaaaaat, 'prompt', lambda x: {
-    #                    'project_name': 'test_model', 'files': ['weights.h5'],
-    #                    'attach': False, 'team_name': 'Manual Entry'})
+    monkeypatch.setattr(whaaaaat, 'prompt', lambda x: {
+                        'project_name': 'test_model', 'files': ['weights.h5'],
+                        'attach': False, 'team_name': 'Manual Entry'})
     monkeypatch.setattr(webbrowser, 'open_new_tab', lambda x: True)
     mocker.patch("wandb.lib.apikey.input", lambda x: 1)
     mocker.patch("wandb.lib.apikey.getpass.getpass", lambda x: DUMMY_API_KEY)
@@ -105,35 +135,12 @@ def mock_server():
 
 @pytest.fixture
 def live_mock_server(request):
-    port = utils.free_port()
-    #  TODO: Windows can't pickle
-    #  app = utils.create_app(utils.default_ctx())
-    #  def worker(app, port):
-    #    app.run(host="localhost", port=port, use_reloader=False, threaded=True)
-    #  server = Process(target=worker, args=(app, port))
-    #  server.start()
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    path = os.path.join(root, "tests", "utils", "mock_server.py")
-    command = ["python", path]
-    env = os.environ
-    env["PORT"] = str(port)
-    env["PYTHONPATH"] = root
-    server = subprocess.Popen(command, env=env)
-    server.base_url = "http://localhost:%s" % port
-    for i in range(5):
-        try:
-            res = requests.get("%s/storage" % server.base_url, timeout=1)
-            if res.status_code == 200:
-                break
-            print("Attempting to connect but got: %s", res)
-        except requests.exceptions.RequestException:
-            print("timed out")
+    global server
+    name = urllib.parse.quote(request.node.name)
+    # We set the username so the mock backend can namespace state
+    os.environ["WANDB_USERNAME"] = name
     yield server
-    server.terminate()
-    try:
-        server.join()
-    except AttributeError:  # Popen mode
-        server.wait()
+    del os.environ["WANDB_USERNAME"]
 
 
 @pytest.fixture
@@ -161,30 +168,58 @@ def notebook(live_mock_server):
             # Run setup commands for mocks
             client.execute_cell(0, store_history=False)
             yield client
+    notebook_loader.base_url = live_mock_server.base_url
 
     return notebook_loader
 
 
 def default_wandb_args():
+    """This allows us to parameterize the wandb_init_run fixture
+    The most general arg is "env", you can call:
+
+    @pytest.mark.wandb_args(env={"WANDB_API_KEY": "XXX"})
+
+    To set env vars and have them unset when the test completes.
+    """
     return {
         "error": None,
-        "k8s": False,
+        "k8s": None,
         "sagemaker": False,
         "tensorboard": False,
         "resume": False,
         "env": {},
+        "wandb_init": {},
     }
 
 
+def mocks_from_args(mocker, args, mock_server):
+    if args["k8s"] is not None:
+        mock_server.ctx["k8s"] = args["k8s"]
+        args["env"].update(utils.mock_k8s(mocker))
+    if args["sagemaker"]:
+        args["env"].update(utils.mock_sagemaker(mocker))
+
+
 @pytest.fixture
-def wandb_init_run(request, runner, mocker, mock_server, capsys):
+def wandb_init_run(request, runner, mocker, mock_server):
     marker = request.node.get_closest_marker('wandb_args')
     args = default_wandb_args()
     if marker:
         args.update(marker.kwargs)
-    #  TODO: likely not the right thing to do, we shouldn't be setting this
-    wandb._IS_INTERNAL_PROCESS = False
-    mocker.patch('wandb.wandb_sdk.wandb_init.Backend', utils.BackendMock)
-    run = wandb.init(settings=wandb.Settings(console="off", mode="offline"))
-    yield run
-    wandb.join()
+    try:
+        mocks_from_args(mocker, args, mock_server)
+        for k, v in args["env"].items():
+            os.environ[k] = v
+        #  TODO: likely not the right thing to do, we shouldn't be setting this
+        wandb._IS_INTERNAL_PROCESS = False
+        #  We want to run setup every time in tests
+        wandb.wandb_sdk.wandb_setup._WandbSetup._instance = None
+        mocker.patch('wandb.wandb_sdk.wandb_init.Backend', utils.BackendMock)
+        run = wandb.init(settings=wandb.Settings(console="off", mode="offline"),
+                         **args["wandb_init"])
+        yield run
+        wandb.join()
+    finally:
+        unset_globals()
+        for k, v in args["env"].items():
+            del os.environ[k]

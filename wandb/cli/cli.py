@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import copy
 from functools import wraps
 import logging
 import os
+import subprocess
 import sys
 import textwrap
 import traceback
 
 import click
 from click.exceptions import ClickException
+# pycreds has a find_executable that works in windows
+from dockerpycreds.utils import find_executable
 import six
 import wandb
 from wandb import env, util
@@ -20,6 +24,10 @@ from wandb.apis import InternalApi, PublicApi
 from wandb.old.settings import Settings
 from wandb.sync import SyncManager
 import yaml
+
+# whaaaaat depends on prompt_toolkit < 2, ipython now uses > 2 so we vendored for now
+# DANGER this changes the sys.path so we should never do this in a user script
+whaaaaat = util.vendor_import("whaaaaat")
 
 
 logger = logging.getLogger("wandb")
@@ -62,6 +70,50 @@ def display_error(func):
     return wrapper
 
 
+def _get_cling_api():
+    """Get a reference to the internal api with cling settings."""
+    # TODO(jhr): make a settings object that is better for non runs.
+    wandb.setup(settings=wandb.Settings(_cli_only_mode=True))
+    api = InternalApi()
+    return api
+
+
+def prompt_for_project(ctx, entity):
+    """Ask the user for a project, creating one if necessary."""
+    result = ctx.invoke(projects, entity=entity, display=False)
+    api = _get_cling_api()
+
+    try:
+        if len(result) == 0:
+            project = click.prompt("Enter a name for your first project")
+            # description = editor()
+            project = api.upsert_project(project, entity=entity)["name"]
+        else:
+            project_names = [project["name"] for project in result]
+            question = {
+                'type': 'list',
+                'name': 'project_name',
+                'message': "Which project should we use?",
+                'choices': project_names + ["Create New"]
+            }
+            result = whaaaaat.prompt([question])
+            if result:
+                project = result['project_name']
+            else:
+                project = "Create New"
+            # TODO: check with the server if the project exists
+            if project == "Create New":
+                project = click.prompt(
+                    "Enter a name for your new project", value_proc=api.format_project)
+                # description = editor()
+                project = api.upsert_project(project, entity=entity)["name"]
+
+    except wandb.errors.error.CommError as e:
+        raise ClickException(str(e))
+
+    return project
+
+
 class RunGroup(click.Group):
     @display_error
     def get_command(self, ctx, cmd_name):
@@ -81,6 +133,27 @@ def cli(ctx):
         click.echo(ctx.get_help())
 
 
+@cli.command(context_settings=CONTEXT, help="List projects", hidden=True)
+@click.option("--entity", "-e", default=None, envvar=env.ENTITY, help="The entity to scope the listing to.")
+@display_error
+def projects(entity, display=True):
+    api = _get_cling_api()
+    projects = api.list_projects(entity=entity)
+    if len(projects) == 0:
+        message = "No projects found for %s" % entity
+    else:
+        message = 'Latest projects for "%s"' % entity
+    if display:
+        click.echo(click.style(message, bold=True))
+        for project in projects:
+            click.echo("".join(
+                (click.style(project['name'], fg="blue", bold=True),
+                 " - ",
+                 str(project['description'] or "").split("\n")[0])
+            ))
+    return projects
+
+
 @cli.command(context_settings=CONTEXT, help="Login to Weights & Biases")
 @click.argument("key", nargs=-1)
 @click.option("--cloud", is_flag=True, help="Login to the cloud instead of local")
@@ -89,9 +162,10 @@ def cli(ctx):
 @click.option("--anonymously", default=False, is_flag=True, help="Log in anonymously")
 @display_error
 def login(key, host, cloud, relogin, anonymously):
-    wandb.setup(settings=wandb.Settings(_cli_only_mode=True))
+    anon_mode = "must" if anonymously else "never"
+    wandb.setup(settings=wandb.Settings(_cli_only_mode=True, anonymous=anon_mode))
+    api = _get_cling_api()
 
-    api = InternalApi()
     if host == "https://api.wandb.ai" or (host is None and cloud):
         api.clear_setting("base_url", globally=True, persist=True)
         # To avoid writing an empty local settings file, we only clear if it exists
@@ -103,8 +177,18 @@ def login(key, host, cloud, relogin, anonymously):
         api.set_setting("base_url", host.strip("/"), globally=True, persist=True)
     key = key[0] if len(key) > 0 else None
 
-    anon_mode = "must" if anonymously else "never"
     wandb.login(relogin=relogin, key=key, anonymous=anon_mode)
+
+
+@cli.command(context_settings=CONTEXT, help="Run a grpc server", name="grpc-server", hidden=True)
+@display_error
+def grpc_server(project=None, entity=None):
+    _ = util.get_module(
+        "grpc",
+        required="grpc-server requires the grpcio library, run pip install wandb[grpc]",
+    )
+    from wandb.server.grpc_server import main as grpc_server
+    grpc_server()
 
 
 @cli.command(context_settings=CONTEXT, help="Run a SUPER agent", hidden=True)
@@ -156,9 +240,11 @@ def init(ctx):
             'type': 'list',
             'name': 'team_name',
             'message': "Which team should we use?",
-            'choices': team_names + ["Manual Entry"]
+            'choices': team_names
+            # TODO(jhr): disabling manual entry for cling
+            # 'choices': team_names + ["Manual Entry"]
         }
-        result = click.prompt(question["message"])
+        result = whaaaaat.prompt([question])
         # result can be empty on click
         if result:
             entity = result['team_name']
@@ -169,7 +255,11 @@ def init(ctx):
     else:
         entity = viewer.get('entity') or click.prompt("What username or team should we use?")
 
-    project = click.prompt("Enter the name of the project you want to use")  # prompt_for_project(ctx, entity)
+    # TODO: this error handling sucks and the output isn't pretty
+    try:
+        project = prompt_for_project(ctx, entity)
+    except ClickWandbException:
+        raise ClickException('Could not find team: %s' % entity)
 
     api.set_setting('entity', entity, persist=True)
     api.set_setting('project', project, persist=True)
@@ -388,6 +478,139 @@ def controller(verbose, sweep_id):
     click.echo('Starting wandb controller...')
     tuner = wandb_controller.controller(sweep_id)
     tuner.run(verbose=verbose)
+
+
+RUN_CONTEXT = copy.copy(CONTEXT)
+RUN_CONTEXT['allow_extra_args'] = True
+RUN_CONTEXT['ignore_unknown_options'] = True
+
+
+@cli.command(context_settings=RUN_CONTEXT, name="docker-run")
+@click.pass_context
+@click.argument('docker_run_args', nargs=-1)
+@click.option('--help', is_flag=True)
+def docker_run(ctx, docker_run_args, help):
+    """Simple wrapper for `docker run` which sets W&B environment
+    Adds WANDB_API_KEY and WANDB_DOCKER to any docker run command.
+    This will also set the runtime to nvidia if the nvidia-docker executable is present on the system
+    and --runtime wasn't set.
+    """
+    api = InternalApi()
+    args = list(docker_run_args)
+    if len(args) > 0 and args[0] == "run":
+        args.pop(0)
+    if help or len(args) == 0:
+        wandb.termlog("This commands adds wandb env variables to your docker run calls")
+        subprocess.call(['docker', 'run'] + args + ['--help'])
+        exit()
+    #  TODO: is this what we want?
+    if len([a for a in args if a.startswith("--runtime")]) == 0 and find_executable('nvidia-docker'):
+        args = ["--runtime", "nvidia"] + args
+    #  TODO: image_from_docker_args uses heuristics to find the docker image arg, there are likely cases
+    #  where this won't work
+    image = util.image_from_docker_args(args)
+    resolved_image = None
+    if image:
+        resolved_image = wandb.docker.image_id(image)
+    if resolved_image:
+        args = ['-e', 'WANDB_DOCKER=%s' % resolved_image] + args
+    else:
+        wandb.termlog("Couldn't detect image argument, running command without the WANDB_DOCKER env variable")
+    if api.api_key:
+        args = ['-e', 'WANDB_API_KEY=%s' % api.api_key] + args
+    else:
+        wandb.termlog("Not logged in, run `wandb login` from the host machine to enable result logging")
+    subprocess.call(['docker', 'run'] + args)
+
+
+@cli.command(context_settings=RUN_CONTEXT)
+@click.pass_context
+@click.argument('docker_run_args', nargs=-1)
+@click.argument('docker_image', required=False)
+@click.option('--nvidia/--no-nvidia', default=find_executable('nvidia-docker') is not None,
+              help='Use the nvidia runtime, defaults to nvidia if nvidia-docker is present')
+@click.option('--digest', is_flag=True, default=False, help="Output the image digest and exit")
+@click.option('--jupyter/--no-jupyter', default=False, help="Run jupyter lab in the container")
+@click.option('--dir', default="/app", help="Which directory to mount the code in the container")
+@click.option('--no-dir', is_flag=True, help="Don't mount the current directory")
+@click.option('--shell', default="/bin/bash", help="The shell to start the container with")
+@click.option('--port', default="8888", help="The host port to bind jupyter on")
+@click.option('--cmd', help="The command to run in the container")
+@click.option('--no-tty', is_flag=True, default=False, help="Run the command without a tty")
+@display_error
+def docker(ctx, docker_run_args, docker_image, nvidia, digest, jupyter, dir, no_dir, shell, port, cmd, no_tty):
+    """W&B docker lets you run your code in a docker image ensuring wandb is configured. It adds the WANDB_DOCKER and WANDB_API_KEY
+    environment variables to your container and mounts the current directory in /app by default.  You can pass additional
+    args which will be added to `docker run` before the image name is declared, we'll choose a default image for you if
+    one isn't passed:
+
+    wandb docker -v /mnt/dataset:/app/data
+    wandb docker gcr.io/kubeflow-images-public/tensorflow-1.12.0-notebook-cpu:v0.4.0 --jupyter
+    wandb docker wandb/deepo:keras-gpu --no-tty --cmd "python train.py --epochs=5"
+
+    By default we override the entrypoint to check for the existance of wandb and install it if not present.  If you pass the --jupyter
+    flag we will ensure jupyter is installed and start jupyter lab on port 8888.  If we detect nvidia-docker on your system we will use
+    the nvidia runtime.  If you just want wandb to set environment variable to an existing docker run command, see the wandb docker-run
+    command.
+    """
+    api = InternalApi()
+    if not find_executable('docker'):
+        raise ClickException(
+            "Docker not installed, install it from https://docker.com")
+    args = list(docker_run_args)
+    image = docker_image or ""
+    # remove run for users used to nvidia-docker
+    if len(args) > 0 and args[0] == "run":
+        args.pop(0)
+    if image == "" and len(args) > 0:
+        image = args.pop(0)
+    # If the user adds docker args without specifying an image (should be rare)
+    if not util.docker_image_regex(image.split("@")[0]):
+        if image:
+            args = args + [image]
+        image = wandb.docker.default_image(gpu=nvidia)
+        subprocess.call(["docker", "pull", image])
+    _, repo_name, tag = wandb.docker.parse(image)
+
+    resolved_image = wandb.docker.image_id(image)
+    if resolved_image is None:
+        raise ClickException(
+            "Couldn't find image locally or in a registry, try running `docker pull %s`" % image)
+    if digest:
+        sys.stdout.write(resolved_image)
+        exit(0)
+
+    existing = wandb.docker.shell(
+        ["ps", "-f", "ancestor=%s" % resolved_image, "-q"])
+    if existing:
+        if click.confirm("Found running container with the same image, do you want to attach?"):
+            subprocess.call(['docker', 'attach', existing.split("\n")[0]])
+            exit(0)
+    cwd = os.getcwd()
+    command = ['docker', 'run', '-e', 'LANG=C.UTF-8', '-e', 'WANDB_DOCKER=%s' % resolved_image, '--ipc=host',
+               '-v', wandb.docker.entrypoint + ':/wandb-entrypoint.sh', '--entrypoint', '/wandb-entrypoint.sh']
+    if nvidia:
+        command.extend(['--runtime', 'nvidia'])
+    if not no_dir:
+        #  TODO: We should default to the working directory if defined
+        command.extend(['-v', cwd + ":" + dir, '-w', dir])
+    if api.api_key:
+        command.extend(['-e', 'WANDB_API_KEY=%s' % api.api_key])
+    else:
+        wandb.termlog("Couldn't find WANDB_API_KEY, run `wandb login` to enable streaming metrics")
+    if jupyter:
+        command.extend(['-e', 'WANDB_ENSURE_JUPYTER=1', '-p', port + ':8888'])
+        no_tty = True
+        cmd = "jupyter lab --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token= --notebook-dir %s" % dir
+    command.extend(args)
+    if no_tty:
+        command.extend([image, shell, "-c", cmd])
+    else:
+        if cmd:
+            command.extend(['-e', 'WANDB_COMMAND=%s' % cmd])
+        command.extend(['-it', image, shell])
+        wandb.termlog("Launching docker container \U0001F6A2")
+    subprocess.call(command)
 
 
 @cli.group(help="Commands for interacting with artifacts")
