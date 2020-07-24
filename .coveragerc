@@ -1,0 +1,7 @@
+[run]
+omit =
+    wandb/vendor/*
+[paths]
+source =
+  wandb/sdk/
+  wandb/sdk_py27/
