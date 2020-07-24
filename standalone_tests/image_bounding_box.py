@@ -126,10 +126,11 @@ def balanced_corners_portrait():
             img_min_max_pixel,
             img_min_max_norm_domain]
 
-all_tests = {
-    "balanced_corners_portrait": balanced_corners_portrait()[0],
-    "balanced_corners_portrait_seq": balanced_corners_portrait(),
-}
+def all_tests():
+    return {
+        "balanced_corners_portrait": balanced_corners_portrait()[0],
+        "balanced_corners_portrait_seq": balanced_corners_portrait(),
+    }
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ IMG_HEIGHT = 5
 
 IMG_COUNT = 2
 # Step count
-N = 2
+N = 5
 
 
 def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):

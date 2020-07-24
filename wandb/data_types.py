@@ -26,6 +26,7 @@ import uuid
 import json
 import codecs
 import tempfile
+import re
 from wandb import util
 from wandb.util import has_num
 from wandb.compat import tempfile
@@ -49,6 +50,11 @@ def _datatypes_callback(fname):
     if _glob_datatypes_callback:
         _glob_datatypes_callback(fname)
 # cling above
+
+def wb_filename(key, step, id, extension):
+    return  '{}_{}_{}{}'.format(key, step, id, extension)
+
+WB_INDEX_WILDCARD = "__WB__"
 
 
 class WBValue(object):
@@ -202,7 +208,7 @@ class Media(WBValue):
             if id_ is None:
                 id_ = self._sha256[:8]
 
-            file_path = '{}_{}_{}{}'.format(key, step, id_, extension)
+            file_path = wb_filename(key, step, id_, extension)
             media_path = os.path.join(self.get_media_subdir(), file_path)
             new_path = os.path.join(base_path, file_path)
             util.mkdir_exists_ok(os.path.dirname(new_path))
@@ -1222,7 +1228,7 @@ class ImageMask(Media):
     def bind_to_run(self, run, key, step, id_=None):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(ImageMask, self).bind_to_run(run, key, step, _id=_id)
+        super(ImageMask, self).bind_to_run(run, key, step, id_=id_)
         class_labels = self._val["class_labels"]
 
         run._add_singleton("mask/class_labels", key + "_wandb_delimeter_" + self._key , class_labels)
@@ -1748,6 +1754,10 @@ def val_to_json(run, key, val, namespace=None):
             for i, item in enumerate(items):
                 if not item.is_bound():
                     item.bind_to_run(run, key, namespace, i)
+                else:
+                    if not namespace == "summary":
+                        logging.warn("Invalid use of media in collection. Media objects media object is being reused in a collection.")
+
 
             return items[0].seq_to_json(items, run, key, namespace)
         else:
