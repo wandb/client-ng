@@ -125,8 +125,9 @@ class Meta(object):
                             upstream_patch_path, start=self._settings.files_dir
                         )
                     )
-        # TODO: A customer saw `ValueError: Reference at 'refs/remotes/origin/foo' does not exist`
-        # so we now catch ValueError.  Catching this error feels too generic.
+        # TODO: A customer saw `ValueError: Reference at 'refs/remotes/origin/foo'
+        # does not exist` so we now catch ValueError. Catching this error feels
+        # too generic.
         except (
             ValueError,
             subprocess.CalledProcessError,
