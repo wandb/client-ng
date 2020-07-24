@@ -1130,10 +1130,10 @@ class BoundingBoxes2D(JSONMetadata):
         else:
             self._class_labels = val["class_labels"]
 
-    def bind_to_run(self, run, key, step, i, **kwargs):
+    def bind_to_run(self, run, key, step, id_=None):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(BoundingBoxes2D, self).bind_to_run(run, key, step, i, **kwargs)
+        super(BoundingBoxes2D, self).bind_to_run(run, key, step, id_=id_)
         run._add_singleton("bounding_box/class_labels", key + "_wandb_delimeter_" + self._key , self._class_labels)
 
 
@@ -1219,10 +1219,10 @@ class ImageMask(Media):
         image.save(tmp_path, transparency=None)
         self._set_file(tmp_path, is_tmp=True, extension=ext)
 
-    def bind_to_run(self, run, key, step, i, **kwargs):
+    def bind_to_run(self, run, key, step, id_=None):
         # bind_to_run key argument is the Image parent key
         # the self._key value is the mask's sub key
-        super(ImageMask, self).bind_to_run(run, key, step, i, **kwargs)
+        super(ImageMask, self).bind_to_run(run, key, step, _id=_id)
         class_labels = self._val["class_labels"]
 
         run._add_singleton("mask/class_labels", key + "_wandb_delimeter_" + self._key , class_labels)
