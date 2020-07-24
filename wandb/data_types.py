@@ -273,7 +273,7 @@ class Table(Media):
         self.data = list(rows or data or [])
         if dataframe is not None:
             assert util.is_pandas_data_frame(dataframe), 'dataframe argument expects a `Dataframe` object'
-            self.columns = dataframe.columns.to_list()
+            self.columns = dataframe.columns.tolist()
             self.data = []
             for row in range(len(dataframe)):
                 self.add_data(*tuple(dataframe[col].values[row] for col in self.columns))
