@@ -329,6 +329,12 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             _logger.info("setting env: {}".format(env_dict))
             self.update(env_dict, _setter="env")
 
+    def _load_from_workspace(self):
+        settings_workspace = self._path_convert(
+            self.__dict__.get("settings_workspace_spec")
+        )
+        self.update(self._load(settings_workspace), _setter="workspace")
+
     def _path_convert_part(self, path_part, format_dict):
         """convert slashes, expand ~ and other macros."""
 
@@ -525,3 +531,4 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         self.update(args)
         self.run_id = self.run_id or generate_id()
         self.wandb_dir = get_wandb_dir(self.root_dir or ".")
+        self._load_from_workspace()
