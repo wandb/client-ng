@@ -354,7 +354,7 @@ def init(
     magic: bool = None,  # TODO(jhr): type is union
     config_exclude_keys=None,
     config_include_keys=None,
-    anonymous: bool = None,
+    anonymous: Optional[str] = None,
     disable: bool = None,
     offline: bool = None,
     allow_val_change: bool = None,

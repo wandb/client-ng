@@ -69,6 +69,9 @@ defaults = dict(
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
+    # anonymous might be set by a config file: "false" and "true"
+    #   or from wandb.init(anonymous=) or environment: "allow", "must", "never"
+    _anonymous=Field(str, ("allow", "must", "never", "false", "true",)),
 )
 
 # env mapping?
@@ -256,6 +259,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         console=None,
         disabled=None,  # alias for mode=dryrun, not supported yet
         reinit=None,
+        _save_requirements=True,
         # compute environment
         jupyter=None,
         windows=None,
