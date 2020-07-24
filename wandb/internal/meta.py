@@ -40,7 +40,7 @@ class Meta(object):
         # location under "code" directory in files where program was saved
         self._saved_program = None
 
-    def _save_pip(self, out_dir):
+    def _save_pip(self):
         """Saves the current working set of pip packages to requirements.txt"""
         try:
             import pkg_resources
@@ -49,7 +49,9 @@ class Meta(object):
             installed_packages_list = sorted(
                 ["%s==%s" % (i.key, i.version) for i in installed_packages]
             )
-            with open(os.path.join(out_dir, 'requirements.txt'), 'w') as f:
+            with open(
+                os.path.join(self._settings.files_dir, "requirements.txt"), "w"
+            ) as f:
                 f.write("\n".join(installed_packages_list))
         except Exception:
             logger.error("Error saving pip packages")
