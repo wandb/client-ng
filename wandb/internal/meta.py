@@ -221,12 +221,8 @@ class Meta(object):
 
         if self._saved_program:
             saved_program = os.path.join("code", self._saved_program)
-            logger.info("---SAVED PROGRAM: ")
-            logger.info(saved_program)
             files["files"].append((saved_program,))
         for patch in self._saved_patches:
-            logger.info("----SAVED PATCH: ")
-            logger.info(patch)
             files["files"].append((patch,))
 
         self._interface.send_files(files)
