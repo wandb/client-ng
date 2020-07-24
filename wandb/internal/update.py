@@ -3,7 +3,7 @@ import requests
 import wandb
 
 
-def check_available(current_version):
+def _find_available(current_version):
     timeout = 2  # Two seconds.
     pypi_url = "https://pypi.org/pypi/%s/json" % wandb._wandb_module
     try:
@@ -37,6 +37,16 @@ def check_available(current_version):
             return
         latest_version = str(parsed_latest_version)
         pip_prerelease = True
+
+    return (latest_version, pip_prerelease)
+
+
+def check_available(current_version):
+    package_info = _find_available(current_version)
+    if not package_info:
+        return
+
+    latest_version, pip_prerelease = package_info
 
     # A new version is available!
     wandb.termlog(
