@@ -23,7 +23,7 @@ Use W&B to organize and analyze machine learning experiments. It's framework-agn
 ## Quickstart
 
 ```shell
-pip install wandb-ng
+pip install --pre wandb
 ```
 
 In your training script:
