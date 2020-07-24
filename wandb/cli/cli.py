@@ -162,6 +162,8 @@ def projects(entity, display=True):
 @click.option("--anonymously", default=False, is_flag=True, help="Log in anonymously")
 @display_error
 def login(key, host, cloud, relogin, anonymously):
+    anon_mode = "must" if anonymously else "never"
+    wandb.setup(settings=wandb.Settings(_cli_only_mode=True, anonymous=anon_mode))
     api = _get_cling_api()
 
     if host == "https://api.wandb.ai" or (host is None and cloud):
@@ -175,7 +177,6 @@ def login(key, host, cloud, relogin, anonymously):
         api.set_setting("base_url", host.strip("/"), globally=True, persist=True)
     key = key[0] if len(key) > 0 else None
 
-    anon_mode = "must" if anonymously else "never"
     wandb.login(relogin=relogin, key=key, anonymous=anon_mode)
 
 
