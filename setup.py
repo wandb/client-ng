@@ -40,11 +40,12 @@ test_requirements = [
 gcp_requirements = ['google-cloud-storage']
 aws_requirements = ['boto3']
 
+grpc_requirements = ['grpcio==1.27.2']
 kubeflow_requirements = ['kubernetes', 'minio', 'google-cloud-storage', 'sh']
 
 setup(
     name='wandb-ng',
-    version='0.0.34',
+    version='0.0.36',
     description="A CLI and library for interacting with the Weights and Biases API.",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -95,6 +96,7 @@ setup(
     extras_require={
         'kubeflow': kubeflow_requirements,
         'gcp': gcp_requirements,
-        'aws': aws_requirements
+        'aws': aws_requirements,
+        'grpc': grpc_requirements,
     }
 )

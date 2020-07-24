@@ -29,11 +29,11 @@ import socket
 import sys
 import tempfile
 
-import shortuuid  # type: ignore
 import six
 import wandb
 from wandb.internal import git_repo
 from wandb.lib.ipython import _get_python_type
+from wandb.lib.runid import generate_id
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import (  # noqa: F401 pylint: disable=unused-import
@@ -60,12 +60,6 @@ source = (
 Field = collections.namedtuple("TypedField", ["type", "choices"])
 
 
-def _generate_id():
-    # ~3t run ids (36**8)
-    run_gen = shortuuid.ShortUUID(alphabet=list("0123456789abcdefghijklmnopqrstuvwxyz"))
-    return run_gen.random(8)
-
-
 defaults = dict(
     base_url="https://api.wandb.ai",
     show_warnings=2,
@@ -75,6 +69,9 @@ defaults = dict(
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
+    # anonymous might be set by a config file: "false" and "true"
+    #   or from wandb.init(anonymous=) or environment: "allow", "must", "never"
+    _anonymous=Field(str, ("allow", "must", "never", "false", "true",)),
 )
 
 # env mapping?
@@ -261,6 +258,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _cli_only_mode=None,  # avoid running any code specific for runs
         console=None,
         disabled=None,  # alias for mode=dryrun, not supported yet
+        _save_requirements=True,
         # compute environment
         jupyter=None,
         windows=None,
@@ -525,5 +523,5 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
 
         self.update(args)
-        self.run_id = self.run_id or _generate_id()
-        self.wandb_dir = get_wandb_dir(self.root_dir or "")
+        self.run_id = self.run_id or generate_id()
+        self.wandb_dir = get_wandb_dir(self.root_dir or ".")

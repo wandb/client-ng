@@ -153,20 +153,6 @@ class Api(object):
         except requests.RequestException:
             return False
 
-    def save_pip(self, out_dir):
-        """Saves the current working set of pip packages to requirements.txt"""
-        try:
-            import pkg_resources
-
-            installed_packages = [d for d in iter(pkg_resources.working_set)]
-            installed_packages_list = sorted(
-                ["%s==%s" % (i.key, i.version) for i in installed_packages]
-            )
-            with open(os.path.join(out_dir, 'requirements.txt'), 'w') as f:
-                f.write("\n".join(installed_packages_list))
-        except Exception as e:
-            logger.error("Error saving pip packages")
-
     def save_patches(self, out_dir):
         """Save the current state of this repository to one or more patches.
 
@@ -679,7 +665,9 @@ class Api(object):
         ''')
         response = self.gql(mutation, variable_values={
             'name': self.format_project(project), 'entity': entity or self.settings('entity'),
-            'description': description, 'repo': self.git.remote_url, 'id': id})
+            'description': description, 'id': id})
+        # TODO(jhr): Commenting out 'repo' field for cling, add back
+        #   'description': description, 'repo': self.git.remote_url, 'id': id})
         return response['upsertModel']['model']
 
     @normalize_exceptions
