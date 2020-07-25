@@ -1,5 +1,6 @@
 import wandb
 import pytest
+import tempfile
 import glob
 import os
 
@@ -200,27 +201,37 @@ def test_save_policy_symlink(wandb_init_run):
 
 
 def test_save_absolute_path(wandb_init_run):
-    with open("/tmp/test.txt", "w") as f:
+    root = tempfile.gettempdir()
+    test_path = os.path.join(root, "test.txt")
+    with open(test_path, "w") as f:
         f.write("something")
-    wandb.save("/tmp/test.txt")
+    wandb.save(test_path)
     assert os.path.exists(os.path.join(wandb_init_run.dir, "test.txt"))
     print("WHOA", wandb.run._backend.files)
     assert wandb.run._backend.files["test.txt"] == 2
 
 
 def test_save_relative_path(wandb_init_run):
-    with open("/tmp/test.txt", "w") as f:
+    root = tempfile.gettempdir()
+    test_path = os.path.join(root, "tmp", "test.txt")
+    print("DAMN", os.path.dirname(test_path))
+    wandb.util.mkdir_exists_ok(os.path.dirname(test_path))
+    with open(test_path, "w") as f:
         f.write("something")
-    wandb.save("/tmp/test.txt", base_path="/", policy="now")
-    assert os.path.exists(os.path.join(wandb_init_run.dir, "tmp/test.txt"))
-    assert wandb.run._backend.files["tmp/test.txt"] == 0
+    wandb.save(test_path, base_path=root, policy="now")
+    assert os.path.exists(os.path.join(wandb_init_run.dir, test_path))
+    assert wandb.run._backend.files[os.path.relpath(test_path, root)] == 0
 
 
 def test_save_invalid_path(wandb_init_run):
-    with open("/tmp/test.txt", "w") as f:
+    root = tempfile.gettempdir()
+    test_path = os.path.join(root, "tmp", "test.txt")
+    wandb.util.mkdir_exists_ok(os.path.dirname(test_path))
+    with open(test_path, "w") as f:
         f.write("something")
     with pytest.raises(ValueError):
-        wandb.save("../tmp/../../*.txt", base_path="/tmp")
+        wandb.save(os.path.join(root, "..", "..", "*.txt"),
+                   base_path=root)
 
 
 def test_restore(runner, mock_server, wandb_init_run):

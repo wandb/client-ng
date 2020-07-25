@@ -151,7 +151,11 @@ class RunManaged(Run):
 
     @property
     def path(self):
-        return "/".join([self._entity, self._project, self._run_id])
+        parts = []
+        for e in [self._entity, self._project, self._run_id]:
+            if e is not None:
+                parts.append(e)
+        return "/".join(parts)
 
     def project_name(self, api=None):
         # TODO(jhr): this is probably not right needed by dataframes?
