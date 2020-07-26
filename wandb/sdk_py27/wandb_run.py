@@ -151,7 +151,11 @@ class RunManaged(Run):
 
     @property
     def path(self):
-        return "/".join([self._entity, self._project, self._run_id])
+        parts = []
+        for e in [self._entity, self._project, self._run_id]:
+            if e is not None:
+                parts.append(e)
+        return "/".join(parts)
 
     def project_name(self, api=None):
         # TODO(jhr): this is probably not right needed by dataframes?
@@ -302,7 +306,7 @@ class RunManaged(Run):
         if base_path is None:
             base_path = os.path.dirname(glob_str)
         wandb_glob_str = os.path.relpath(glob_str, base_path)
-        if "../" in wandb_glob_str:
+        if ".." + os.sep in wandb_glob_str:
             raise ValueError("globs can't walk above base_path")
         if glob_str.startswith("gs://") or glob_str.startswith("s3://"):
             wandb.termlog(
@@ -321,8 +325,10 @@ class RunManaged(Run):
                 os.remove(wandb_path)
                 os.symlink(abs_path, wandb_path)
             elif not os.path.exists(wandb_path):
+                # wandb.termwarn("Symlinking %s into W&B run directory.")
                 os.symlink(abs_path, wandb_path)
             files.append(wandb_path)
+        # TODO: warn if nothing matches in the wandb dir
         files_dict = dict(files=[(os.path.relpath(f, self.dir), policy) for f in files])
         self._backend.interface.send_files(files_dict)
         return files
