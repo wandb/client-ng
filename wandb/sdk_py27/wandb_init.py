@@ -500,6 +500,8 @@ class _WandbInit(object):
             summary=run.summary,
             save=run.save,
             restore=run.restore,
+            use_artifact=run.use_artifact,
+            log_artifact=run.log_artifact,
         )
         self._reporter.set_context(run=run)
         run.on_start()

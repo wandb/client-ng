@@ -289,9 +289,9 @@ class RunManaged(Run):
 
         Args:
             base_path (string): the base path to run the glob relative to
-            policy (string): on of "live" or "end"
+            policy (string): on of "live", "now", or "end"
                 live: upload the file as it changes, overwriting the previous version
-                now: upload the file now
+                now: upload the file once now
                 end: only upload file when the run ends
         """
         if policy not in ("live", "end", "now"):
@@ -304,7 +304,17 @@ class RunManaged(Run):
             raise ValueError("Must call wandb.save(glob_str) with glob_str a str")
 
         if base_path is None:
-            base_path = os.path.dirname(glob_str)
+            if os.path.isabs(glob_str):
+                base_path = os.path.dirname(glob_str)
+                wandb.termwarn(
+                    (
+                        "Saving files without folders. If you want to preserve "
+                        "sub directories pass base_path to wandb.save, i.e. "
+                        'wandb.save("/mnt/folder/file.h5", base_path="/mnt")'
+                    )
+                )
+            else:
+                base_path = "."
         wandb_glob_str = os.path.relpath(glob_str, base_path)
         if ".." + os.sep in wandb_glob_str:
             raise ValueError("globs can't walk above base_path")
@@ -313,8 +323,10 @@ class RunManaged(Run):
                 "%s is a cloud storage url, can't save file to wandb." % glob_str
             )
             return []
-        files = []
-        # TODO: should we send this files event here for relative paths?
+        files = glob.glob(os.path.join(self.dir, wandb_glob_str))
+        warn = False
+        if len(files) == 0 and "*" in wandb_glob_str:
+            warn = True
         for path in glob.glob(glob_str):
             file_name = os.path.relpath(path, base_path)
             abs_path = os.path.abspath(path)
@@ -325,11 +337,20 @@ class RunManaged(Run):
                 os.remove(wandb_path)
                 os.symlink(abs_path, wandb_path)
             elif not os.path.exists(wandb_path):
-                # wandb.termwarn("Symlinking %s into W&B run directory.")
                 os.symlink(abs_path, wandb_path)
             files.append(wandb_path)
-        # TODO: warn if nothing matches in the wandb dir
-        files_dict = dict(files=[(os.path.relpath(f, self.dir), policy) for f in files])
+        if warn:
+            file_str = "%i file" % len(files)
+            if len(files) > 1:
+                file_str += "s"
+            wandb.termwarn(
+                (
+                    "Symlinked %s into the W&B run directory, "
+                    "call wandb.save again to sync new files."
+                )
+                % file_str
+            )
+        files_dict = dict(files=[(wandb_glob_str, policy)])
         self._backend.interface.send_files(files_dict)
         return files
 
@@ -341,7 +362,7 @@ class RunManaged(Run):
         root: Optional[str] = None,
     ):
         """ Downloads the specified file from cloud storage into the current run directory
-        if it doesn exist.
+        if it doesn't exist.
 
         Args:
             name: the name of the file

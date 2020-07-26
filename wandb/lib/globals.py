@@ -3,7 +3,7 @@ from wandb.lib import preinit
 
 
 def set_global(run=None, config=None, log=None, join=None, summary=None,
-               save=None, restore=None):
+               save=None, restore=None, use_artifact=None, log_artifact=None):
     if run:
         wandb.run = run
     if config:
@@ -18,6 +18,10 @@ def set_global(run=None, config=None, log=None, join=None, summary=None,
         wandb.save = save
     if restore:
         wandb.restore = restore
+    if use_artifact:
+        wandb.use_artifact = use_artifact
+    if log_artifact:
+        wandb.log_artifact = log_artifact
 
 
 def unset_globals():
@@ -28,3 +32,5 @@ def unset_globals():
     wandb.join = preinit.PreInitCallable("wandb.join")
     wandb.save = preinit.PreInitCallable("wandb.save")
     wandb.restore = preinit.PreInitCallable("wandb.restore")
+    wandb.use_artifact = preinit.PreInitCallable("wandb.use_artifact")
+    wandb.log_artifact = preinit.PreInitCallable("wandb.log_artifact")

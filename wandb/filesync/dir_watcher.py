@@ -27,29 +27,28 @@ class FileEventHandler(object):
     def synced(self):
         return self._last_sync == os.path.getmtime(self.file_path)
 
-    def on_created(self):
+    def on_modified(self, force=False):
         pass
-
-    def on_modified(self):
-        if not self.synced:
-            self.on_created()
 
     def on_renamed(self, new_path, new_name):
         self.file_path = new_path
         self.save_name = new_name
-        self.on_created()
+        self.on_modified()
 
     def finish(self):
-        if not self.synced:
-            self.on_created()
+        self.on_modified(force=True)
 
 
 class PolicyNow(FileEventHandler):
     """This policy only uploads files now"""
-    def on_created(self):
-        if self._last_sync is None:
+    def on_modified(self, force=False):
+        # only upload if we've never uploaded or when .save is called
+        if self._last_sync is None or force:
             self._file_pusher.file_changed(self.save_name, self.file_path)
             self._last_sync = os.path.getmtime(self.file_path)
+
+    def finish(self):
+        pass
 
 
 class PolicyEnd(FileEventHandler):
@@ -79,9 +78,6 @@ class PolicyLive(FileEventHandler):
         self._last_uploaded_time = None
         self._last_uploaded_size = 0
 
-    def on_created(self):
-        self.on_modified()
-
     @property
     def current_size(self):
         return os.path.getsize(self.file_path)
@@ -108,7 +104,7 @@ class PolicyLive(FileEventHandler):
                 return time_elapsed
         return 0
 
-    def on_modified(self):
+    def on_modified(self, force=False):
         if self.current_size == 0:
             return 0
 
@@ -116,6 +112,9 @@ class PolicyLive(FileEventHandler):
         if not self.synced or time_elapsed > self.min_wait_for_size(
             self.current_size
         ):
+            self.save_file()
+        # if the run is finished, or wandb.save is called explicitly save me
+        elif force and not self.synced:
             self.save_file()
 
     def save_file(self):
@@ -126,10 +125,11 @@ class PolicyLive(FileEventHandler):
 
 
 class DirWatcher(object):
-    def __init__(self, root_dir, api, file_pusher):
+    def __init__(self, settings, api, file_pusher):
         self._api = api
         self._file_count = 0
-        self._dir = root_dir
+        self._dir = settings.files_dir
+        self._settings = settings
         self._user_file_policies = {
             "end": set(),
             "live": set(),
@@ -139,7 +139,7 @@ class DirWatcher(object):
         self._file_event_handlers = {}
         self._file_observer = PollingObserver()
         self._file_observer.schedule(
-            self._per_file_event_handler(), root_dir, recursive=True
+            self._per_file_event_handler(), self._dir, recursive=True
         )
         self._file_observer.start()
 
@@ -154,7 +154,7 @@ class DirWatcher(object):
         self._user_file_policies[policy].add(path)
         for src_path in glob.glob(os.path.join(self._dir, path)):
             save_name = os.path.relpath(src_path, self._dir)
-            self._get_file_event_handler(src_path, save_name).on_modified()
+            self._get_file_event_handler(src_path, save_name).on_modified(force=True)
 
     def _per_file_event_handler(self):
         """Create a Watchdog file event handler that does different things for every file
@@ -171,7 +171,7 @@ class DirWatcher(object):
             os.path.join(self._dir, ".*"),
             os.path.join(self._dir, "*/.*"),
         ]
-        # TODO: pipe in settings
+        # TODO: pipe in actual settings
         for glb in self._api.settings("ignore_globs"):
             file_event_handler._ignore_patterns.append(os.path.join(self._dir, glb))
 
@@ -188,7 +188,7 @@ class DirWatcher(object):
             if emitter:
                 emitter._timeout = int(self._file_count / 100) + 1
         save_name = os.path.relpath(event.src_path, self._dir)
-        self._get_file_event_handler(event.src_path, save_name).on_created()
+        self._get_file_event_handler(event.src_path, save_name).on_modified()
 
     def _on_file_modified(self, event):
         logger.info("file/dir modified: %s", event.src_path)

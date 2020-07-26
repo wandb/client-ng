@@ -186,7 +186,7 @@ def test_login_existing_key():
     del os.environ["WANDB_API_KEY"]
 
 
-@pytest.mark.skip(reason="Anonymous login not requiring must")
+@pytest.mark.skip(reason="This doesn't work for some reason")
 def test_login_anonymous(mock_server, local_netrc):
     os.environ["WANDB_API_KEY"] = "B" * 40
     wandb.login(anonymous="must")
@@ -197,17 +197,32 @@ def test_save_policy_symlink(wandb_init_run):
     with open("test.rad", "w") as f:
         f.write("something")
     wandb.save("test.rad")
+    assert os.path.exists(os.path.join(wandb_init_run.dir, "test.rad"))
     assert wandb.run._backend.files["test.rad"] == 2
 
 
-def test_save_absolute_path(wandb_init_run):
+def test_save_policy_glob_symlink(wandb_init_run, capsys):
+    with open("test.rad", "w") as f:
+        f.write("something")
+    with open("foo.rad", "w") as f:
+        f.write("something")
+    wandb.save("*.rad")
+    _, err = capsys.readouterr()
+    assert "Symlinked 2 files" in err
+    assert os.path.exists(os.path.join(wandb_init_run.dir, "test.rad"))
+    assert os.path.exists(os.path.join(wandb_init_run.dir, "foo.rad"))
+    assert wandb.run._backend.files["*.rad"] == 2
+
+
+def test_save_absolute_path(wandb_init_run, capsys):
     root = tempfile.gettempdir()
     test_path = os.path.join(root, "test.txt")
     with open(test_path, "w") as f:
         f.write("something")
     wandb.save(test_path)
+    _, err = capsys.readouterr()
+    assert "Saving files without folders" in err
     assert os.path.exists(os.path.join(wandb_init_run.dir, "test.txt"))
-    print("WHOA", wandb.run._backend.files)
     assert wandb.run._backend.files["test.txt"] == 2
 
 
@@ -242,12 +257,11 @@ def test_restore(runner, mock_server, wandb_init_run):
 
 
 @pytest.mark.wandb_args(env={"WANDB_RUN_ID": "123456"})
-@pytest.mark.skip(reason="Pipe these through mock server")
 def test_run_id(wandb_init_run):
     assert wandb.run.id == "123456"
 
 
 @pytest.mark.wandb_args(env={"WANDB_NAME": "coolio"})
-@pytest.mark.skip(reason="Pipe these through mock server")
+@pytest.mark.skip(reason="Not yet supported")
 def test_run_name(wandb_init_run):
     assert wandb.run.name == "coolio"

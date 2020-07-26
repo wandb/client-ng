@@ -161,9 +161,7 @@ class SendManager(object):
         )
         self._fs.start()
         self._pusher = FilePusher(self._api)
-        self._dir_watcher = DirWatcher(
-            self._settings.files_dir, self._api, self._pusher
-        )
+        self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
         self._run_id = run.run_id
         if self._run_meta:
             self._run_meta.write()
