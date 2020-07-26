@@ -172,7 +172,7 @@ class DirWatcher(object):
             os.path.join(self._dir, "*/.*"),
         ]
         # TODO: pipe in actual settings
-        for glb in self._api.settings("ignore_globs"):
+        for glb in self._settings.ignore_globs:
             file_event_handler._ignore_patterns.append(os.path.join(self._dir, glb))
 
         return file_event_handler

@@ -196,16 +196,17 @@ def test_save_now_relative_path(mocked_run, mock_server, sender, sm, req_q):
 
 
 def test_save_now_twice(mocked_run, mock_server, sender, sm, req_q):
-    sender.send_files({"files": [("foo/test.txt", "now")]})
+    file_path = os.path.join("foo", "test.txt")
+    sender.send_files({"files": [(file_path, "now")]})
     sm.send(req_q.get())
-    test_file = os.path.join(mocked_run.dir, "foo", "test.txt")
+    test_file = os.path.join(mocked_run.dir, file_path)
     mkdir_exists_ok(os.path.dirname(test_file))
     with open(test_file, "w") as f:
         f.write("TEST TEST")
     time.sleep(1.5)
     with open(test_file, "w") as f:
         f.write("TEST TEST TEST TEST")
-    sender.send_files({"files": [("foo/test.txt", "now")]})
+    sender.send_files({"files": [(file_path, "now")]})
     sm.send(req_q.get())
     sm.finish()
     print("DAMN DUDE", mock_server.ctx)
