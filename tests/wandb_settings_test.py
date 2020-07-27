@@ -71,7 +71,7 @@ def test_ignore_globs_env():
 
 
 def test_ignore_globs_settings(local_settings):
-    with open(".config/wandb/settings", "w") as f:
+    with open(os.path.join(".config", "wandb", "settings"), "w") as f:
         f.write("""[default]
 ignore_globs=foo,bar""")
     s = Settings(_files=True)
