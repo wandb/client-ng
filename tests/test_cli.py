@@ -4,6 +4,7 @@ from wandb.apis.internal import InternalApi
 import contextlib
 import traceback
 import platform
+import getpass
 import pytest
 import netrc
 import subprocess
@@ -562,6 +563,7 @@ def test_local_default(runner, docker):
     result = runner.invoke(cli.local)
     print(result.output)
     print(traceback.print_tb(result.exc_info[2]))
+    user = getpass.getuser()
     docker.assert_called_with(
         [
             "docker",
@@ -574,7 +576,7 @@ def test_local_default(runner, docker):
             "--name",
             "wandb-local",
             "-e",
-            "LOCAL_USERNAME=vanpelt",
+            "LOCAL_USERNAME=%s" % user,
             "-d",
             "wandb/local",
         ]
@@ -586,6 +588,7 @@ def test_local_custom_port(runner, docker):
     result = runner.invoke(cli.local, ["-p", "3030"])
     print(result.output)
     print(traceback.print_tb(result.exc_info[2]))
+    user = getpass.getuser()
     docker.assert_called_with(
         [
             "docker",
@@ -598,7 +601,7 @@ def test_local_custom_port(runner, docker):
             "--name",
             "wandb-local",
             "-e",
-            "LOCAL_USERNAME=vanpelt",
+            "LOCAL_USERNAME=%s" % user,
             "-d",
             "wandb/local",
         ]
@@ -607,9 +610,10 @@ def test_local_custom_port(runner, docker):
 
 @pytest.mark.wandb_args(check_output=b"")
 def test_local_custom_env(runner, docker):
-    result = runner.invoke(cli.local, ["-e", "FOO=bar"])
+    result = runner.invoke(cli.local, ["-e", b"FOO=bar"])
     print(result.output)
     print(traceback.print_tb(result.exc_info[2]))
+    user = getpass.getuser()
     docker.assert_called_with(
         [
             "docker",
@@ -622,7 +626,7 @@ def test_local_custom_env(runner, docker):
             "--name",
             "wandb-local",
             "-e",
-            "LOCAL_USERNAME=vanpelt",
+            "LOCAL_USERNAME=%s" % user,
             "-e",
             "FOO=bar",
             "-d",
