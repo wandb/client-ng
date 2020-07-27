@@ -105,23 +105,23 @@ api = InternalApi()
 run = None
 config = _preinit.PreInitObject("wandb.config")
 summary = _preinit.PreInitObject("wandb.summary")
-wandb.log = _preinit.PreInitCallable(
-    "wandb.log", wandb.wandb_sdk.wandb_run.RunManaged.log
+log = _preinit.PreInitCallable(
+    "wandb.log", wandb_sdk.wandb_run.RunManaged.log
 )
-wandb.join = _preinit.PreInitCallable(
-    "wandb.join", wandb.wandb_sdk.wandb_run.RunManaged.join
+join = _preinit.PreInitCallable(
+    "wandb.join", wandb_sdk.wandb_run.RunManaged.join
 )
-wandb.save = _preinit.PreInitCallable(
-    "wandb.save", wandb.wandb_sdk.wandb_run.RunManaged.save
+save = _preinit.PreInitCallable(
+    "wandb.save", wandb_sdk.wandb_run.RunManaged.save
 )
-wandb.restore = _preinit.PreInitCallable(
-    "wandb.restore", wandb.wandb_sdk.wandb_run.RunManaged.restore
+restore = _preinit.PreInitCallable(
+    "wandb.restore", wandb_sdk.wandb_run.RunManaged.restore
 )
-wandb.use_artifact = _preinit.PreInitCallable(
-    "wandb.use_artifact", wandb.wandb_sdk.wandb_run.RunManaged.use_artifact
+use_artifact = _preinit.PreInitCallable(
+    "wandb.use_artifact", wandb_sdk.wandb_run.RunManaged.use_artifact
 )
-wandb.log_artifact = _preinit.PreInitCallable(
-    "wandb.log_artifact", wandb.wandb_sdk.wandb_run.RunManaged.log_artifact
+log_artifact = _preinit.PreInitCallable(
+    "wandb.log_artifact", wandb_sdk.wandb_run.RunManaged.log_artifact
 )
 # record of patched libraries
 patched = {"tensorboard": [], "keras": [], "gym": []}
