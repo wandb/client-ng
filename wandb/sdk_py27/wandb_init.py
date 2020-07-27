@@ -253,15 +253,12 @@ class _WandbInit(object):
         s = self.settings
         config = self.config
 
-        print("init", s.reinit)
         if s.reinit:
-            print("stack", self._wl._global_run_stack)
             if len(self._wl._global_run_stack) > 0:
                 if len(self._wl._global_run_stack) > 1:
                     print(
                         "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"  # noqa: E501
                     )
-                print("DEBUG: join")
                 wandb.join()
 
         if s.mode == "noop":
