@@ -22,9 +22,7 @@ import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
-from wandb.lib import console as lib_console
 from wandb.lib import redirect
-from wandb.old import io_wrap
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
@@ -406,6 +404,9 @@ class RunManaged(Run):
         return
 
         # TODO(jhr): everything below here is not executed as we only support redir mode
+        #
+        # from wandb.lib import console as lib_console
+        # from wandb.old import io_wrap
         #
         # redirect stdout
         # if platform.system() == "Windows":
