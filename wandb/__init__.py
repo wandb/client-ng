@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-module init
+Wandb is a library to help track machine learning experiments.
+
+For more information on wandb see https://docs.wandb.com.
+
+The most commonly used functions/objects are:
+- wandb.init — initialize a new run at the top of your training script
+- wandb.config — track hyperparameters
+- wandb.log — log metrics over time within your training loop
+- wandb.save — save files in association with your run, like model weights
+- wandb.restore — restore the state of your code when you ran a given run
+
+For examples usage, see https://docs.wandb.com/library/example-projects
 """
 
 from __future__ import absolute_import
@@ -89,8 +100,8 @@ api = InternalApi()
 run = None
 config = _preinit.PreInitObject("wandb.config")
 summary = _preinit.PreInitObject("wandb.summary")
-log = _preinit.PreInitCallable("wandb.log")
-join = _preinit.PreInitCallable("wandb.join")
+log = _preinit.PreInitCallable("wandb.log", wandb_sdk.wandb_run.RunManaged.log)
+join = _preinit.PreInitCallable("wandb.join", wandb_sdk.wandb_run.RunManaged.join)
 # record of patched libraries
 patched = {
     "tensorboard": [],
