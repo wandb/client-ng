@@ -6,7 +6,7 @@ title: Framework Documentation
 <a name="wandb.framework.keras.keras"></a>
 # wandb.framework.keras.keras
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/keras/keras.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/keras/keras.py#L2)
 
 keras init
 
@@ -17,7 +17,7 @@ keras init
 class WandbCallback(keras.callbacks.Callback)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/keras/keras.py#L158)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/keras/keras.py#L158)
 
 WandbCallback automatically integrates keras with wandb.
 
@@ -92,7 +92,7 @@ and stored as summary metrics.
 <a name="wandb.framework.fastai"></a>
 # wandb.framework.fastai
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/fastai/__init__.py#L1)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/fastai/__init__.py#L1)
 
 This module hooks fast.ai Learners to Weights & Biases through a callback.
 Requested logged data can be configured through the callback constructor.
@@ -138,7 +138,7 @@ learn.fit(..., callbacks=WandbCallback(learn, ...))
 class WandbCallback(TrackerCallback)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/fastai/__init__.py#L51)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/fastai/__init__.py#L51)
 
 Automatically saves model topology, losses & metrics.
 Optionally logs weights, gradients, sample predictions and best trained model.
@@ -162,7 +162,7 @@ Optionally logs weights, gradients, sample predictions and best trained model.
  | on_train_begin(**kwargs)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/fastai/__init__.py#L109)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/fastai/__init__.py#L109)
 
 Call watch method to log model topology, gradients & weights
 
@@ -173,7 +173,7 @@ Call watch method to log model topology, gradients & weights
  | on_epoch_end(epoch, smooth_loss, last_metrics, **kwargs)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/fastai/__init__.py#L122)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/fastai/__init__.py#L122)
 
 Logs training loss, validation loss and custom metrics & log prediction samples & save model
 
@@ -184,7 +184,7 @@ Logs training loss, validation loss and custom metrics & log prediction samples 
  | on_train_end(**kwargs)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/framework/fastai/__init__.py#L159)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/framework/fastai/__init__.py#L159)
 
 Load the best model.
 

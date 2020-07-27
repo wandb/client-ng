@@ -6,7 +6,7 @@ title: SDK Documentation
 <a name="wandb"></a>
 # wandb
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/__init__.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/__init__.py#L2)
 
 Wandb is a library to help track machine learning experiments.
 
@@ -24,7 +24,7 @@ For examples usage, see https://docs.wandb.com/library/example-projects
 <a name="wandb.sdk.wandb_run"></a>
 # wandb.sdk.wandb\_run
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_run.py#L2)
 
 Run - Run object.
 
@@ -37,7 +37,7 @@ Manage wandb run.
 class RunManaged(Run)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L42)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_run.py#L42)
 
 <a name="wandb.sdk.wandb_run.RunManaged.log"></a>
 #### log
@@ -46,7 +46,7 @@ class RunManaged(Run)
  | log(data, step=None, commit=None, sync=None)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L250)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_run.py#L250)
 
 Log a dict to the global run's history.
 
@@ -165,7 +165,7 @@ ValueError - if invalid data is passed
  | join()
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L383)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_run.py#L383)
 
 Marks a run as finished, and finishes uploading all data.  This is
 used when creating multiple runs in the same process.  We automatically
@@ -178,7 +178,7 @@ call this method when your script exits.
  | use_artifact(artifact_or_name, type=None, aliases=None)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L526)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_run.py#L526)
 
 Declare an artifact as an input to a run, call `download` or `file` on \
 the returned object to get the contents locally.
@@ -197,7 +197,7 @@ You can also pass an Artifact object created by calling `wandb.Artifact`
 
 **Returns**:
 
-A :obj:`Artifact` object.
+A `Artifact` object.
 
 <a name="wandb.sdk.wandb_run.RunManaged.log_artifact"></a>
 #### log\_artifact
@@ -206,7 +206,7 @@ A :obj:`Artifact` object.
  | log_artifact(artifact_or_path, name=None, type=None, aliases=None)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L581)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_run.py#L581)
 
 Declare an artifact as output of a run.
 
@@ -232,12 +232,12 @@ defaults to ["latest"]
 
 **Returns**:
 
-A :obj:`Artifact` object.
+A `Artifact` object.
 
 <a name="wandb.sdk.wandb_init"></a>
 # wandb.sdk.wandb\_init
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_init.py#L2)
 
 init.
 
@@ -248,7 +248,7 @@ init.
 class _WandbInit(object)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L117)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_init.py#L117)
 
 <a name="wandb.sdk.wandb_init._WandbInit.setup"></a>
 #### setup
@@ -257,7 +257,7 @@ class _WandbInit(object)
  | setup(kwargs)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L141)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_init.py#L141)
 
 Complete setup for wandb.init().
 
@@ -271,7 +271,7 @@ logging.
 init(settings: Union[Settings, Dict[str, Any], str, None] = None, entity: Optional[str] = None, team: Optional[str] = None, project: Optional[str] = None, mode: Optional[str] = None, group: Optional[str] = None, job_type: Optional[str] = None, tags: Optional[List] = None, name: Optional[str] = None, config: Union[Dict, None] = None, notes: Optional[str] = None, magic: bool = None, config_exclude_keys=None, config_include_keys=None, reinit: bool = None, anonymous: Optional[str] = None, dir=None, allow_val_change=None, resume=None, force=None, tensorboard=None, sync_tensorboard=None, monitor_gym=None, id=None) -> Run
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L525)
+[[view_source]](https://github.com/wandb/client-ng/blob/b6c96f1134de93c5ea693e74f41483cd35036f3c/wandb/sdk/wandb_init.py#L525)
 
 Initialize a wandb Run.
 
