@@ -19,14 +19,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.36'
+__version__ = "0.0.36"
 
 # Used with pypi checks and other messages related to pip
-_wandb_module = 'wandb-ng'
+_wandb_module = "wandb-ng"
 
 import sys
 
 from wandb.errors import Error
+
 # This needs to be early as other modules call it.
 from wandb.errors.term import termlog, termerror, termwarn
 
@@ -70,7 +71,8 @@ from wandb.wandb_agent import agent
 from wandb.wandb_controller import sweep, controller
 
 from wandb import superagent
-#from wandb.core import *
+
+# from wandb.core import *
 from wandb.viz import visualize
 from wandb import plots
 
@@ -78,12 +80,15 @@ from wandb import plots
 # Used to make sure we don't use some code in the incorrect process context
 _IS_INTERNAL_PROCESS = False
 
+
 def _set_internal_process():
     global _IS_INTERNAL_PROCESS
     _IS_INTERNAL_PROCESS = True
 
+
 def _is_internal_process():
     return _IS_INTERNAL_PROCESS
+
 
 from wandb.lib.ipython import _get_python_type
 
@@ -100,31 +105,49 @@ api = InternalApi()
 run = None
 config = _preinit.PreInitObject("wandb.config")
 summary = _preinit.PreInitObject("wandb.summary")
-log = _preinit.PreInitCallable("wandb.log", wandb_sdk.wandb_run.RunManaged.log)
-join = _preinit.PreInitCallable("wandb.join", wandb_sdk.wandb_run.RunManaged.join)
+wandb.log = _preinit.PreInitCallable(
+    "wandb.log", wandb.wandb_sdk.wandb_run.RunManaged.log
+)
+wandb.join = _preinit.PreInitCallable(
+    "wandb.join", wandb.wandb_sdk.wandb_run.RunManaged.join
+)
+wandb.save = _preinit.PreInitCallable(
+    "wandb.save", wandb.wandb_sdk.wandb_run.RunManaged.save
+)
+wandb.restore = _preinit.PreInitCallable(
+    "wandb.restore", wandb.wandb_sdk.wandb_run.RunManaged.restore
+)
+wandb.use_artifact = _preinit.PreInitCallable(
+    "wandb.use_artifact", wandb.wandb_sdk.wandb_run.RunManaged.use_artifact
+)
+wandb.log_artifact = _preinit.PreInitCallable(
+    "wandb.log_artifact", wandb.wandb_sdk.wandb_run.RunManaged.log_artifact
+)
 # record of patched libraries
-patched = {
-    "tensorboard": [],
-    "keras": [],
-    "gym": []
-}
+patched = {"tensorboard": [], "keras": [], "gym": []}
 
-keras = _lazyloader.LazyLoader('wandb.keras', globals(), 'wandb.framework.keras')
-sklearn = _lazyloader.LazyLoader('wandb.sklearn', globals(), 'wandb.sklearn')
-tensorflow = _lazyloader.LazyLoader('wandb.tensorflow', globals(), 'wandb.tensorflow')
-xgboost = _lazyloader.LazyLoader('wandb.xgboost', globals(), 'wandb.framework.xgboost')
-lightgbm = _lazyloader.LazyLoader('wandb.lightgbm', globals(), 'wandb.framework.lightgbm')
-docker = _lazyloader.LazyLoader('wandb.docker', globals(), 'wandb.docker')
-jupyter = _lazyloader.LazyLoader('wandb.jupyter', globals(), 'wandb.jupyter')
+keras = _lazyloader.LazyLoader("wandb.keras", globals(), "wandb.framework.keras")
+sklearn = _lazyloader.LazyLoader("wandb.sklearn", globals(), "wandb.sklearn")
+tensorflow = _lazyloader.LazyLoader("wandb.tensorflow", globals(), "wandb.tensorflow")
+xgboost = _lazyloader.LazyLoader("wandb.xgboost", globals(), "wandb.framework.xgboost")
+lightgbm = _lazyloader.LazyLoader(
+    "wandb.lightgbm", globals(), "wandb.framework.lightgbm"
+)
+docker = _lazyloader.LazyLoader("wandb.docker", globals(), "wandb.docker")
+jupyter = _lazyloader.LazyLoader("wandb.jupyter", globals(), "wandb.jupyter")
+
 
 def ensure_configured():
     global api
     api = InternalApi()
 
+
 def set_trace():
     import pdb  # TODO: support other debuggers
+
     #  frame = sys._getframe().f_back
-    pdb.set_trace() # TODO: pass the parent stack...
+    pdb.set_trace()  # TODO: pass the parent stack...
+
 
 __all__ = [
     "__version__",
@@ -147,5 +170,5 @@ __all__ = [
     "Html",
     "Object3D",
     "Molecule",
-    "Histogram"
+    "Histogram",
 ]
