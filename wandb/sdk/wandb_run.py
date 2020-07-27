@@ -405,21 +405,23 @@ class RunManaged(Run):
 
         return
 
+        # TODO(jhr): everything below here is not executed as we only support redir mode
+        #
         # redirect stdout
-        if platform.system() == "Windows":
-            lib_console.win32_redirect(stdout_slave_fd, stderr_slave_fd)
-        else:
-            self._save_stdout = sys.stdout
-            self._save_stderr = sys.stderr
-            stdout_slave = os.fdopen(stdout_slave_fd, "wb")
-            stderr_slave = os.fdopen(stderr_slave_fd, "wb")
-            stdout_redirector = io_wrap.FileRedirector(sys.stdout, stdout_slave)
-            stderr_redirector = io_wrap.FileRedirector(sys.stderr, stderr_slave)
-            stdout_redirector.redirect()
-            stderr_redirector.redirect()
-            self.stdout_redirector = stdout_redirector
-            self.stderr_redirector = stderr_redirector
-        logger.info("redirect done")
+        # if platform.system() == "Windows":
+        #     lib_console.win32_redirect(stdout_slave_fd, stderr_slave_fd)
+        # else:
+        #     self._save_stdout = sys.stdout
+        #     self._save_stderr = sys.stderr
+        #     stdout_slave = os.fdopen(stdout_slave_fd, "wb")
+        #     stderr_slave = os.fdopen(stderr_slave_fd, "wb")
+        #     stdout_redirector = io_wrap.FileRedirector(sys.stdout, stdout_slave)
+        #     stderr_redirector = io_wrap.FileRedirector(sys.stderr, stderr_slave)
+        #     stdout_redirector.redirect()
+        #     stderr_redirector.redirect()
+        #     self.stdout_redirector = stdout_redirector
+        #     self.stderr_redirector = stderr_redirector
+        # logger.info("redirect done")
 
     def _restore(self):
         logger.info("restore")
