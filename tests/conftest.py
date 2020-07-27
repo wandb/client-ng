@@ -146,14 +146,15 @@ def local_settings(monkeypatch):
     with CliRunner().isolated_filesystem():
         # TODO: this seems overkill...
         origexpand = os.path.expanduser
+        cfg_path = os.path.join(".config", "wandb", "settings")
 
         def expand(path):
-            if ".config/wandb/settings" in path:
-                return os.path.realpath(".config/wandb/settings")
+            if cfg_path in path:
+                return os.path.realpath(cfg_path)
             else:
                 return origexpand(path)
         monkeypatch.setattr(os.path, "expanduser", expand)
-        mkdir_exists_ok(".config/wandb")
+        mkdir_exists_ok(os.path.join(".config", "wandb"))
         yield
 
 
