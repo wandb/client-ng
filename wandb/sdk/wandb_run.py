@@ -428,9 +428,7 @@ class RunManaged(Run):
             if self._out_redir:
                 self._out_redir.uninstall()
             if self._err_redir:
-                print("redir?")
                 self._err_redir.uninstall()
-            print("restore")
             return
 
         if self.stdout_redirector:
