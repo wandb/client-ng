@@ -12,6 +12,7 @@ loaders:
 processors:
   - type: filter
   - type: smart
+  - type: google
   - type: crossref
 renderer:
   type: hugo
@@ -19,7 +20,7 @@ renderer:
     title: W&B Python SDK and CLI
     theme: {clone_url: "https://github.com/alex-shpak/hugo-book.git"}
   # The "book" theme only renders pages in "content/docs" into the nav.
-  content_directory: content/docs
+  content_directory: .
   build_directory: docs
   default_preamble: {menu: main}
   markdown:

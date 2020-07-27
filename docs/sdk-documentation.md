@@ -6,7 +6,7 @@ title: SDK Documentation
 <a name="wandb"></a>
 # wandb
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/__init__.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/__init__.py#L2)
 
 Wandb is a library to help track machine learning experiments.
 
@@ -24,7 +24,7 @@ For examples usage, see https://docs.wandb.com/library/example-projects
 <a name="wandb.sdk.wandb_run"></a>
 # wandb.sdk.wandb\_run
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_run.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L2)
 
 Run - Run object.
 
@@ -37,7 +37,7 @@ Manage wandb run.
 class RunManaged(Run)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_run.py#L42)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L42)
 
 <a name="wandb.sdk.wandb_run.RunManaged.log"></a>
 #### log
@@ -46,7 +46,7 @@ class RunManaged(Run)
  | log(data, step=None, commit=None, sync=None)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_run.py#L250)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L250)
 
 Log a dict to the global run's history.
 
@@ -90,73 +90,73 @@ the data on the client side or you may get degraded performance.
 **Arguments**:
 
 - `row` _dict, optional_ - A dict of serializable python objects i.e str,
-  ints, floats, Tensors, dicts, or wandb.data_types
+ints, floats, Tensors, dicts, or wandb.data_types
 - `commit` _boolean, optional_ - Save the metrics dict to the wandb server
-  and increment the step.  If false wandb.log just updates the current
-  metrics dict with the row argument and metrics won't be saved until
-  wandb.log is called with commit=True.
+and increment the step.  If false wandb.log just updates the current
+metrics dict with the row argument and metrics won't be saved until
+wandb.log is called with commit=True.
 - `step` _integer, optional_ - The global step in processing. This persists
-  any non-committed earlier steps but defaults to not committing the
-  specified step.
+any non-committed earlier steps but defaults to not committing the
+specified step.
 - `sync` _boolean, True_ - This argument is deprecated and currently doesn't
-  change the behaviour of wandb.log
-  
+change the behaviour of wandb.log
+
 
 **Examples**:
 
-  Basic usage
-  ```
+Basic usage
+```
 - `wandb.log({'accuracy'` - 0.9, 'epoch': 5})
-  ```
-  
-  Incremental logging
-  ```
+```
+
+Incremental logging
+```
 - `wandb.log({'loss'` - 0.2}, commit=False)
-  # Somewhere else when I'm ready to report this step:
+# Somewhere else when I'm ready to report this step:
 - `wandb.log({'accuracy'` - 0.8})
-  ```
-  
-  Histogram
-  ```
+```
+
+Histogram
+```
 - `wandb.log({"gradients"` - wandb.Histogram(numpy_array_or_sequence)})
-  ```
-  
-  Image
-  ```
+```
+
+Image
+```
 - `wandb.log({"examples"` - [wandb.Image(numpy_array_or_pil, caption="Label")]})
-  ```
-  
-  Video
-  ```
+```
+
+Video
+```
 - `wandb.log({"video"` - wandb.Video(numpy_array_or_video_path, fps=4,
-  format="gif")})
-  ```
-  
-  Matplotlib Plot
-  ```
+format="gif")})
+```
+
+Matplotlib Plot
+```
 - `wandb.log({"chart"` - plt})
-  ```
-  
-  PR Curve
-  ```
+```
+
+PR Curve
+```
 - `wandb.log({'pr'` - wandb.plots.precision_recall(y_test, y_probas, labels)})
-  ```
-  
-  3D Object
-  ```
-  wandb.log({"generated_samples":
-  [wandb.Object3D(open("sample.obj")),
-  wandb.Object3D(open("sample.gltf")),
-  wandb.Object3D(open("sample.glb"))]})
-  ```
-  
-  For more examples, see https://docs.wandb.com/library/log
-  
+```
+
+3D Object
+```
+wandb.log({"generated_samples":
+[wandb.Object3D(open("sample.obj")),
+wandb.Object3D(open("sample.gltf")),
+wandb.Object3D(open("sample.glb"))]})
+```
+
+For more examples, see https://docs.wandb.com/library/log
+
 
 **Raises**:
 
-  wandb.Error - if called before wandb.init
-  ValueError - if invalid data is passed
+wandb.Error - if called before wandb.init
+ValueError - if invalid data is passed
 
 <a name="wandb.sdk.wandb_run.RunManaged.join"></a>
 #### join
@@ -165,7 +165,7 @@ the data on the client side or you may get degraded performance.
  | join()
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_run.py#L383)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L383)
 
 Marks a run as finished, and finishes uploading all data.  This is
 used when creating multiple runs in the same process.  We automatically
@@ -178,7 +178,7 @@ call this method when your script exits.
  | use_artifact(artifact_or_name, type=None, aliases=None)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_run.py#L526)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L526)
 
 Declare an artifact as an input to a run, call `download` or `file` on \
 the returned object to get the contents locally.
@@ -186,18 +186,18 @@ the returned object to get the contents locally.
 **Arguments**:
 
 - `artifact_or_name` _str or Artifact_ - An artifact name.
-  May be prefixed with entity/project. Valid names
-  can be in the following forms:
-  name:version
-  name:alias
-  digest
-  You can also pass an Artifact object created by calling `wandb.Artifact`
+May be prefixed with entity/project. Valid names
+can be in the following forms:
+name:version
+name:alias
+digest
+You can also pass an Artifact object created by calling `wandb.Artifact`
 - `type` _str, optional_ - The type of artifact to use.
 - `aliases` _list, optional_ - Aliases to apply to this artifact
 
 **Returns**:
 
-  A :obj:`Artifact` object.
+A :obj:`Artifact` object.
 
 <a name="wandb.sdk.wandb_run.RunManaged.log_artifact"></a>
 #### log\_artifact
@@ -206,38 +206,38 @@ the returned object to get the contents locally.
  | log_artifact(artifact_or_path, name=None, type=None, aliases=None)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_run.py#L581)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_run.py#L581)
 
 Declare an artifact as output of a run.
 
 **Arguments**:
 
 - `artifact_or_path` _str or Artifact_ - A path to the contents of this artifact,
-  can be in the following forms:
-  /local/directory
-  /local/directory/file.txt
-  s3://bucket/path
-  You can also pass an Artifact object created by calling
-  `wandb.Artifact`.
+can be in the following forms:
+/local/directory
+/local/directory/file.txt
+s3://bucket/path
+You can also pass an Artifact object created by calling
+`wandb.Artifact`.
 - `name` _str, optional_ - An artifact name. May be prefixed with entity/project.
-  Valid names can be in the following forms:
-  name:version
-  name:alias
-  digest
-  This will default to the basename of the path prepended with the current
-  run id  if not specified.
+Valid names can be in the following forms:
+name:version
+name:alias
+digest
+This will default to the basename of the path prepended with the current
+run id  if not specified.
 - `type` _str_ - The type of artifact to log, examples include "dataset", "model"
 - `aliases` _list, optional_ - Aliases to apply to this artifact,
-  defaults to ["latest"]
+defaults to ["latest"]
 
 **Returns**:
 
-  A :obj:`Artifact` object.
+A :obj:`Artifact` object.
 
 <a name="wandb.sdk.wandb_init"></a>
 # wandb.sdk.wandb\_init
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_init.py#L2)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L2)
 
 init.
 
@@ -248,7 +248,7 @@ init.
 class _WandbInit(object)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_init.py#L117)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L117)
 
 <a name="wandb.sdk.wandb_init._WandbInit.setup"></a>
 #### setup
@@ -257,7 +257,7 @@ class _WandbInit(object)
  | setup(kwargs)
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_init.py#L141)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L141)
 
 Complete setup for wandb.init().
 
@@ -271,7 +271,7 @@ logging.
 init(settings: Union[Settings, Dict[str, Any], str, None] = None, entity: Optional[str] = None, team: Optional[str] = None, project: Optional[str] = None, mode: Optional[str] = None, group: Optional[str] = None, job_type: Optional[str] = None, tags: Optional[List] = None, name: Optional[str] = None, config: Union[Dict, None] = None, notes: Optional[str] = None, magic: bool = None, config_exclude_keys=None, config_include_keys=None, reinit: bool = None, anonymous: Optional[str] = None, dir=None, allow_val_change=None, resume=None, force=None, tensorboard=None, sync_tensorboard=None, monitor_gym=None, id=None) -> Run
 ```
 
-[[view_source]](https://github.com/wandb/client-ng/blob/7957f8437131d34b931d3a676b2ffdc40f9208e9/wandb/sdk/wandb_init.py#L525)
+[[view_source]](https://github.com/wandb/client-ng/blob/7a4cf0ecb51261aff6a178310fa868399dcdb05a/wandb/sdk/wandb_init.py#L525)
 
 Initialize a wandb Run.
 
@@ -280,14 +280,14 @@ Initialize a wandb Run.
 - `entity` - alias for team.
 - `team` - personal user or team to use for Run.
 - `project` - project name for the Run.
-  
+
 
 **Raises**:
 
 - `Exception` - if problem.
-  
+
 
 **Returns**:
 
-  wandb Run object
+wandb Run object
 
