@@ -219,6 +219,7 @@ class Api(object):
     def api_key(self):
         auth = requests.utils.get_netrc_auth(self.api_url)
         key = None
+        print("AUTH", auth, requests.__version__)
         if auth:
             key = auth[-1]
         # Environment should take precedence
