@@ -171,11 +171,14 @@ def test_custom_dir_env(wandb_init_run):
     assert len(glob.glob("/tmp/wandb/runs/run-*")) > 0
 
 
-def test_login_key(local_netrc, capsys):
+def test_login_key(capsys):
     wandb.login(key="A" * 40)
     out, err = capsys.readouterr()
     print(out)
     print(err)
+    print("YO", os.path.expanduser("~/.netrc"))
+    with open(os.path.expanduser("~/.netrc")) as f:
+        print("NETRC", f.read())
     assert "Appending key" in err
     assert wandb.api.api_key == "A" * 40
 
