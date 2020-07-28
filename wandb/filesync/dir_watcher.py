@@ -224,9 +224,9 @@ class DirWatcher(object):
         save_name: its path relative to the run directory (aka the watch directory)
         """
         if save_name not in self._file_event_handlers:
-            # TODO: are there specific files to ignore?
-            if False:
-                self._file_event_handlers[save_name] = PolicyIgnore(
+            # TODO: we can use PolicyIgnore if there are files we never want to sync
+            if 'tfevents' in save_name or 'graph.pbtxt' in save_name:
+                self._file_event_handlers[save_name] = PolicyLive(
                     file_path, save_name, self._api, self._file_pusher
                 )
             else:
