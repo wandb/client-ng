@@ -10,6 +10,7 @@ import logging
 import click
 import requests
 import wandb
+from wandb.internal.internal_api import Api
 from wandb.lib import apikey
 
 logger = logging.getLogger("wandb")
@@ -37,7 +38,7 @@ def login(api=None, relogin=None, key=None, anonymous=None):
         return
 
     settings = {}
-    api = api or wandb.api
+    api = api or Api()
 
     if anonymous is not None:
         # TODO: Move this check into wandb_settings probably.
