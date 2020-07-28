@@ -471,7 +471,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
                 self.update(dict(program=program, program_relpath=program_relpath))
             else:
                 program = "<python with no main file>"
-                self.update(dict(program=program))    
+                self.update(dict(program=program))
 
     def setdefaults(self, __d=None):
         __d = __d or defaults
