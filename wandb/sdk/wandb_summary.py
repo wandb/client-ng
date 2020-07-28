@@ -15,11 +15,10 @@ def _get_dict(d):
     return vars(d)
 
 
+@six.add_metaclass(abc.ABCMeta)
 class SummaryDict(object):
     """dict-like which wraps all nested dictionraries in a SummarySubDict,
      and triggers self._root._callback on property changes."""
-
-    __metaclass__ = abc.ABCMeta
 
     _items: dict
     _root: "Summary"
