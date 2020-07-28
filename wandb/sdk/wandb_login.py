@@ -38,7 +38,7 @@ def login(api=None, relogin=None, key=None, anonymous=None):
         return
 
     settings = {}
-    api = api or InternalApi()
+    api = api or wandb.api
 
     if anonymous is not None:
         # TODO: Move this check into wandb_settings probably.
