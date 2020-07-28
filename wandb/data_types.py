@@ -198,6 +198,7 @@ class Media(WBValue):
         # components.
         if not os.path.realpath(self._path).startswith(os.path.realpath(self._run.dir)):
             base_path = os.path.join(self._run.dir, self.get_media_subdir())
+            id_ = self._sha256[:8]
 
             if self._extension is None:
                 rootname, extension = os.path.splitext(os.path.basename(self._path))
@@ -205,8 +206,6 @@ class Media(WBValue):
                 extension = self._extension
                 rootname = os.path.basename(self._path)[:-len(extension)]
 
-            if id_ is None:
-                id_ = self._sha256[:8]
 
             file_path = wb_filename(key, step, id_, extension)
             media_path = os.path.join(self.get_media_subdir(), file_path)
@@ -1017,6 +1016,7 @@ class Image(BatchableMedia):
             "width": width,
             "height": height,
             "format": format,
+            "filenames": [j['path'] for j in jsons],
             "count": num_images_to_log,
         }
 
@@ -1753,10 +1753,10 @@ def val_to_json(run, key, val, namespace=None):
 
             for i, item in enumerate(items):
                 if not item.is_bound():
-                    item.bind_to_run(run, key, namespace, i)
-                else:
-                    if not namespace == "summary":
-                        logging.warn("Invalid use of media in collection. Media objects media object is being reused in a collection.")
+                    item.bind_to_run(run, key, namespace)
+                # else:
+                #     if not namespace == "summary":
+                #         logging.warn("Invalid use of media in collection. Media objects media object is being reused in a collection.")
 
 
             return items[0].seq_to_json(items, run, key, namespace)

@@ -5,7 +5,7 @@ import random
 from math import sin, cos, pi
 import numpy as np
 
-N = 12
+N = 100000
 
 IMG_SIZE = 400
 image = np.random.randint(255, size=(IMG_SIZE, IMG_SIZE, 3))
@@ -126,11 +126,10 @@ def balanced_corners_portrait():
             img_min_max_pixel,
             img_min_max_norm_domain]
 
-def all_tests():
-    return {
-        "balanced_corners_portrait": balanced_corners_portrait()[0],
-        "balanced_corners_portrait_seq": balanced_corners_portrait(),
-    }
+all_tests ={
+    "balanced_corners_portrait": balanced_corners_portrait()[0],
+    "balanced_corners_portrait_seq": balanced_corners_portrait(),
+}
 
 
 if __name__ == "__main__":
