@@ -1,7 +1,7 @@
 import wandb
-from wandb.internal.internal_api import Api as InternalApi
 import pytest
 import tempfile
+import requests
 import glob
 import os
 
@@ -177,12 +177,12 @@ def test_login_key(capsys):
     out, err = capsys.readouterr()
     print(out)
     print(err)
-    print("YO", os.path.expanduser("~/.netrc"), wandb.InternalApi().api_url)
+    print("YO", requests.utils.get_netrc_auth("http://localhost:8080"))
     with open(os.path.expanduser("~/.netrc")) as f:
         print("NETRC", f.read())
     assert "Appending key" in err
     #  WTF is happening?
-    assert InternalApi().api_key == "A" * 40
+    assert wandb.api.api_key == "A" * 40
 
 
 def test_login_existing_key():
