@@ -450,8 +450,10 @@ class RunManaged(Run):
             self.history._row_update(data)
 
     def save(
-        self, glob_str: Optional[str] = None, base_path: Optional[str] = None,
-        policy: str = "live"
+        self,
+        glob_str: Optional[str] = None,
+        base_path: Optional[str] = None,
+        policy: str = "live",
     ):
         """ Ensure all files matching *glob_str* are synced to wandb with the policy specified.
 
@@ -466,8 +468,12 @@ class RunManaged(Run):
         """
         if glob_str is None:
             # noop for historical reasons, run.save() may be called in legacy code
-            wandb.termwarn(("Calling run.save without any arguments is deprecated."
-                            "Changes to attributes are automatically persisted."))
+            wandb.termwarn(
+                (
+                    "Calling run.save without any arguments is deprecated."
+                    "Changes to attributes are automatically persisted."
+                )
+            )
             return True
         if policy not in ("live", "end", "now"):
             raise ValueError(
