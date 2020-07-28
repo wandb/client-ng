@@ -212,11 +212,12 @@ class RunManaged(Run):
         return "/".join(parts)
 
     def project_name(self, api=None):
+        return self._run_obj.project if self._run_obj else "uncategorized"
         # TODO(jhr): this is probably not right needed by dataframes?
         # api = api or self.api
         # return (api.settings('project') or self.auto_project_name(api) or
         #         "uncategorized")
-        return self._project
+        # return self._project
 
     @property
     def entity(self):
