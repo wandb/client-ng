@@ -51,12 +51,14 @@ def test_cb_attrib():
     s.this = 2
     m.check(key='this', val=2, data=dict(this=2))
 
+
 def test_cb_item():
     m = MockCallback()
     s = wandb_sdk.Summary()
     s._set_callback(m.callback)
     s['this'] = 2
     m.check(key='this', val=2, data=dict(this=2))
+
 
 def test_cb_item_nested():
     m = MockCallback()
