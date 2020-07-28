@@ -172,6 +172,7 @@ class DirWatcher(object):
         #  TODO: what other files should we skip?
         file_event_handler._ignore_patterns = [
             "*.tmp",
+            "*.wandb",
             os.path.join(self._dir, ".*"),
             os.path.join(self._dir, "*/.*"),
         ]
@@ -223,8 +224,8 @@ class DirWatcher(object):
         save_name: its path relative to the run directory (aka the watch directory)
         """
         if save_name not in self._file_event_handlers:
-            if 'tfevents' in save_name or 'graph.pbtxt' in save_name:
-                # TODO: do we want to ignore these, what else?
+            # TODO: are there specific files to ignore?
+            if False:
                 self._file_event_handlers[save_name] = PolicyIgnore(
                     file_path, save_name, self._api, self._file_pusher
                 )
