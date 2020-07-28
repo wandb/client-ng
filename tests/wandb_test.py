@@ -177,7 +177,8 @@ def test_login_key(capsys):
     out, err = capsys.readouterr()
     print(out)
     print(err)
-    print("YO", requests.utils.get_netrc_auth("http://localhost:8080"))
+    print("YO", requests.utils.get_netrc_auth("http://localhost:8080"),
+          wandb.api.api_url)
     with open(os.path.expanduser("~/.netrc")) as f:
         print("NETRC", f.read())
     assert "Appending key" in err
