@@ -39,6 +39,10 @@ class FileEventHandler(object):
         self.on_modified(force=True)
 
 
+class PolicyIgnore(FileEventHandler):
+    pass
+
+
 class PolicyNow(FileEventHandler):
     """This policy only uploads files now"""
     def on_modified(self, force=False):
@@ -220,8 +224,10 @@ class DirWatcher(object):
         """
         if save_name not in self._file_event_handlers:
             if 'tfevents' in save_name or 'graph.pbtxt' in save_name:
-                # TODO: we want this fanciness?
-                pass
+                # TODO: do we want to ignore these, what else?
+                self._file_event_handlers[save_name] = PolicyIgnore(
+                    file_path, save_name, self._api, self._file_pusher
+                )
             else:
                 Handler = PolicyEnd
                 for policy, globs in six.iteritems(self._user_file_policies):

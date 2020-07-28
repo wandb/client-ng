@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import copy
-import getpass
 from functools import wraps
+import getpass
 import logging
 import os
 import subprocess
 import sys
-import time
 import textwrap
+import time
 import traceback
 
 import click
@@ -657,7 +657,7 @@ def local(ctx, port, env, daemon, upgrade, edge):
     try:
         from subprocess import DEVNULL
     except ImportError:
-        DEVNULL = open(os.devnull, 'wb')
+        DEVNULL = open(os.devnull, 'wb')  # noqa: N806
     code = subprocess.call(command, stdout=DEVNULL)
     if daemon:
         if code != 0:

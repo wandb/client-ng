@@ -10,7 +10,6 @@ import logging
 import click
 import requests
 import wandb
-from wandb.apis import InternalApi
 from wandb.lib import apikey
 
 logger = logging.getLogger("wandb")
