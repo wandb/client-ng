@@ -69,6 +69,7 @@ defaults = dict(
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
+    ignore_globs=[],
     # anonymous might be set by a config file: "false" and "true"
     #   or from wandb.init(anonymous=) or environment: "allow", "must", "never"
     _anonymous=Field(str, ("allow", "must", "never", "false", "true",)),
@@ -94,13 +95,14 @@ env_settings = dict(
     username=None,
     disable_code=None,
     anonymous=None,
+    ignore_globs=None,
     root_dir="WANDB_DIR",
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
     run_tags="WANDB_TAGS",
 )
 
-env_convert = dict(run_tags=lambda s: s.split(","),)
+env_convert = dict(run_tags=lambda s: s.split(","), ignore_globs=lambda s: s.split(","))
 
 
 def _build_inverse_map(prefix, d):
@@ -126,12 +128,12 @@ def _get_program():
     try:
         import __main__  # type: ignore
 
-        program = __main__.__file__
-        if not program:
-            return "<python with no main file>"
+        return __main__.__file__
     except (ImportError, AttributeError):
         return None
 
+
+def _get_program_relpath_from_gitrepo(program):
     repo = git_repo.GitRepo()
     root = repo.root
     if not root:
@@ -244,8 +246,9 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         program=None,
         notebook_name=None,
         disable_code=None,
+        ignore_globs=None,
         save_code=None,
-        code_program=None,
+        program_relpath=None,
         git_remote=None,
         host=None,
         username=None,
@@ -255,6 +258,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _cli_only_mode=None,  # avoid running any code specific for runs
         console=None,
         disabled=None,  # alias for mode=dryrun, not supported yet
+        reinit=None,
         _save_requirements=True,
         # compute environment
         jupyter=None,
@@ -460,9 +464,14 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         """Modify settings based on environment (for runs only)."""
         # If the settings say to save code, and there's not already a program file,
         # infer it now.
-        if self.save_code and not self.code_program:
-            code_program = _get_program()
-            self.update(dict(code_program=code_program))
+        if self.save_code and not self.program_relpath:
+            program = _get_program()
+            if program:
+                program_relpath = _get_program_relpath_from_gitrepo(program)
+                self.update(dict(program=program, program_relpath=program_relpath))
+            else:
+                program = "<python with no main file>"
+                self.update(dict(program=program))
 
     def setdefaults(self, __d=None):
         __d = __d or defaults
@@ -508,6 +517,9 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         d = dict()
         for k in cp[section]:
             d[k] = cp[section][k]
+            # TODO (cvp): we didn't do this in the old cli, but it seems necessary
+            if k == "ignore_globs":
+                d[k] = d[k].split(",")
         return d
 
     def apply_init(self, args):
@@ -520,7 +532,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             dir="root_dir",
         )
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
-
         self.update(args)
         self.run_id = self.run_id or generate_id()
         self.wandb_dir = get_wandb_dir(self.root_dir or ".")

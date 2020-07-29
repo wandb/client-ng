@@ -44,6 +44,7 @@ import wandb
 import wandb.old.core
 from wandb.old.core import wandb_dir
 from wandb.errors.error import CommError
+from wandb.internal.git_repo import GitRepo
 # from wandb import wandb_config
 from wandb import env
 
@@ -288,6 +289,29 @@ def ensure_matplotlib_figure(obj):
     """
     import matplotlib
     from matplotlib.figure import Figure
+    # plotly and matplotlib broke in recent releases,
+    # this patches matplotlib to add a removed method that plotly assumes exists
+    from matplotlib.spines import Spine
+    def is_frame_like(self):
+        """Return True if directly on axes frame.
+
+        This is useful for determining if a spine is the edge of an
+        old style MPL plot. If so, this function will return True.
+        """
+        position = self._position or ('outward', 0.0)
+        if isinstance(position, str):
+            if position == 'center':
+                position = ('axes', 0.5)
+            elif position == 'zero':
+                position = ('data', 0)
+        if len(position) != 2:
+            raise ValueError("position should be 2-tuple")
+        position_type, amount = position
+        if position_type == 'outward' and amount == 0:
+            return True
+        else:
+            return False
+    Spine.is_frame_like = is_frame_like
     if obj == matplotlib.pyplot:
         obj = obj.gcf()
     elif not isinstance(obj, Figure):
@@ -853,9 +877,8 @@ def download_file_from_url(dest_path, source_url, api_key=None):
     response = requests.get(source_url, auth=("api", api_key), stream=True, timeout=5)
     response.raise_for_status()
 
-    if "/" in dest_path:
-        dir = "/".join(dest_path.split("/")[0:-1])
-        mkdir_exists_ok(dir)
+    if os.sep in dest_path:
+        mkdir_exists_ok(os.path.dirname(dest_path))
     with open(dest_path, "wb") as file:
         for data in response.iter_content(chunk_size=1024):
             file.write(data)
@@ -876,9 +899,10 @@ def sizeof_fmt(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
-def auto_project_name(program, api):
+def auto_project_name(program):
     # if we're in git, set project name to git repo name + relative path within repo
-    root_dir = api.git.root_dir
+    repo = GitRepo()
+    root_dir = repo.root_dir
     if root_dir is None:
         return None
     repo_name = os.path.basename(root_dir)
