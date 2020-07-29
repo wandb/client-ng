@@ -8,7 +8,7 @@ IMG_HEIGHT = 5
 
 IMG_COUNT = 2
 # Step count
-N = 1000000
+N = 10
 
 
 def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
@@ -18,10 +18,10 @@ def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
         axis=0)
 
 all_tests = {
-    "test_image_file_single": wandb.Image("../tests/fixtures/wb.jpeg"),
+    # "test_image_file_single": wandb.Image("../tests/fixtures/wb.jpeg"),
     "test_image_file_array": [wandb.Image("../tests/fixtures/wb.jpeg")],
-    "test_image_data_single": wandb.Image(gen_image()),
-    "test_image_data_array": [wandb.Image(gen_image()) for _ in range(IMG_COUNT)],
+    # "test_image_data_single": wandb.Image(gen_image()),
+    # "test_image_data_array": [wandb.Image(gen_image()) for _ in range(IMG_COUNT)],
 }
 
 if __name__ == "__main__":

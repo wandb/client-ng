@@ -185,42 +185,40 @@ class Media(WBValue):
         put the file associated with this object, from which other Runs can
         refer to it.
         """
+        print("bind to run id=", id_ )
+        print("bind to run step=", step )
         if not self.file_is_set():
             raise AssertionError('bind_to_run called before _set_file')
         if run is None:
             raise TypeError('Argument "run" must not be None.')
-        if self.is_bound():
-            raise RuntimeError('Value is already bound to a Run: {}'.format(self))
+        # if self.is_bound():
+        #     raise RuntimeError('Value is already bound to a Run: {}'.format(self))
         self._run = run
 
-        # This is a flawed way of checking whether the file is already in
-        # the Run directory. It'd be better to check the actual directory
-        # components.
-        if not os.path.realpath(self._path).startswith(os.path.realpath(self._run.dir)):
-            base_path = os.path.join(self._run.dir, self.get_media_subdir())
+        base_path = os.path.join(self._run.dir, self.get_media_subdir())
 
-            if self._extension is None:
-                rootname, extension = os.path.splitext(os.path.basename(self._path))
-            else:
-                extension = self._extension
-                rootname = os.path.basename(self._path)[:-len(extension)]
+        if self._extension is None:
+            rootname, extension = os.path.splitext(os.path.basename(self._path))
+        else:
+            extension = self._extension
+            rootname = os.path.basename(self._path)[:-len(extension)]
 
-                id_ = self._sha256[:8]
+            id_ = self._sha256[:8]
 
-            file_path = wb_filename(key, step, id_, extension)
-            media_path = os.path.join(self.get_media_subdir(), file_path)
-            new_path = os.path.join(base_path, file_path)
-            util.mkdir_exists_ok(os.path.dirname(new_path))
+        file_path = wb_filename(key, step, id_, extension)
+        media_path = os.path.join(self.get_media_subdir(), file_path)
+        new_path = os.path.join(base_path, file_path)
+        util.mkdir_exists_ok(os.path.dirname(new_path))
 
-            if self._is_tmp:
-                shutil.move(self._path, new_path)
-                self._path = new_path
-                self._is_tmp = False
-                _datatypes_callback(media_path)
-            else:
-                shutil.copy(self._path, new_path)
-                self._path = new_path
-                _datatypes_callback(media_path)
+        if self._is_tmp:
+            shutil.move(self._path, new_path)
+            self._path = new_path
+            self._is_tmp = False
+            _datatypes_callback(media_path)
+        else:
+            shutil.copy(self._path, new_path)
+            self._path = new_path
+            _datatypes_callback(media_path)
 
     def to_json(self, run):
         """Get the JSON-friendly dict that represents this object.
@@ -1018,7 +1016,6 @@ class Image(BatchableMedia):
             "width": width,
             "height": height,
             "format": format,
-            "filenames": [j['path'].replace(media_dir, "") for j in jsons],
             "count": num_images_to_log,
         }
 
