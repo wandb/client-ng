@@ -212,11 +212,10 @@ class RunManaged(Run):
         return "/".join(parts)
 
     def project_name(self, api=None):
-        # TODO(jhr): this is probably not right needed by dataframes?
-        # api = api or self.api
-        # return (api.settings('project') or self.auto_project_name(api) or
-        #         "uncategorized")
-        return self._project
+        if not self._run_obj:
+            wandb.termwarn("Project name not available in offline run")
+            return
+        return self._run_obj.project
 
     @property
     def entity(self):
@@ -572,12 +571,12 @@ class RunManaged(Run):
             return None
         return files[0].download(root=root, replace=True)
 
-    def join(self):
+    def join(self, exit_code=None):
         """Marks a run as finished, and finishes uploading all data.  This is
         used when creating multiple runs in the same process.  We automatically
         call this method when your script exits.
         """
-        self._atexit_cleanup()
+        self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
 
@@ -685,7 +684,7 @@ class RunManaged(Run):
             sys.stderr = self._save_stderr
         logger.info("restore done")
 
-    def _atexit_cleanup(self):
+    def _atexit_cleanup(self, exit_code=None):
         if self._backend is None:
             logger.warning("process exited without backend configured")
             return False
@@ -693,7 +692,7 @@ class RunManaged(Run):
             return
         self._atexit_cleanup_called = True
 
-        exit_code = self._hooks.exit_code if self._hooks else 0
+        exit_code = exit_code or self._hooks.exit_code if self._hooks else 0
         logger.info("got exitcode: %d", exit_code)
         ret = self._backend.interface.send_exit_sync(exit_code, timeout=60)
         logger.info("got exit ret: %s", ret)
