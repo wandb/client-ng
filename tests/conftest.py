@@ -143,7 +143,7 @@ def local_netrc(monkeypatch):
         yield
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def local_settings(monkeypatch):
     """Place global settings in an isolated dir"""
     with CliRunner().isolated_filesystem():
