@@ -198,7 +198,6 @@ class Media(WBValue):
         # components.
         if not os.path.realpath(self._path).startswith(os.path.realpath(self._run.dir)):
             base_path = os.path.join(self._run.dir, self.get_media_subdir())
-            id_ = self._sha256[:8]
 
             if self._extension is None:
                 rootname, extension = os.path.splitext(os.path.basename(self._path))
@@ -206,6 +205,7 @@ class Media(WBValue):
                 extension = self._extension
                 rootname = os.path.basename(self._path)[:-len(extension)]
 
+                id_ = self._sha256[:8]
 
             file_path = wb_filename(key, step, id_, extension)
             media_path = os.path.join(self.get_media_subdir(), file_path)
@@ -1001,8 +1001,10 @@ class Image(BatchableMedia):
 
         jsons = [obj.to_json(run) for obj in images]
 
+        media_dir = cls.get_media_subdir()
+
         for obj in jsons:
-            expected = util.to_forward_slash_path(cls.get_media_subdir())
+            expected = util.to_forward_slash_path(media_dir)
             if not obj['path'].startswith(expected):
                 raise ValueError('Files in an array of Image\'s must be in the {} directory, not {}'.format(
                     cls.get_media_subdir(), obj['path']))
@@ -1016,7 +1018,7 @@ class Image(BatchableMedia):
             "width": width,
             "height": height,
             "format": format,
-            "filenames": [j['path'] for j in jsons],
+            "filenames": [j['path'].replace(media_dir, "") for j in jsons],
             "count": num_images_to_log,
         }
 
