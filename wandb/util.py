@@ -958,7 +958,7 @@ def to_forward_slash_path(path):
     return path
 
 def to_native_slash_path(path):
-    return path.replace('/', os.sep).replace('\\', os.sep)
+    return path.replace('/', os.sep)
 
 def bytes_to_hex(bytestr):
     # Works in python2 / python3
