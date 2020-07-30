@@ -45,7 +45,7 @@ import wandb.old.core
 from wandb.old.core import wandb_dir
 from wandb.errors.error import CommError
 from wandb.internal.git_repo import GitRepo
-# from wandb import wandb_config
+from wandb.util import to_native_slash_path
 from wandb import env
 
 logger = logging.getLogger(__name__)
@@ -901,8 +901,10 @@ def sizeof_fmt(num, suffix='B'):
 
 def auto_project_name(program):
     # if we're in git, set project name to git repo name + relative path within repo
-    repo = GitRepo()
-    root_dir = repo.root_dir
+    root_dir = GitRepo().root_dir
+    # On windows, GitRepo returns paths in unix style, but os.path is windows
+    # style. Coerce here.
+    root_dir = to_native_slash_path(root_dir)
     if root_dir is None:
         return None
     repo_name = os.path.basename(root_dir)
@@ -954,6 +956,9 @@ def to_forward_slash_path(path):
     if platform.system() == "Windows":
         path = path.replace("\\", "/")
     return path
+
+def to_native_slash_path(path):
+    return path.replace('/', os.sep).replace('\\', os.sep)
 
 def bytes_to_hex(bytestr):
     # Works in python2 / python3
