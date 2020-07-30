@@ -28,6 +28,7 @@ message Record {
  */
 message Control {
   bool req_resp = 1;
+  bool local = 2;  /* should not be persisted or synchronized */
 }
 
 /*
@@ -200,4 +201,24 @@ message StoragePolicyConfigItem {
  */
 message ExitData {
   int32 exit_code = 1;
+}
+
+/*
+ * Result objects
+ */
+message RunUpdateResult {
+  RunData run = 1;
+}
+
+message RunExitResult {
+}
+
+message LogResult {
+}
+
+message ResultRecord {
+  oneof data {
+    RunUpdateResult   run = 17;
+    RunExitResult     exit = 18;
+  }
 }
