@@ -54,8 +54,6 @@ def _datatypes_callback(fname):
 def wb_filename(key, step, id, extension):
     return  '{}_{}_{}{}'.format(key, step, id, extension)
 
-WB_INDEX_WILDCARD = "__WB__"
-
 
 class WBValue(object):
     """Abstract parent class for things that can be logged by wandb.log() and
@@ -189,8 +187,6 @@ class Media(WBValue):
             raise AssertionError('bind_to_run called before _set_file')
         if run is None:
             raise TypeError('Argument "run" must not be None.')
-        # if self.is_bound():
-        #     raise RuntimeError('Value is already bound to a Run: {}'.format(self))
         self._run = run
 
         base_path = os.path.join(self._run.dir, self.get_media_subdir())
