@@ -841,7 +841,7 @@ class RunManaged(Run):
             if type is None:
                 raise ValueError("type required")
             public_api = public.Api(
-                {"entity": r.entity, "project": r.project, "run": self.id,}
+                {"entity": r.entity, "project": r.project, "run": self.id}
             )
             artifact = public_api.artifact(type=type, name=name)
             if type is not None and type != artifact.type:
