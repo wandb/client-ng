@@ -5,7 +5,7 @@ import random
 from math import sin, cos, pi
 import numpy as np
 
-N = 100000
+N = 1
 
 IMG_SIZE = 400
 image = np.random.randint(255, size=(IMG_SIZE, IMG_SIZE, 3))

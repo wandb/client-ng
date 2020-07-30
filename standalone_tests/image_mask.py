@@ -3,6 +3,8 @@
 import wandb
 import numpy as np
 
+N = 1
+
 n = 40
 m = 40
 
@@ -70,4 +72,5 @@ all_tests = {
 
 if __name__ == "__main__":
     wandb.init(project="test-image-masks")
-    wandb.log(all_tests)
+    for i in range(N):
+        wandb.log(all_tests)

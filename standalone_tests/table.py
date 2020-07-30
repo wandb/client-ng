@@ -10,10 +10,11 @@ def gen_df_table():
     return wandb.Table(dataframe=df)
 
 all_tests = {
-    "table_many": [gen_table(), gen_table()],
     "table_single": gen_table(1),
-    "table_dataframe_many": [gen_df_table(), gen_df_table()],
     "table_dataframe_single": gen_df_table()
+    # Seqs of tables is currently unsupported
+    # "table_dataframe_many": [gen_df_table(), gen_df_table()],
+    # "table_many": [gen_table(), gen_table()],
 }
 
 if __name__ == "__main__":

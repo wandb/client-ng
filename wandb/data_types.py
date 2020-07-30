@@ -185,8 +185,6 @@ class Media(WBValue):
         put the file associated with this object, from which other Runs can
         refer to it.
         """
-        print("bind to run id=", id_ )
-        print("bind to run step=", step )
         if not self.file_is_set():
             raise AssertionError('bind_to_run called before _set_file')
         if run is None:
