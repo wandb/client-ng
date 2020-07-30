@@ -16,10 +16,10 @@ import os
 import platform
 import sys
 import traceback
-from urllib.parse import quote as url_quote
 
 import click
 from six import string_types
+from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
