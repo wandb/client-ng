@@ -26,6 +26,10 @@ workflows:
          name: "Python 3.8"
          image: "python:3.8"
          toxenv: "py38"
+      - integration:
+          name: "Integration"
+          image: "python:3.8"
+          toxenv: "py38"
       - win:
          name: "Windows (Python 3.7)"
       - mac:
@@ -105,3 +109,29 @@ jobs:
                   name: Call coveralls webhook
                   command: |
                       curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
+
+    integration:
+        docker:
+            - image: python:3.7
+        steps:
+            - checkout
+            - run:
+                  name: Install python dependencies
+                  command: pip3 install tox
+            - run:
+                  name: Run local
+                  command: sh integration-tests/scripts/serve-local.sh
+                  background: true
+            - run:
+                # TODO(p0): Make sure port is correct
+                name: Waiting for server to be ready
+                command: npx wait-on -t 100000 http-get://localhost:9001/
+            - run:
+                  name: Run all media test script
+                  command: python integration-tests/test-scripts/media/all_media_types.py
+            - run:
+                name: Check for local ready
+                command: python integration-tests/tests/
+
+
+
