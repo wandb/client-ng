@@ -148,7 +148,7 @@ def local_netrc(monkeypatch):
 def local_settings(monkeypatch):
     """Place global settings in an isolated dir"""
     with CliRunner().isolated_filesystem():
-        cfg_path = os.path.join(".config", "wandb", "settings")
+        cfg_path = os.path.join(os.getcwd(), ".config", "wandb", "settings")
         mkdir_exists_ok(os.path.join(".config", "wandb"))
         monkeypatch.setattr(settings.Settings, "_global_path", lambda: cfg_path)
         yield
