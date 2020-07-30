@@ -19,6 +19,7 @@ message Record {
     ArtifactData    artifact = 8;
     RunData         run = 17;
     ExitData        exit = 18;
+    StatusData      status = 19;
   }
   Control       control = 16;
 }
@@ -203,6 +204,10 @@ message ExitData {
   int32 exit_code = 1;
 }
 
+
+message StatusData {
+}
+
 /*
  * Result objects
  */
@@ -216,9 +221,13 @@ message RunExitResult {
 message LogResult {
 }
 
+message StatusResult {
+}
+
 message ResultRecord {
   oneof data {
-    RunUpdateResult   run = 17;
-    RunExitResult     exit = 18;
+    RunUpdateResult run = 17;
+    RunExitResult   exit = 18;
+    StatusResult    status = 19;
   }
 }
