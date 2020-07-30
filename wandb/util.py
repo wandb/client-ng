@@ -44,7 +44,6 @@ import wandb
 from wandb.old.core import wandb_dir
 from wandb.errors.error import CommError
 from wandb.internal.git_repo import GitRepo
-from wandb.util import to_native_slash_path
 from wandb import env
 
 logger = logging.getLogger(__name__)
