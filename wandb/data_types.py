@@ -197,6 +197,7 @@ class Media(WBValue):
             extension = self._extension
             rootname = os.path.basename(self._path)[:-len(extension)]
 
+        if id_ is None:
             id_ = self._sha256[:8]
 
         file_path = wb_filename(key, step, id_, extension)
