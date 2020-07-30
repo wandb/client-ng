@@ -9,13 +9,17 @@ import logging
 import multiprocessing
 import os
 from shutil import copyfile
-import subprocess
 import sys
 
 from wandb import util
 from wandb.interface import interface
 from wandb.internal import git_repo
 from wandb.vendor.pynvml import pynvml
+
+if os.name == "posix" and sys.version_info[0] < 3:
+    import subprocess32 as subprocess  # type: ignore[import]
+else:
+    import subprocess  # type: ignore[no-redef]
 
 
 METADATA_FNAME = "wandb-metadata.json"
@@ -60,12 +64,12 @@ class Meta(object):
             logger.error("Error saving pip packages")
 
     def _save_code(self):
-        if self._settings.code_program is None:
+        if self._settings.program_relpath is None:
             logger.warning("unable to save code -- program entry not found")
             return
 
         root = self._git.root or os.getcwd()
-        program_relative = self._settings.code_program
+        program_relative = self._settings.program_relpath
         util.mkdir_exists_ok(
             os.path.join(
                 self._settings.files_dir, "code", os.path.dirname(program_relative)
@@ -174,9 +178,10 @@ class Meta(object):
     def probe(self):
         self._setup_sys()
         if not self._settings.disable_code:
-            if self._settings.code_program is not None:
-                self.data["codePath"] = self._settings.code_program
-                self.data["program"] = os.path.basename(self._settings.code_program)
+            if self._settings.program_relpath is not None:
+                self.data["codePath"] = self._settings.program_relpath
+            if self._settings.program is not None:
+                self.data["program"] = self._settings.program
             else:
                 self.data["program"] = "<python with no main file>"
                 if self._settings.jupyter:
@@ -218,12 +223,12 @@ class Meta(object):
             f.write(s)
             f.write("\n")
         base_name = os.path.basename(self.fname)
-        files = dict(files=[(base_name,)])
+        files = dict(files=[(base_name, "now")])
 
         if self._saved_program:
             saved_program = os.path.join("code", self._saved_program)
-            files["files"].append((saved_program,))
+            files["files"].append((saved_program, "now"))
         for patch in self._saved_patches:
-            files["files"].append((patch,))
+            files["files"].append((patch, "now"))
 
         self._interface.send_files(files)

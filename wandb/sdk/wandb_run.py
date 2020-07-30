@@ -7,23 +7,32 @@ Manage wandb run.
 
 from __future__ import print_function
 
+import atexit
 import collections
+import glob
 import json
 import logging
 import os
 import platform
-import shutil
+import sys
+import traceback
 
 import click
+from six import string_types
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
+from wandb.errors import Error
+from wandb.lib import module, redirect
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
 from . import wandb_config
 from . import wandb_history
 from . import wandb_summary
+
+if wandb.TYPE_CHECKING:  # type: ignore
+    from typing import Optional
 
 
 logger = logging.getLogger("wandb")
@@ -39,6 +48,41 @@ class RunDummy(Run):
         pass
 
 
+class ExitHooks(object):
+    def __init__(self):
+        self.exit_code = 0
+        self.exception = None
+
+    def hook(self):
+        self._orig_exit = sys.exit
+        sys.exit = self.exit
+        sys.excepthook = self.exc_handler
+
+    def exit(self, code=0):
+        orig_code = code
+        if code is None:
+            code = 0
+        elif not isinstance(code, int):
+            code = 1
+        self.exit_code = code
+        self._orig_exit(orig_code)
+
+    def was_ctrl_c(self):
+        return isinstance(self.exception, KeyboardInterrupt)
+
+    def exc_handler(self, exc_type, exc, *tb):
+        self.exit_code = 1
+        self.exception = exc
+        if issubclass(exc_type, Error):
+            wandb.termerror(str(exc))
+
+        if self.was_ctrl_c():
+            self.exit_code = 255
+
+        print("except handle")
+        traceback.print_exception(exc_type, exc, *tb)
+
+
 class RunManaged(Run):
     def __init__(self, config=None, settings=None):
         self._config = wandb_config.Config()
@@ -51,6 +95,7 @@ class RunManaged(Run):
         _datatypes_set_callback(self._datatypes_callback)
 
         self._settings = settings
+        self._wl = None
         self._backend = None
         self._reporter = None
         self._data = dict()
@@ -63,6 +108,17 @@ class RunManaged(Run):
         self._name = None
         self._notes = None
         self._tags = None
+
+        self._hooks = None
+        self._redirect_cb = None
+        self._out_redir = None
+        self._err_redir = None
+        self.stdout_redirector = None
+        self.stderr_redirector = None
+        self._save_stdout = None
+        self._save_stderr = None
+        self._stdout_slave_fd = None
+        self._stderr_slave_fd = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -78,11 +134,13 @@ class RunManaged(Run):
         wandb_key = "_wandb"
         config.setdefault(wandb_key, dict())
         config[wandb_key]["cli_version"] = wandb.__version__
-        if settings.save_code and settings.code_program:
+        if settings.save_code and settings.program_relpath:
             config[wandb_key]["code_path"] = to_forward_slash_path(
-                os.path.join("code", settings.code_program)
+                os.path.join("code", settings.program_relpath)
             )
         self._config._update(config)
+        self._atexit_cleanup_called = None
+        self._use_redirect = True
 
     def _init_from_settings(self, settings):
         if settings.entity is not None:
@@ -147,14 +205,17 @@ class RunManaged(Run):
 
     @property
     def path(self):
-        return "/".join([self._entity, self._project, self._run_id])
+        parts = []
+        for e in [self._entity, self._project, self._run_id]:
+            if e is not None:
+                parts.append(e)
+        return "/".join(parts)
 
     def project_name(self, api=None):
-        # TODO(jhr): this is probably not right needed by dataframes?
-        # api = api or self.api
-        # return (api.settings('project') or self.auto_project_name(api) or
-        #         "uncategorized")
-        return self._project
+        if not self._run_obj:
+            wandb.termwarn("Project name not available in offline run")
+            return
+        return self._run_obj.project
 
     @property
     def entity(self):
@@ -187,7 +248,7 @@ class RunManaged(Run):
         self._backend.interface.send_summary(data)
 
     def _datatypes_callback(self, fname):
-        files = dict(files=[(fname,)])
+        files = dict(files=[(fname, "now")])
         self._backend.interface.send_files(files)
 
     def _history_callback(self, row=None, step=None):
@@ -209,6 +270,13 @@ class RunManaged(Run):
 
         self._backend.interface.send_history(row, step)
         self.summary.update(row)
+
+    def _console_callback(self, name, data):
+        logger.info("callback: %s, %s", name, data)
+        self._backend.interface.send_output(name, data)
+
+    def _set_library(self, library):
+        self._wl = library
 
     def _set_backend(self, backend):
         self._backend = backend
@@ -248,6 +316,112 @@ class RunManaged(Run):
             self.config.persist()
 
     def log(self, data, step=None, commit=None, sync=None):
+        """Log a dict to the global run's history.
+
+        wandb.log can be used to log everything from scalars to histograms, media
+            and matplotlib plots.
+
+        The most basic usage is wandb.log({'train-loss': 0.5, 'accuracy': 0.9}).
+            This will save a history row associated with the run with train-loss=0.5
+            and accuracy=0.9. The history values can be plotted on app.wandb.ai or
+            on a local server. The history values can also be downloaded through
+            the wandb API.
+
+        Logging a value will update the summary values for any metrics logged.
+            The summary values will appear in the run table at app.wandb.ai or
+            a local server. If a summary value is manually set with for example
+            wandb.run.summary["accuracy"] = 0.9 wandb.log will no longer automatically
+            update the run's accuracy.
+
+        Logging values don't have to be scalars. Logging any wandb object is supported.
+            For example wandb.log({"example": wandb.Image("myimage.jpg")}) will log an
+            example image which will be displayed nicely in the wandb UI. See
+            https://docs.wandb.com/library/reference/data_types for all of the different
+            supported types.
+
+        Logging nested metrics is encouraged and is supported in the wandb API, so
+            you could log multiple accuracy values with wandb.log({'dataset-1':
+            {'acc': 0.9, 'loss': 0.3} ,'dataset-2': {'acc': 0.8, 'loss': 0.2}})
+            and the metrics will be organized in the wandb UI.
+
+        W&B keeps track of a global step so logging related metrics together is
+            encouraged, so by default each time wandb.log is called a global step
+            is incremented. If it's inconvenient to log related metrics together
+            calling wandb.log({'train-loss': 0.5, commit=False}) and then
+            wandb.log({'accuracy': 0.9}) is equivalent to calling
+            wandb.log({'train-loss': 0.5, 'accuracy': 0.9})
+
+        wandb.log is not intended to be called more than a few times per second.
+            If you want to log more frequently than that it's better to aggregate
+            the data on the client side or you may get degraded performance.
+
+        Args:
+            row (dict, optional): A dict of serializable python objects i.e str,
+                ints, floats, Tensors, dicts, or wandb.data_types
+            commit (boolean, optional): Save the metrics dict to the wandb server
+                and increment the step.  If false wandb.log just updates the current
+                metrics dict with the row argument and metrics won't be saved until
+                wandb.log is called with commit=True.
+            step (integer, optional): The global step in processing. This persists
+                any non-committed earlier steps but defaults to not committing the
+                specified step.
+            sync (boolean, True): This argument is deprecated and currently doesn't
+                change the behaviour of wandb.log
+
+        Examples:
+            Basic usage
+            ```
+            wandb.log({'accuracy': 0.9, 'epoch': 5})
+            ```
+
+            Incremental logging
+            ```
+            wandb.log({'loss': 0.2}, commit=False)
+            # Somewhere else when I'm ready to report this step:
+            wandb.log({'accuracy': 0.8})
+            ```
+
+            Histogram
+            ```
+            wandb.log({"gradients": wandb.Histogram(numpy_array_or_sequence)})
+            ```
+
+            Image
+            ```
+            wandb.log({"examples": [wandb.Image(numpy_array_or_pil, caption="Label")]})
+            ```
+
+            Video
+            ```
+            wandb.log({"video": wandb.Video(numpy_array_or_video_path, fps=4,
+                format="gif")})
+            ```
+
+            Matplotlib Plot
+            ```
+            wandb.log({"chart": plt})
+            ```
+
+            PR Curve
+            ```
+            wandb.log({'pr': wandb.plots.precision_recall(y_test, y_probas, labels)})
+            ```
+
+            3D Object
+            ```
+            wandb.log({"generated_samples":
+            [wandb.Object3D(open("sample.obj")),
+                wandb.Object3D(open("sample.gltf")),
+                wandb.Object3D(open("sample.glb"))]})
+            ```
+
+            For more examples, see https://docs.wandb.com/library/log
+
+        Raises:
+            wandb.Error - if called before wandb.init
+            ValueError - if invalid data is passed
+
+        """
         # TODO(cling): sync is a noop for now
         if not isinstance(data, collections.Mapping):
             raise ValueError("wandb.log must be passed a dictionary")
@@ -274,8 +448,138 @@ class RunManaged(Run):
         else:
             self.history._row_update(data)
 
-    def join(self):
-        self._backend.cleanup()
+    def save(
+        self,
+        glob_str: Optional[str] = None,
+        base_path: Optional[str] = None,
+        policy: str = "live",
+    ):
+        """ Ensure all files matching *glob_str* are synced to wandb with the policy specified.
+
+        Args:
+            glob_str (string): a relative or absolute path to a unix glob or regular
+                path.  If this isn't specified the method is a noop.
+            base_path (string): the base path to run the glob relative to
+            policy (string): on of "live", "now", or "end"
+                live: upload the file as it changes, overwriting the previous version
+                now: upload the file once now
+                end: only upload file when the run ends
+        """
+        if glob_str is None:
+            # noop for historical reasons, run.save() may be called in legacy code
+            wandb.termwarn(
+                (
+                    "Calling run.save without any arguments is deprecated."
+                    "Changes to attributes are automatically persisted."
+                )
+            )
+            return True
+        if policy not in ("live", "end", "now"):
+            raise ValueError(
+                'Only "live" "end" and "now" policies are currently supported.'
+            )
+        if isinstance(glob_str, bytes):
+            glob_str = glob_str.decode("utf-8")
+        if not isinstance(glob_str, string_types):
+            raise ValueError("Must call wandb.save(glob_str) with glob_str a str")
+
+        if base_path is None:
+            if os.path.isabs(glob_str):
+                base_path = os.path.dirname(glob_str)
+                wandb.termwarn(
+                    (
+                        "Saving files without folders. If you want to preserve "
+                        "sub directories pass base_path to wandb.save, i.e. "
+                        'wandb.save("/mnt/folder/file.h5", base_path="/mnt")'
+                    )
+                )
+            else:
+                base_path = "."
+        wandb_glob_str = os.path.relpath(glob_str, base_path)
+        if ".." + os.sep in wandb_glob_str:
+            raise ValueError("globs can't walk above base_path")
+        if glob_str.startswith("gs://") or glob_str.startswith("s3://"):
+            wandb.termlog(
+                "%s is a cloud storage url, can't save file to wandb." % glob_str
+            )
+            return []
+        files = glob.glob(os.path.join(self.dir, wandb_glob_str))
+        warn = False
+        if len(files) == 0 and "*" in wandb_glob_str:
+            warn = True
+        for path in glob.glob(glob_str):
+            file_name = os.path.relpath(path, base_path)
+            abs_path = os.path.abspath(path)
+            wandb_path = os.path.join(self.dir, file_name)
+            wandb.util.mkdir_exists_ok(os.path.dirname(wandb_path))
+            # We overwrite symlinks because namespaces can change in Tensorboard
+            if os.path.islink(wandb_path) and abs_path != os.readlink(wandb_path):
+                os.remove(wandb_path)
+                os.symlink(abs_path, wandb_path)
+            elif not os.path.exists(wandb_path):
+                os.symlink(abs_path, wandb_path)
+            files.append(wandb_path)
+        if warn:
+            file_str = "%i file" % len(files)
+            if len(files) > 1:
+                file_str += "s"
+            wandb.termwarn(
+                (
+                    "Symlinked %s into the W&B run directory, "
+                    "call wandb.save again to sync new files."
+                )
+                % file_str
+            )
+        files_dict = dict(files=[(wandb_glob_str, policy)])
+        self._backend.interface.send_files(files_dict)
+        return files
+
+    def restore(
+        self,
+        name: str,
+        run_path: Optional[str] = None,
+        replace: bool = False,
+        root: Optional[str] = None,
+    ):
+        """ Downloads the specified file from cloud storage into the current run directory
+        if it doesn't exist.
+
+        Args:
+            name: the name of the file
+            run_path: optional path to a different run to pull files from
+            replace: whether to download the file even if it already exists locally
+            root: the directory to download the file to.  Defaults to the current
+                directory or the run directory if wandb.init was called.
+
+        Returns:
+            None if it can't find the file, otherwise a file object open for reading
+
+        Raises:
+            wandb.CommError if it can't find the run
+        """
+
+        #  TODO: handle restore outside of a run context?
+        api = public.Api()
+        api_run = api.run(run_path or self.path)
+        if root is None:
+            root = self.dir  # TODO: runless else '.'
+        path = os.path.join(root, name)
+        if os.path.exists(path) and replace is False:
+            return open(path, "r")
+        files = api_run.files([name])
+        if len(files) == 0:
+            return None
+        return files[0].download(root=root, replace=True)
+
+    def join(self, exit_code=None):
+        """Marks a run as finished, and finishes uploading all data.  This is
+        used when creating multiple runs in the same process.  We automatically
+        call this method when your script exits.
+        """
+        self._atexit_cleanup(exit_code=exit_code)
+        if len(self._wl._global_run_stack) > 0:
+            self._wl._global_run_stack.pop()
+        module.unset_globals()
 
     def _get_project_url(self):
         s = self._settings
@@ -314,6 +618,111 @@ class RunManaged(Run):
             )
         )
 
+    def _redirect(self, stdout_slave_fd, stderr_slave_fd):
+        console = self._settings.console
+        logger.info("redirect: %s", console)
+
+        if console == "redirect":
+            logger.info("redirect1")
+            out_cap = redirect.Capture(name="stdout", cb=self._redirect_cb)
+            out_redir = redirect.Redirect(
+                src="stdout", dest=out_cap, unbuffered=True, tee=True
+            )
+            err_cap = redirect.Capture(name="stderr", cb=self._redirect_cb)
+            err_redir = redirect.Redirect(
+                src="stderr", dest=err_cap, unbuffered=True, tee=True
+            )
+            try:
+                out_redir.install()
+                err_redir.install()
+                self._out_redir = out_redir
+                self._err_redir = err_redir
+                logger.info("redirect2")
+            except (OSError, AttributeError) as e:
+                logger.error("failed to redirect", exc_info=e)
+            return
+
+        return
+
+        # TODO(jhr): everything below here is not executed as we only support redir mode
+        #
+        # from wandb.lib import console as lib_console
+        # from wandb.old import io_wrap
+        #
+        # redirect stdout
+        # if platform.system() == "Windows":
+        #     lib_console.win32_redirect(stdout_slave_fd, stderr_slave_fd)
+        # else:
+        #     self._save_stdout = sys.stdout
+        #     self._save_stderr = sys.stderr
+        #     stdout_slave = os.fdopen(stdout_slave_fd, "wb")
+        #     stderr_slave = os.fdopen(stderr_slave_fd, "wb")
+        #     stdout_redirector = io_wrap.FileRedirector(sys.stdout, stdout_slave)
+        #     stderr_redirector = io_wrap.FileRedirector(sys.stderr, stderr_slave)
+        #     stdout_redirector.redirect()
+        #     stderr_redirector.redirect()
+        #     self.stdout_redirector = stdout_redirector
+        #     self.stderr_redirector = stderr_redirector
+        # logger.info("redirect done")
+
+    def _restore(self):
+        logger.info("restore")
+        # TODO(jhr): drain and shutdown all threads
+        if self._use_redirect:
+            if self._out_redir:
+                self._out_redir.uninstall()
+            if self._err_redir:
+                self._err_redir.uninstall()
+            return
+
+        if self.stdout_redirector:
+            self.stdout_redirector.restore()
+        if self.stderr_redirector:
+            self.stderr_redirector.restore()
+        if self._save_stdout:
+            sys.stdout = self._save_stdout
+        if self._save_stderr:
+            sys.stderr = self._save_stderr
+        logger.info("restore done")
+
+    def _atexit_cleanup(self, exit_code=None):
+        if self._backend is None:
+            logger.warning("process exited without backend configured")
+            return False
+        if self._atexit_cleanup_called:
+            return
+        self._atexit_cleanup_called = True
+
+        exit_code = exit_code or self._hooks.exit_code if self._hooks else 0
+        logger.info("got exitcode: %d", exit_code)
+        ret = self._backend.interface.send_exit_sync(exit_code, timeout=60)
+        logger.info("got exit ret: %s", ret)
+        if ret is None:
+            print("Problem syncing data")
+            os._exit(1)
+
+        #  TODO: close the logging file handler
+
+        self.on_finish()
+
+        self.on_final()
+
+    def _console_start(self):
+        logger.info("atexit reg")
+        self._hooks = ExitHooks()
+        self._hooks.hook()
+        atexit.register(lambda: self._atexit_cleanup())
+
+        if self._use_redirect:
+            # setup fake callback
+            self._redirect_cb = self._console_callback
+
+        self._redirect(self._stdout_slave_fd, self._stderr_slave_fd)
+        pass
+
+    def _console_stop(self):
+        self._restore()
+
     def on_start(self):
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
@@ -324,11 +733,18 @@ class RunManaged(Run):
             )
             self._display_run()
         print("")
+        self._console_start()
 
     def on_finish(self):
+        self._console_stop()
+        self._backend.cleanup()
+        pass
+
+    def on_final(self):
         # check for warnings and errors, show log file locations
         # if self._run_obj:
         #    self._display_run()
+        # print("DEBUG on finish")
         if self._reporter:
             warning_lines = self._reporter.warning_lines
             if warning_lines:
@@ -393,20 +809,6 @@ class RunManaged(Run):
         with open(spec_filename, "w") as f:
             print(s, file=f)
         self.save(spec_filename)
-
-    def save(self, path):
-        # TODO(jhr): this only works with files at root level of files dir
-        fname = os.path.basename(path)
-
-        if os.path.exists(path):
-            dest = os.path.join(self._settings.files_dir, fname)
-            logger.info("Saving from %s to %s", path, dest)
-            shutil.copyfile(path, dest)
-        else:
-            logger.info("file not found: %s", path)
-
-        files = dict(files=[(fname,)])
-        self._backend.interface.send_files(files)
 
     # NB: there is a copy of this in wandb_watch.py with the same signature
     def watch(self, models, criterion=None, log="gradients", log_freq=100, idx=None):
@@ -520,3 +922,8 @@ class RunManaged(Run):
         artifact.finalize()
         self._backend.interface.send_artifact(self, artifact, aliases)
         return artifact
+
+    def _set_console(self, use_redirect, stdout_slave_fd, stderr_slave_fd):
+        self._use_redirect = use_redirect
+        self._stdout_slave_fd = stdout_slave_fd
+        self._stderr_slave_fd = stderr_slave_fd

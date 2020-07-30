@@ -7,6 +7,7 @@ from datetime import datetime
 import json
 import yaml
 import wandb
+from six.moves import urllib
 from tests.utils.mock_requests import RequestsMock
 # TODO: remove once python2 ripped out
 if sys.version_info < (3, 5):
@@ -131,7 +132,7 @@ def create_app(ctx):
         body = request.get_json()
         if body["variables"].get("files"):
             file = body["variables"]["files"][0]
-            url = request.url_root + "/storage?file=%s" % file
+            url = request.url_root + "/storage?file=%s" % urllib.parse.quote(file)
             return json.dumps({
                 "data": {
                     "model": {
@@ -213,7 +214,7 @@ def create_app(ctx):
             return json.dumps({
                 "data": {
                     "viewer": {
-                        "entity": "vanpelt",
+                        "entity": "mock_server_entity",
                         "flags": '{"code_saving_enabled": true}',
                         "teams": {
                             "edges": []  # TODO make configurable for cli_test
@@ -475,7 +476,22 @@ def create_app(ctx):
 
     @app.route("/pypi/<library>/json")
     def pypi(library):
-        return b'{ "info": { "version": "%s" } }' % wandb.__version__
+        return json.dumps({
+            "info": {
+                "version": wandb.__version__},
+            "releases": {
+                "88.1.2rc2": [],
+                "88.1.2rc12": [],
+                "88.1.2rc3": [],
+                "88.1.2rc4": [],
+                "0.0.8rc6": [],
+                "0.0.8rc2": [],
+                "0.0.8rc3": [],
+                "0.0.8rc8": [],
+                "0.0.7": [],
+                "0.0.5": [],
+                "0.0.6": [],
+            }})
 
     @app.errorhandler(404)
     def page_not_found(e):

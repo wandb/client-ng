@@ -222,8 +222,9 @@ class Api(object):
         if auth:
             key = auth[-1]
         # Environment should take precedence
-        if self._environ.get(env.API_KEY):
-            key = self._environ.get(env.API_KEY)
+        env_key = self._environ.get(env.API_KEY)
+        if env_key is not None:
+            key = env_key
         return key
 
     @property
@@ -778,7 +779,8 @@ class Api(object):
             kwargs['num_retries'] = num_retries
 
         variable_values = {
-            'id': id, 'entity': entity or self.settings('entity'), 'name': name, 'project': project,
+            'id': id, 'entity': entity or self.settings('entity'), 'name': name,
+            'project': project or util.auto_project_name(program_path),
             'groupName': group, 'tags': tags,
             'description': description, 'config': config, 'commit': commit,
             'displayName': display_name, 'notes': notes,
