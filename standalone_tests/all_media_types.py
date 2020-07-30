@@ -10,6 +10,8 @@ import table
 import molecule
 import point_cloud_scene
 import object3D
+import plotly_fig
+import matplotlib_fig
 
 wandb.init(project='all-media-test')
 
@@ -38,6 +40,8 @@ all_tests.update(table.all_tests)
 all_tests.update(molecule.all_tests)
 all_tests.update(point_cloud_scene.all_tests)
 all_tests.update(object3D.all_tests)
+all_tests.update(plotly_fig.all_tests)
+all_tests.update(matplotlib_fig.all_tests)
 
 for i in range(0, N):
     wandb.log(all_tests)
