@@ -13,7 +13,6 @@ import time
 
 from six import raise_from, reraise
 import wandb
-from wandb import util
 from wandb.backend.backend import Backend
 from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
@@ -105,9 +104,12 @@ class _WandbInit(object):
                     "currently unsupported wandb.init() arg: %s", key
                 )
 
+        print("DEBBBBBBBUG", dir(wandb))
         monitor_gym = kwargs.pop("monitor_gym", None)
         if monitor_gym and len(wandb.patched["gym"]) == 0:
-            util.get_module("wandb.gym").monitor()
+            mod = wandb.util.get_module("wandb.gym")
+            print("DEBUG", mod, dir(mod))
+            mod.monitor()
 
         # prevent setting project, entity if in sweep
         # TODO(jhr): these should be locked elements in the future or at least
