@@ -18,6 +18,7 @@ from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
+from wandb import util
 
 from .wandb_config import parse_config
 from .wandb_run import Run, RunDummy, RunManaged
@@ -96,7 +97,6 @@ class _WandbInit(object):
             "force",
             "tensorboard",
             "sync_tensorboard",
-            "monitor_gym",
         )
         for key in unsupported:
             val = kwargs.pop(key, None)
@@ -104,6 +104,10 @@ class _WandbInit(object):
                 self._reporter.warning(
                     "currently unsupported wandb.init() arg: %s", key
                 )
+
+        monitor_gym = kwargs.pop("monitor_gym", None)
+        if monitor_gym and len(wandb.patched["gym"]) == 0:
+            util.get_module("wandb.gym").monitor()
 
         # prevent setting project, entity if in sweep
         # TODO(jhr): these should be locked elements in the future or at least
