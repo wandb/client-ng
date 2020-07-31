@@ -14,5 +14,5 @@ include = '''
 | wandb/internal/
 | wandb/util/
 | wandb/server/
-| wandb/gym/
+| wandb/framework/gym/
 '''
