@@ -131,5 +131,5 @@ jobs:
 
             - run:
                   name: Run all media test script for setup
-                  command: pytest integration_tests/
+                  command: python -m pytest integration_tests/
 
