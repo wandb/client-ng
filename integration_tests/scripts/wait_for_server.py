@@ -17,5 +17,5 @@ while not is_timeout():
         sys.exit(os.EX_OK)
     time.sleep(0.2)
 
-sys.exit(os.EX_OK)
 print("Server failed to respond with a 200.")
+sys.exit(os.EX_OK)
