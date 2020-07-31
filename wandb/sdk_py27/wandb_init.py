@@ -345,44 +345,72 @@ def getcaller():
 
 def init(
     job_type = None,
-    dir=None,
+    dir = None,
     config = None,  # TODO(jhr): type is a union for argparse/absl
     project = None,
     entity = None,
     reinit = None,
     tags = None,
-    team = None,
+    team = None,  # LB What is this?
     group = None,
     name = None,
     notes = None,
     magic = None,  # TODO(jhr): type is union
-    config_exclude_keys=None,
-    config_include_keys=None,
+    config_exclude_keys = None,  # LB: Seems unsupported
+    config_include_keys = None,  # LB: Seems unsupported
     anonymous = None,
-    disable = None,
-    offline = None,
-    allow_val_change = None,
-    resume=None,
-    force=None,
-    tensorboard=None,  # alias for sync_tensorboard
-    sync_tensorboard=None,
-    monitor_gym=None,
-    id=None,
-    settings = None,
-):
-    """Initialize a wandb Run.
+    disable = None,  # LB: What is this
+    offline = None,  # LB: What is this
+    allow_val_change = None,  # LB: What is this?
+    resume = None,
+    force = None,
+    tensorboard = None,  # alias for sync_tensorboard, deprecated
+    sync_tensorboard = None,
+    monitor_gym = None,  # LB: Currently unsupported
+    id = None,
+    settings = None,  # LB: What is this?
+):  # LB: save_code seems unsupported?
+    """Initialize W&B
+
+    Spawns a new process to communicate with W&B.
+
+    If called from within Jupyter, initializes a new run and waits for a call to
+    `wandb.log` to begin pushing metrics.
 
     Args:
-        entity: alias for team.
-        team: personal user or team to use for Run.
-        project: project name for the Run.
-
-    Raises:
-        Exception: if problem.
+        job_type (str, optional): The type of job running, defaults to 'train'
+        dir (str, optional): An absolute path to a directory where metadata will be
+            stored
+        config (dict, argparse, or tf.FLAGS, optional): The hyper parameters to
+            store with the run
+        project (str, optional): The run's project
+        entity (str, optional): The run's entity
+        reinit (bool, optional): Allow multiple calls to init in the same process
+        tags (list, optional): A list of tags to apply to the run
+        team (str, optional): ??
+        group (str, optional): A unique string shared by all runs in a given group
+        name (str, optional): A display name which does not have to be unique.
+        notes (str, optional): A multiline string associated with the run
+        magic (bool, dict, or str, optional): magic configuration as bool, dict,
+            json string, yaml filename
+        config_exclude_keys (list, optional): string keys to exclude storing in W&B
+            when specifying config.
+        config_include_keys (list, optional): string keys to include storing in W&B
+            when specifying config
+        anonymous (str, optional): Can be "allow", "must", or "never". Controls whether
+            anonymous logging is allowed.  Defaults to never.
+        resume (bool, str, optional): Automatically resume this run if run from the
+            same machine, you can also pass a unique run_id
+        force (bool, optional): Force authentication with wandb, defaults to False
+        sync_tensorboard (bool, optional): Synchronize wandb logs to tensorboard or
+            tensorboardX
+        save_code (bool, optional): Save the entrypoint or jupyter session history
+            source code.
+        id (str, optional): A globally unique (per project) identifier for the run
+        settings (dict): ??
 
     Returns:
-        wandb Run object
-
+        A wandb.run object for metric and config logging.
     """
     assert not wandb._IS_INTERNAL_PROCESS
     kwargs = locals()
