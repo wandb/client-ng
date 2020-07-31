@@ -104,10 +104,8 @@ class _WandbInit(object):
                     "currently unsupported wandb.init() arg: %s", key
                 )
 
-        print("DEBBBBBBBUG", dir(wandb))
         monitor_gym = kwargs.pop("monitor_gym", None)
         if monitor_gym and len(wandb.patched["gym"]) == 0:
-            print("DEBUG", wandb.gym)
             wandb.gym.monitor()
 
         # prevent setting project, entity if in sweep
