@@ -17,7 +17,6 @@ import atexit
 from wandb.lib.globals import unset_globals
 from wandb.internal.git_repo import GitRepo
 from wandb.util import mkdir_exists_ok
-from wandb.old import settings
 from six.moves import urllib
 try:
     import nbformat
@@ -145,12 +144,13 @@ def local_netrc(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def local_settings(monkeypatch):
+def local_settings(mocker):
     """Place global settings in an isolated dir"""
     with CliRunner().isolated_filesystem():
         cfg_path = os.path.join(os.getcwd(), ".config", "wandb", "settings")
         mkdir_exists_ok(os.path.join(".config", "wandb"))
-        monkeypatch.setattr(settings.Settings, "_global_path", lambda: cfg_path)
+        mocker.patch("wandb.old.settings.Settings._global_path",
+                     return_value=cfg_path)
         yield
 
 
