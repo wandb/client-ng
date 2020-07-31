@@ -711,6 +711,7 @@ class Runs(Paginator):
 
     def convert_objects(self):
         objs = []
+        # import ipdb; ipdb.set_trace()
         for run_response in self.last_response['project']['runs']['edges']:
             run = Run(self.client, self.entity, self.project, run_response["node"]["name"], run_response["node"])
             objs.append(run)
