@@ -124,7 +124,7 @@ jobs:
                   background: true
             - run:
                   name: Waiting for server to be ready
-                  command: npx wait-on -t 100000 http-get://localhost:9000/
+                  command: python integration_tests/scripts/wait_for_server.py
             - run:
                   name: Set environment variables
                   command: source <(python integration_tests/tests/setup.py)
