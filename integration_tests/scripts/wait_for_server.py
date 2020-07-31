@@ -5,8 +5,8 @@ import os
 
 start_time = time.time()
 
-TIMEOUT_SECONDS = 40
-RETRY_RATE = 0.2
+TIMEOUT_SECONDS = 100
+RETRY_RATE = 0.8
 # Checks if the script should timeout
 def is_timeout():
     return (time.time() - start_time) > TIMEOUT_SECONDS

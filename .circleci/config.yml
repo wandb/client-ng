@@ -130,6 +130,10 @@ jobs:
                   command: source <(python integration_tests/tests/setup.py)
 
             - run:
+                  name: Pip install
+                  command:  pip install -r requirements_dev.txt
+
+            - run:
                   name: Run all media test script for setup
                   command: python -m pytest integration_tests/
 
