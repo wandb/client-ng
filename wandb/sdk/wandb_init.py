@@ -107,7 +107,7 @@ class _WandbInit(object):
         print("DEBBBBBBBUG", dir(wandb))
         monitor_gym = kwargs.pop("monitor_gym", None)
         if monitor_gym and len(wandb.patched["gym"]) == 0:
-            mod = wandb.util.get_module("wandb.gym")
+            mod = wandb.util.get_module("wandb.gym", required=True)
             print("DEBUG", mod, dir(mod))
             mod.monitor()
 
