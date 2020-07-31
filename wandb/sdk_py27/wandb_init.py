@@ -406,6 +406,8 @@ def init(
             tensorboardX
         save_code (bool, optional): Save the entrypoint or jupyter session history
             source code.
+        monitor_gym (bool, optional): automatically log videos with openai gym
+            (https://gym.openai.com/)
         id (str, optional): A globally unique (per project) identifier for the run
         settings (dict): ??
 
