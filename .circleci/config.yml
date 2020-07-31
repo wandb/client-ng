@@ -1,6 +1,7 @@
 version: 2.1
 
-orbs: win: circleci/windows@2.2.0
+orbs: 
+    win: circleci/windows@2.2.0
 
 workflows:
   main:
@@ -119,20 +120,15 @@ jobs:
                   command: pip3 install tox
             - run:
                   name: Run local
-                  command: sh integration-tests/scripts/serve-local.sh
+                  command: sh integration_tests/scripts/serve-local.sh
                   background: true
             - run:
-                name: Waiting for server to be ready
-                command: npx wait-on -t 100000 http-get://localhost:9000/
+                  name: Waiting for server to be ready
+                  command: npx wait-on -t 100000 http-get://localhost:9000/
             - run:
                   name: Set environment variables
-                  command: source <(python integration-tests/tests/setup.py)
+                  command: source <(python integration_tests/tests/setup.py)
             - run:
                   name: Run all media test script for setup
-                  command: python integration-tests/test-scripts/media/all_media_types.py
-            - run:
-                name: Run integration tests
-                command: python integration-tests/tests/all_media.py
-
-
+                  command: pytest integration_tests/
 
