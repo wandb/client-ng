@@ -226,8 +226,9 @@ message StatusResult {
 
 message ResultRecord {
   oneof data {
-    RunUpdateResult run = 17;
-    RunExitResult   exit = 18;
-    StatusResult    status = 19;
+    RunUpdateResult run_result = 17;
+    RunExitResult   exit_result = 18;
+    StatusResult    status_result = 19;
+    LogResult       log_result = 20;
   }
 }
