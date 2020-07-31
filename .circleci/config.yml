@@ -28,8 +28,6 @@ workflows:
          toxenv: "py38"
       - integration:
           name: "Integration"
-          image: "python:3.8"
-          toxenv: "py38"
       - win:
          name: "Windows (Python 3.7)"
       - mac:
