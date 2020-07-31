@@ -110,7 +110,7 @@ jobs:
 
     integration:
         docker:
-            - image: python:3.7
+            - image: circleci/python:3.8.4
         steps:
             - checkout
             - setup_remote_docker:
