@@ -207,6 +207,18 @@ class RunManaged(Run):
             self._backend.interface.send_run(self)
 
     @property
+    def notes(self):
+        if not self._run_obj:
+            return None
+        return self._run_obj.notes
+
+    @notes.setter
+    def notes(self, notes):
+        self._notes = notes
+        if self._backend:
+            self._backend.interface.send_run(self)
+
+    @property
     def id(self):
         return self._run_id
 
