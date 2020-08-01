@@ -446,6 +446,9 @@ class RunManaged(Run):
         if not isinstance(data, collections.Mapping):
             raise ValueError("wandb.log must be passed a dictionary")
 
+        if any(not isinstance(key, string_types) for key in data.keys()):
+            raise ValueError("Key values passed to `wandb.log` must be strings.")
+
         if step is not None:
             if self.history._step > step:
                 wandb.termwarn(
