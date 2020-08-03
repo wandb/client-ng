@@ -7,6 +7,26 @@ import threading
 import time
 
 import six
+from wandb import util
+
+
+def _link_and_save_file(path, base_path=None, sender=None):
+    # TODO(jhr): should this logic be merged with Run.save()
+    if base_path is None:
+        base_path = os.path.dirname(path)
+    files_dir = sender._settings.files_dir
+    file_name = os.path.relpath(path, base_path)
+    abs_path = os.path.abspath(path)
+    wandb_path = os.path.join(files_dir, file_name)
+    util.mkdir_exists_ok(os.path.dirname(wandb_path))
+    # We overwrite existing symlinks because namespaces can change in Tensorboard
+    if os.path.islink(wandb_path) and abs_path != os.readlink(wandb_path):
+        os.remove(wandb_path)
+        os.symlink(abs_path, wandb_path)
+    elif not os.path.exists(wandb_path):
+        os.symlink(abs_path, wandb_path)
+    # TODO(jhr): need to figure out policy
+    sender._save_file(file_name)
 
 
 class TBWatcher(object):
@@ -88,9 +108,9 @@ class TBDirWatcher(object):
                         parts.pop()
                         logdir = os.path.join(*parts)
                     # wandb.save(file_path, base_path=logdir)
-                    # TODO(jhr): deal with symlink file since out of files dir
-                    # TODO(jhr): need to figure out policy
-                    _loader_sender._save_file(file_path)
+                    _link_and_save_file(
+                        file_path, base_path=logdir, sender=_loader_sender
+                    )
 
         return EventFileLoader
 
