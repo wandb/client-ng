@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-internal.
+sender.
 """
 
 from __future__ import print_function
@@ -23,6 +23,7 @@ from wandb.util import sentry_set_scope
 from . import artifacts
 from . import file_stream
 from . import internal_api
+from . import tb_watcher
 from .file_pusher import FilePusher
 from .git_repo import GitRepo
 
@@ -53,6 +54,7 @@ class SendManager(object):
         self._fs = None
         self._pusher = None
         self._dir_watcher = None
+        self._tb_watcher = None
 
         # is anyone using run_id?
         self._run_id = None
@@ -90,7 +92,9 @@ class SendManager(object):
                         dictionary[k + "." + k2] = v2
 
     def handle_tbdata(self, data):
-        pass
+        if self._tb_watcher:
+            tbdata = data.tbdata
+            self._tb_watcher.add(tbdata.log_dir, tbdata.save)
 
     def handle_exit(self, data):
         exit = data.exit
@@ -177,6 +181,7 @@ class SendManager(object):
         self._fs.start()
         self._pusher = FilePusher(self._api)
         self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
+        self._tb_watcher = tb_watcher.TBWatcher(self._settings)
         self._run_id = run.run_id
         if self._run_meta:
             self._run_meta.write()
