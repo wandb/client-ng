@@ -298,7 +298,7 @@ class RunManaged(Run):
     def _tensorboard_callback(self, logdir, save=None):
         logger.info("tensorboard callback: %s, %s", logdir, save)
         save = True if save is None else save
-        # self._backend.interface.send_output(name, data)
+        self._backend.interface.send_tbdata(logdir, save)
 
     def _set_library(self, library):
         self._wl = library

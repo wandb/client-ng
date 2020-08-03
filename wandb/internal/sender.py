@@ -89,6 +89,9 @@ class SendManager(object):
                     for k2, v2 in v.items():
                         dictionary[k + "." + k2] = v2
 
+    def handle_tbdata(self, data):
+        pass
+
     def handle_exit(self, data):
         exit = data.exit
         self._exit_code = exit.exit_code
