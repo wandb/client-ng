@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.38'
+__version__ = '0.0.39'
 
 # Used with pypi checks and other messages related to pip
 _wandb_module = 'wandb-ng'
@@ -130,6 +130,7 @@ keras = _lazyloader.LazyLoader("wandb.keras", globals(), "wandb.framework.keras"
 sklearn = _lazyloader.LazyLoader("wandb.sklearn", globals(), "wandb.sklearn")
 tensorflow = _lazyloader.LazyLoader("wandb.tensorflow", globals(), "wandb.tensorflow")
 xgboost = _lazyloader.LazyLoader("wandb.xgboost", globals(), "wandb.framework.xgboost")
+gym = _lazyloader.LazyLoader("wandb.gym", globals(), "wandb.framework.gym")
 lightgbm = _lazyloader.LazyLoader(
     "wandb.lightgbm", globals(), "wandb.framework.lightgbm"
 )
