@@ -181,7 +181,7 @@ class SendManager(object):
         self._fs.start()
         self._pusher = FilePusher(self._api)
         self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
-        self._tb_watcher = tb_watcher.TBWatcher(self._settings)
+        self._tb_watcher = tb_watcher.TBWatcher(self._settings, sender=self)
         self._run_id = run.run_id
         if self._run_meta:
             self._run_meta.write()
@@ -293,6 +293,8 @@ class SendManager(object):
         )
 
     def finish(self):
+        if self._tb_watcher:
+            self._tb_watcher.finish()
         if self._dir_watcher:
             self._dir_watcher.finish()
         if self._pusher:
