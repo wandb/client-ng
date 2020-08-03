@@ -292,8 +292,13 @@ class RunManaged(Run):
         self.summary.update(row)
 
     def _console_callback(self, name, data):
-        logger.info("callback: %s, %s", name, data)
+        logger.info("console callback: %s, %s", name, data)
         self._backend.interface.send_output(name, data)
+
+    def _tensorboard_callback(self, logdir, save=None):
+        logger.info("tensorboard callback: %s, %s", logdir, save)
+        save = True if save is None else save
+        #self._backend.interface.send_output(name, data)
 
     def _set_library(self, library):
         self._wl = library
