@@ -3,6 +3,8 @@ import time
 import datetime
 import requests
 import os
+import sys
+import shutil
 from contextlib import contextmanager
 from tests import utils
 # from multiprocessing import Process
@@ -10,10 +12,10 @@ import subprocess
 import click
 from click.testing import CliRunner
 import webbrowser
-import wandb
 import git
 import psutil
 import atexit
+import wandb
 from wandb.lib.module import unset_globals
 from wandb.internal.git_repo import GitRepo
 from wandb.util import mkdir_exists_ok
@@ -46,32 +48,70 @@ def start_mock_server():
     port = utils.free_port()
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     path = os.path.join(root, "tests", "utils", "mock_server.py")
-    command = ["python", path]
+    command = [sys.executable, "-u", path]
     env = os.environ
     env["PORT"] = str(port)
     env["PYTHONPATH"] = root
-    server = subprocess.Popen(command, env=env)
+    logfile = open("tests/logs/live_mock_server.log", "w")
+    server = subprocess.Popen(command, stdout=logfile,
+                              env=env, stderr=subprocess.STDOUT, bufsize=1,
+                              close_fds=True)
     server._port = port
     server.base_url = "http://localhost:%i" % server._port
+
+    def get_ctx():
+        return requests.get(server.base_url + "/ctx").json()
+
+    def set_ctx(payload):
+        return requests.put(server.base_url + "/ctx", json=payload).json()
+
+    def reset_ctx():
+        return requests.delete(server.base_url + "/ctx").json()
+
+    server.get_ctx = get_ctx
+    server.set_ctx = set_ctx
+    server.reset_ctx = reset_ctx
+
+    started = False
     for i in range(5):
         try:
-            res = requests.get("%s/storage" % server.base_url, timeout=1)
+            res = requests.get("%s/ctx" % server.base_url, timeout=1)
             if res.status_code == 200:
+                started = True
                 break
             print("Attempting to connect but got: %s", res)
         except requests.exceptions.RequestException:
-            print("timed out")
+            print("Timed out waiting for server to start...")
+            if server.poll() is None:
+                time.sleep(1)
+            else:
+                raise ValueError("Server failed to start.")
+    if started:
+        print("Mock server listing on %s see tests/logs/live_mock_server.log" %
+              server._port)
+    else:
+        server.terminate()
+        output, _ = server.communicate(timeout=1)
+        print(output.decode("utf-8"))
+        raise ValueError("Failed to start server!  Exit code %s" % server.returncode)
     return server
 
 
-atexit.register(test_cleanup)
 start_mock_server()
+atexit.register(test_cleanup)
 
 
 @pytest.fixture
-def test_dir(runner):
-    with runner.isolated_filesystem():
-        yield runner
+def test_dir(request):
+    orig_dir = os.getcwd()
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    test_dir = os.path.join(root, "tests", "logs", request.node.name)
+    if os.path.exists(test_dir):
+        shutil.rmtree(test_dir)
+    mkdir_exists_ok(test_dir)
+    os.chdir(test_dir)
+    yield runner
+    os.chdir(orig_dir)
 
 
 @pytest.fixture
@@ -88,21 +128,42 @@ def git_repo(test_dir):
 
 
 @pytest.fixture
-def test_settings(test_dir):
+def test_settings(test_dir, mocker):
     """ Settings object for tests"""
+    #  TODO: likely not the right thing to do, we shouldn't be setting this
+    wandb._IS_INTERNAL_PROCESS = False
+    wandb.wandb_sdk.wandb_run.EXIT_TIMEOUT = 5
     wandb_dir = os.path.join(os.getcwd(), "wandb")
     mkdir_exists_ok(wandb_dir)
+    # root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    # TODO: consider making a debugable directory that stays around...
     settings = wandb.Settings(_start_time=time.time(),
                               base_url="http://localhost",
                               root_dir=os.getcwd(),
                               wandb_dir=wandb_dir,
                               save_code=True,
+                              project="test",
+                              console="off",
                               host="test",
                               run_id=wandb.util.generate_id(),
                               _start_datetime=datetime.datetime.now())
     settings.setdefaults()
     settings.files_dir = settings._path_convert(settings.files_dir_spec)
+    orig_init = wandb.init
+    run = None
+
+    def test_init(*args, **kwargs):
+        global run
+        run = orig_init(*args, **kwargs)
+        return run
+    # TODO: Tried this to cleanup, didn't work...
+    # mocker.patch("wandb.init", test_init)
     yield settings
+    # Make sure we join any runs after a test executes.
+    if wandb.run is not None:
+        run = wandb.run
+    if run is not None:
+        run.join()
 
 
 @pytest.fixture
@@ -165,8 +226,14 @@ def live_mock_server(request):
     name = urllib.parse.quote(request.node.name)
     # We set the username so the mock backend can namespace state
     os.environ["WANDB_USERNAME"] = name
+    os.environ["WANDB_BASE_URL"] = server.base_url
+    os.environ["WANDB_ERROR_REPORTING"] = "false"
+    # clear mock server ctx
+    server.reset_ctx()
     yield server
     del os.environ["WANDB_USERNAME"]
+    del os.environ["WANDB_BASE_URL"]
+    del os.environ["WANDB_ERROR_REPORTING"]
 
 
 @pytest.fixture

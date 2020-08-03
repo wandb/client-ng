@@ -49,6 +49,7 @@ message RunData {
   SettingsData settings = 11;
   string sweep_id = 12;
   string host = 13;
+  int64 starting_step = 14;
 
   string storage_id = 16;
   google.protobuf.Timestamp start_time = 17;
@@ -204,6 +205,18 @@ message ExitData {
   int32 exit_code = 1;
 }
 
+message ErrorData {
+  enum ErrorCode {
+    UNKNOWN = 0;
+    INVALID = 1;
+    PERMISSION = 2;
+    NETWORK = 3;
+    INTERNAL = 4;
+  }
+  string  message = 1;
+  ErrorCode code = 2;
+}
+
 
 message StatusData {
 }
@@ -213,6 +226,7 @@ message StatusData {
  */
 message RunUpdateResult {
   RunData run = 1;
+  ErrorData error = 2;
 }
 
 message RunExitResult {

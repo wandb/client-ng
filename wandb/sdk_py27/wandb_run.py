@@ -15,6 +15,7 @@ import logging
 import os
 import platform
 import sys
+import time
 import traceback
 
 import click
@@ -37,6 +38,7 @@ if wandb.TYPE_CHECKING:  # type: ignore
 
 
 logger = logging.getLogger("wandb")
+EXIT_TIMEOUT = 60
 
 
 class Run(object):
@@ -106,6 +108,7 @@ class RunManaged(Run):
         self._group = None
         self._job_type = None
         self._run_id = settings.run_id
+        self._start_time = time.time()
         self._name = None
         self._notes = None
         self._tags = None
@@ -178,6 +181,8 @@ class RunManaged(Run):
         if self._tags is not None:
             for tag in self._tags:
                 run.tags.append(tag)
+        if self._start_time is not None:
+            run.start_time.FromSeconds(int(self._start_time))
         # Note: run.config is set in interface/interface:_make_run()
 
     def __getstate__(self):
@@ -211,6 +216,13 @@ class RunManaged(Run):
             if e is not None:
                 parts.append(e)
         return "/".join(parts)
+
+    @property
+    def start_time(self):
+        if not self._run_obj:
+            return self._start_time
+        else:
+            return self._run_obj.start_time.ToSeconds()
 
     def project_name(self, api=None):
         if not self._run_obj:
@@ -287,6 +299,9 @@ class RunManaged(Run):
 
     def _set_run_obj(self, run_obj):
         self._run_obj = run_obj
+        # Set our step and start_time when resuming
+        self.history._step = run_obj.starting_step
+        self.history._start_time = self.start_time
         # TODO: It feels weird to call this twice..
         sentry_set_scope("user", run_obj.entity, run_obj.project, self._get_run_url())
 
@@ -443,7 +458,6 @@ class RunManaged(Run):
                 self.history._step = step
         elif commit is None:
             commit = True
-        #  TODO: ensure history is pushed on exit for non-added rows
         if commit:
             self.history._row_add(data)
         else:
@@ -577,6 +591,7 @@ class RunManaged(Run):
         used when creating multiple runs in the same process.  We automatically
         call this method when your script exits.
         """
+        self._wl.on_finish()
         self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
@@ -698,7 +713,11 @@ class RunManaged(Run):
 
         exit_code = exit_code or self._hooks.exit_code if self._hooks else 0
         logger.info("got exitcode: %d", exit_code)
-        ret = self._backend.interface.send_exit_sync(exit_code, timeout=60)
+        if exit_code == 0:
+            # Cleanup our resume file on a clean exit
+            if os.path.exists(self._settings.resume_fname):
+                os.remove(self._settings.resume_fname)
+        ret = self._backend.interface.send_exit_sync(exit_code, timeout=EXIT_TIMEOUT)
         logger.info("got exit ret: %s", ret)
         if ret is None:
             print("Problem syncing data")

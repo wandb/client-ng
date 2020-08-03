@@ -5,6 +5,8 @@ Track history from Run.log() calls.
 
 """
 
+import time
+
 from wandb.wandb_torch import TorchHistory
 
 
@@ -17,6 +19,7 @@ class History(object):
         self._data = dict()
         self._callback = None
         self._torch = None
+        self._start_time = time.time()
         self.compute = True
 
     def _set_callback(self, cb):
@@ -33,6 +36,10 @@ class History(object):
     def _flush(self):
         if len(self._data) > 0:
             self._data["_step"] = self._step
+            self._data["_runtime"] = int(
+                self._data.get("_runtime", time.time() - self._start_time)
+            )
+            self._data["_timestamp"] = int(self._data.get("_timestamp", time.time()))
             if self._callback:
                 self._callback(row=self._data, step=self._step)
             self._data = dict()

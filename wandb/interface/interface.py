@@ -10,6 +10,7 @@ import logging
 
 import six
 from six.moves import queue
+import wandb
 from wandb import data_types
 from wandb.interface import constants
 from wandb.proto import wandb_internal_pb2  # type: ignore
@@ -104,7 +105,6 @@ class BackendSender(object):
     def _make_run(self, run):
         proto_run = wandb_internal_pb2.RunData()
         run._make_proto_run(proto_run)
-        proto_run.start_time.GetCurrentTime()
         proto_run.host = run._settings.host
         if run._config is not None:
             config_dict = run._config._as_dict()
@@ -318,6 +318,11 @@ class BackendSender(object):
 
         req = self._make_record(run=run)
         resp = self._request_response(req, timeout=timeout)
+        if resp is None:
+            # TODO: friendlier error message here
+            raise wandb.Error(
+                "Couldn't communicate with backend after %s seconds" % timeout
+            )
         assert resp.run_result
         return resp.run_result
 
@@ -357,6 +362,11 @@ class BackendSender(object):
         req = self._make_record(exit=exit_data)
 
         resp = self._request_response(req, timeout=timeout)
+        if resp is None:
+            # TODO: friendlier error message here
+            raise wandb.Error(
+                "Couldn't communicate with backend after %s seconds" % timeout
+            )
         assert resp.exit_result
         return resp.exit_result
 

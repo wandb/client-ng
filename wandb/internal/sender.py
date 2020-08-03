@@ -110,6 +110,44 @@ class SendManager(object):
             resp = wandb_internal_pb2.ResultRecord()
             self._resp_q.put(resp)
 
+    def _maybe_setup_resume(self, run):
+        """This maybe queries the backend for a run and fails if the settings are
+        incompatible."""
+        offsets = {"step": 0, "history": 0, "events": 0, "output": 0, "runtime": 0}
+        error = None
+        if self._settings.resume:
+            # TODO: This causes a race, we need to make the upsert atomically
+            # only create or update depending on the resume config
+            resume_status = self._api.run_resume_status(
+                entity=run.entity, project_name=run.project, name=run.run_id
+            )
+            if resume_status is None:
+                if self._settings.resume == "must":
+                    error = wandb_internal_pb2.ErrorData()
+                    error.code = wandb_internal_pb2.ErrorData.ErrorCode.INVALID
+                    error.message = (
+                        "resume='must' but run (%s) doesn't exist" % run.run_id
+                    )
+            else:
+                if self._settings.resume == "never":
+                    error = wandb_internal_pb2.ErrorData()
+                    error.code = wandb_internal_pb2.ErrorData.ErrorCode.INVALID
+                    error.message = "resume='never' but run (%s) exists" % run.run_id
+                elif self._settings.resume in ("allow", "auto"):
+                    try:
+                        history = json.loads(
+                            json.loads(resume_status["historyTail"])[-1]
+                        )
+                    except (IndexError, ValueError):
+                        history = {}
+                    # TODO: Do we need to restore config / summary?
+                    offsets["runtime"] = history.get("_runtime", 0)
+                    offsets["step"] = history.get("_step", 0)
+                    offsets["history"] = resume_status["historyLineCount"]
+                    offsets["events"] = resume_status["eventsLineCount"]
+                    offsets["output"] = resume_status["logLineCount"]
+        return offsets, error
+
     def handle_run(self, data):
         run = data.run
         run_tags = run.tags[:]
@@ -123,7 +161,18 @@ class SendManager(object):
 
         repo = GitRepo(remote=self._settings.git_remote)
 
-        ups = self._api.upsert_run(
+        offsets, error = self._maybe_setup_resume(run)
+        if error is not None:
+            if data.control.req_resp:
+                resp = wandb_internal_pb2.ResultRecord()
+                resp.run_result.run.CopyFrom(run)
+                resp.run_result.error.CopyFrom(error)
+                self._resp_q.put(resp)
+            else:
+                logger.error("Got error in async mode: %s", error.message)
+            return
+
+        ups, inserted = self._api.upsert_run(
             name=run.run_id,
             entity=run.entity or None,
             project=run.project or None,
@@ -140,10 +189,16 @@ class SendManager(object):
             commit=repo.last_commit,
         )
 
+        # TODO: not checking `inserted` for now
+
+        start_time = run.start_time.ToSeconds() - offsets["runtime"]
         if data.control.req_resp:
             resp = wandb_internal_pb2.ResultRecord()
             resp.run_result.run.CopyFrom(run)
             resp_run = resp.run_result.run
+            resp_run.starting_step = offsets["step"]
+            # TODO: is this really what we want?
+            resp_run.start_time.FromSeconds(start_time)
             storage_id = ups.get("id")
             if storage_id:
                 resp_run.storage_id = storage_id
@@ -169,7 +224,21 @@ class SendManager(object):
         if self._project is not None:
             self._api_settings["project"] = self._project
         self._fs = file_stream.FileStreamApi(
-            self._api, run.run_id, settings=self._api_settings
+            self._api, run.run_id, start_time, settings=self._api_settings
+        )
+        # Ensure the streaming polices have the proper offsets
+        self._fs.set_file_policy("wandb-summary.json", file_stream.SummaryFilePolicy())
+        self._fs.set_file_policy(
+            "wandb-history.jsonl",
+            file_stream.JsonlFilePolicy(start_chunk_id=offsets["history"]),
+        )
+        self._fs.set_file_policy(
+            "wandb-events.jsonl",
+            file_stream.JsonlFilePolicy(start_chunk_id=offsets["events"]),
+        )
+        self._fs.set_file_policy(
+            "output.log",
+            file_stream.CRDedupeFilePolicy(start_chunk_id=offsets["output"]),
         )
         self._fs.start()
         self._pusher = FilePusher(self._api)
@@ -212,6 +281,7 @@ class SendManager(object):
         self._flatten(row)
         row["_wandb"] = True
         row["_timestamp"] = now
+        # TODO: run has a start_time, as well as history and settings :(
         row["_runtime"] = int(now - self._settings._start_time)
         self._fs.push("wandb-events.jsonl", json.dumps(row))
         # TODO(jhr): check fs.push results?

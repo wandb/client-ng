@@ -47,6 +47,7 @@ class _WandbInit(object):
         self.run = None
         self.backend = None
 
+        self._log_handler = None
         self._wl = None
         self._reporter = None
 
@@ -92,7 +93,6 @@ class _WandbInit(object):
             "config_exclude_keys",
             "config_include_keys",
             "allow_val_change",
-            "resume",
             "force",
             "tensorboard",
             "sync_tensorboard",
@@ -155,8 +155,10 @@ class _WandbInit(object):
         if run_id:
             handler.addFilter(WBFilter())
         logger.propagate = False
-        logger.setLevel(logging.DEBUG)
         logger.addHandler(handler)
+        # TODO: make me configurable
+        logger.setLevel(logging.DEBUG)
+        self._wl.set_log_handler(handler)
 
     def _safe_symlink(self, base, target, name, delete=False):
         # TODO(jhr): do this with relpaths, but i cant figure it out on no sleep
@@ -258,7 +260,7 @@ class _WandbInit(object):
                     wandb.termwarn(
                         "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"  # noqa: E501
                     )
-                wandb.join()
+                self._wl._global_run_stack[-1].join()
 
         if s.mode == "noop":
             # TODO(jhr): return dummy object
@@ -308,7 +310,10 @@ class _WandbInit(object):
 
         if s.mode == "online":
             ret = backend.interface.send_run_sync(run, timeout=30)
-            # TODO: fail on error, check return type
+            # TODO: fail on more errors, check return type
+            # TODO: make the backend log stacktraces on catostrophic failure
+            if ret.HasField("error"):
+                raise wandb.Error(ret.error.message)
             run._set_run_obj(ret.run)
         elif s.mode in ("offline", "dryrun"):
             backend.interface.send_run(run)
@@ -362,7 +367,7 @@ def init(
     disable: bool = None,
     offline: bool = None,
     allow_val_change: bool = None,
-    resume=None,
+    resume: Optional[Union[bool, str]] = None,
     force=None,
     tensorboard=None,  # alias for sync_tensorboard
     sync_tensorboard=None,
@@ -404,7 +409,7 @@ def init(
             run = RunDummy()
     except KeyboardInterrupt as e:
         assert logger
-        logger.warning("interupted", exc_info=e)
+        logger.warning("interrupted", exc_info=e)
         raise_from(Exception("interrupted"), e)
     except Exception as e:
         assert logger

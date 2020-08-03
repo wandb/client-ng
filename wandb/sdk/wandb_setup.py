@@ -79,6 +79,7 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         self._environ = environ or dict(os.environ)
         self._config = None
         self._server = None
+        self._log_handler = None
 
         # keep track of multiple runs so we can unwind with join()s
         self._global_run_stack = []
@@ -195,7 +196,11 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
             self._config = dict_from_config_file(self._settings.config_paths)
 
     def on_finish(self):
-        logger.info("done")
+        logger.info("closing log handler")
+        if self._log_handler is not None:
+            self._log_handler.close()
+            # TODO: some handlers still manage to leak
+            logger.removeHandler(self._log_handler)
 
 
 class _WandbSetup(object):
@@ -214,6 +219,9 @@ class _WandbSetup(object):
 
     def __getattr__(self, name):
         return getattr(self._instance, name)
+
+    def set_log_handler(self, handler):
+        self._instance._log_handler = handler
 
 
 def setup(settings=None):
