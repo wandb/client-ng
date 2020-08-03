@@ -2,13 +2,16 @@
 tensor b watcher.
 """
 
+import json
 import os
 import threading
 import time
 
 import six
 from six.moves import queue
+import wandb
 from wandb import util
+from wandb.util import json_dumps_safer_history
 
 
 def _link_and_save_file(path, base_path=None, sender=None):
@@ -63,7 +66,7 @@ class TBWatcher(object):
         # TODO(jhr): implement the deferred tbdirwatcher to find namespace
 
         if not self._consumer:
-            self._consumer = TBEventConsumer(self._watcher_queue)
+            self._consumer = TBEventConsumer(self, self._watcher_queue)
             self._consumer.start()
 
         tbdir_watcher = TBDirWatcher(self, logdir, save, namespace, self._watcher_queue)
@@ -174,7 +177,8 @@ class TBEventConsumer(object):
     out of order steps.
     """
 
-    def __init__(self, queue, delay=10):
+    def __init__(self, tbwatcher, queue, delay=10):
+        self._tbwatcher = tbwatcher
         self._queue = queue
         self._thread = threading.Thread(target=self._thread_body)
         self._shutdown = None
@@ -189,6 +193,7 @@ class TBEventConsumer(object):
         self._thread.join()
 
     def _thread_body(self):
+        tb_history = TBHistory()
         while True:
             try:
                 event = self._queue.get(True, 1)
@@ -201,8 +206,46 @@ class TBEventConsumer(object):
                 if self._shutdown:
                     break
             if event:
-                self._handle_event(event)
+                self._handle_event(event, history=tb_history)
+                items = tb_history._get_and_reset()
+                for item in items:
+                    self._save_row(item)
 
-    def _handle_event(self, event):
-        # log(event.event, step=event.event.step, namespace=event.namespace)
-        pass
+    def _handle_event(self, event, history=None):
+        wandb.tensorflow.log(
+            event.event,
+            step=event.event.step,
+            namespace=event.namespace,
+            history=history,
+        )
+
+    def _save_row(self, row):
+        data = {}
+        for k, v in six.iteritems(row):
+            if v is None:
+                continue
+            data[k] = json.loads(json_dumps_safer_history(v))
+        # print("\n\nABOUT TO SAVE:\n", data, "\n\n")
+        self._tbwatcher._sender._save_history(data)
+
+
+class TBHistory(object):
+    def __init__(self):
+        self._step = 0
+        self._data = dict()
+        self._added = []
+
+    def add(self, d):
+        self._data["_step"] = self._step
+        self._added.append(self._data)
+        self._step += 1
+        self._data = dict()
+        self._data.update(d)
+
+    def _row_update(self, d):
+        self._data.update(d)
+
+    def _get_and_reset(self):
+        added = self._added[:]
+        self._added = []
+        return added

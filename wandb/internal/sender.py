@@ -188,13 +188,16 @@ class SendManager(object):
         sentry_set_scope("internal", run.entity, run.project)
         logger.info("run started: %s", self._run_id)
 
+    def _save_history(self, history_dict):
+        if self._fs:
+            # print("\n\nABOUT TO SAVE:\n", history_dict, "\n\n")
+            self._fs.push("wandb-history.jsonl", json.dumps(history_dict))
+            # print("got", x)
+
     def handle_history(self, data):
         history = data.history
         history_dict = _dict_from_proto_list(history.item)
-        if self._fs:
-            # print("about to send", d)
-            self._fs.push("wandb-history.jsonl", json.dumps(history_dict))
-            # print("got", x)
+        self._save_history(history_dict)
 
     def handle_summary(self, data):
         summary = data.summary
