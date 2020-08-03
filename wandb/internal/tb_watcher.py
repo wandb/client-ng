@@ -7,6 +7,7 @@ import threading
 import time
 
 import six
+from six.moves import queue
 from wandb import util
 
 
@@ -25,15 +26,18 @@ def _link_and_save_file(path, base_path=None, sender=None):
         os.symlink(abs_path, wandb_path)
     elif not os.path.exists(wandb_path):
         os.symlink(abs_path, wandb_path)
-    # TODO(jhr): need to figure out policy
+    # TODO(jhr): need to figure out policy, live/throttled?
     sender._save_file(file_name)
 
 
 class TBWatcher(object):
     def __init__(self, settings, sender=None):
         self._logdirs = {}
+        self._consumer = None
         self._settings = settings
         self._sender = sender
+        # TODO(jhr): do we need locking in this queue?
+        self._watcher_queue = queue.PriorityQueue()
 
     def _calculate_namespace(self, logdir):
         dirs = list(self._logdirs) + [logdir]
@@ -56,14 +60,21 @@ class TBWatcher(object):
         if logdir in self._logdirs:
             return
         namespace = self._calculate_namespace(logdir)
+        # TODO(jhr): implement the deferred tbdirwatcher to find namespace
 
-        tbdir_watcher = TBDirWatcher(self, logdir, save, namespace)
+        if not self._consumer:
+            self._consumer = TBEventConsumer(self._watcher_queue)
+            self._consumer.start()
+
+        tbdir_watcher = TBDirWatcher(self, logdir, save, namespace, self._watcher_queue)
         self._logdirs[logdir] = tbdir_watcher
         tbdir_watcher.start()
 
     def finish(self):
         for tbdirwatcher in six.itervalues(self._logdirs):
             tbdirwatcher.finish()
+        if self._consumer:
+            self._consumer.finish()
 
 
 class TBDirWatcher(object):
@@ -71,7 +82,7 @@ class TBDirWatcher(object):
     from tensorboard.backend.event_processing import event_file_loader  # type: ignore
     from tensorboard.compat import tf as tf_compat  # type: ignore
 
-    def __init__(self, tbwatcher, logdir, save, namespace):
+    def __init__(self, tbwatcher, logdir, save, namespace, queue):
         self._tbwatcher = tbwatcher
         self._generator = self.directory_watcher.DirectoryWatcher(
             logdir, self._loader(save, namespace), self._is_new_tensorflow_events_file
@@ -79,6 +90,9 @@ class TBDirWatcher(object):
         self._thread = threading.Thread(target=self._thread_body)
         self._first_event_timestamp = None
         self._shutdown = None
+        self._queue = queue
+        self._file_version = None
+        self._namespace = namespace
 
     def start(self):
         self._thread.start()
@@ -107,7 +121,6 @@ class TBDirWatcher(object):
                     if namespace and parts[-1] == namespace:
                         parts.pop()
                         logdir = os.path.join(*parts)
-                    # wandb.save(file_path, base_path=logdir)
                     _link_and_save_file(
                         file_path, base_path=logdir, sender=_loader_sender
                     )
@@ -132,12 +145,64 @@ class TBDirWatcher(object):
             self._first_event_timestamp = event.wall_time
 
         if event.HasField("file_version"):
-            self.file_version = event.file_version
+            self._file_version = event.file_version
 
         if event.HasField("summary"):
-            # self.queue.put(Event(event, self.namespace))
-            pass
+            self._queue.put(Event(event, self._namespace))
 
     def finish(self):
         self._shutdown = True
         self._thread.join()
+
+
+class Event(object):
+    """An event wrapper to enable priority queueing"""
+
+    def __init__(self, event, namespace):
+        self.event = event
+        self.namespace = namespace
+        self.created_at = time.time()
+
+    def __lt__(self, other):
+        return self.event.wall_time < other.event.wall_time
+
+
+class TBEventConsumer(object):
+    """Consumes tfevents from a priority queue.  There should always
+    only be one of these per run_manager.  We wait for 10 seconds of queued
+    events to reduce the chance of multiple tfevent files triggering
+    out of order steps.
+    """
+
+    def __init__(self, queue, delay=10):
+        self._queue = queue
+        self._thread = threading.Thread(target=self._thread_body)
+        self._shutdown = None
+        self._delay = delay
+
+    def start(self):
+        self._thread.start()
+
+    def finish(self):
+        self._delay = 0
+        self._shutdown = True
+        self._thread.join()
+
+    def _thread_body(self):
+        while True:
+            try:
+                event = self._queue.get(True, 1)
+                # If the event was added later than delay, put it back in the queue
+                if event.created_at > time.time() - self._delay:
+                    self._queue.put(event)
+                    time.sleep(0.1)
+            except queue.Empty:
+                event = None
+                if self._shutdown:
+                    break
+            if event:
+                self._handle_event(event)
+
+    def _handle_event(self, event):
+        # log(event.event, step=event.event.step, namespace=event.namespace)
+        pass
