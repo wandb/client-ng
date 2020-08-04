@@ -218,8 +218,8 @@ def live_mock_server(request):
     os.environ["WANDB_BASE_URL"] = server.base_url
     os.environ["WANDB_ERROR_REPORTING"] = "false"
     # clear mock server ctx
-    server.reset_ctx()
     yield server
+    server.reset_ctx()
     del os.environ["WANDB_USERNAME"]
     del os.environ["WANDB_BASE_URL"]
     del os.environ["WANDB_ERROR_REPORTING"]

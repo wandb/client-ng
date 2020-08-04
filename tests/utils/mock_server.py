@@ -144,10 +144,14 @@ def create_app(user_ctx):
         if request.method == "GET":
             return json.dumps(ctx)
         elif request.method == "DELETE":
+            app.logger.info("reseting context")
             ctx = default_ctx()
             return json.dumps(ctx)
         else:
             ctx.update(body)
+            # TODO: tests in CI failed on this
+            ctx = ctx
+            app.logger.info("updated context %s", ctx)
             return json.dumps(ctx)
 
     @app.route("/graphql", methods=["POST"])
