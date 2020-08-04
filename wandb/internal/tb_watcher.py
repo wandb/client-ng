@@ -105,10 +105,13 @@ class TBDirWatcher(object):
         if not path:
             raise ValueError("Path must be a nonempty string")
         path = self.tf_compat.compat.as_str_any(path)
-        is_mod_after_start = (
-            os.stat(path).st_mtime >= self._tbwatcher._settings._start_time
+        base = os.path.basename(path)
+        start_time = self._tbwatcher._settings._start_time
+        return (
+            "tfevents" in base
+            and os.stat(path).st_mtime >= start_time  # noqa: W503
+            and not base.endswith(".profile-empty")  # noqa: W503
         )
-        return "tfevents" in os.path.basename(path) and is_mod_after_start
 
     def _loader(self, save=True, namespace=None):
         """Incredibly hacky class generator to optionally save / prefix tfevent files"""
