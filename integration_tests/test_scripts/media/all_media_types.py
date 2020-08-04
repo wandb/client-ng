@@ -1,17 +1,17 @@
 import numpy as np
 import wandb
 
-import image
-import image_mask
-import image_bounding_box
-import video
-import html
-import table
-import molecule
-import point_cloud_scene
-import object3D
-import plotly_fig
-import matplotlib_fig
+from . import image
+from . import image_mask
+from . import image_bounding_box
+from . import video
+from . import html
+from . import table
+from . import molecule
+from . import point_cloud_scene
+from . import object3D
+from . import plotly_fig
+from . import matplotlib_fig
 
 
 IMG_WIDTH = 5
