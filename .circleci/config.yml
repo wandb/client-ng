@@ -122,10 +122,10 @@ jobs:
             - checkout
             - run:
                   name: Install system deps
-                  command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
+                  command: apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             - run:
                   name: Install docker
-                  command: sudo apt-get install -y docker
+                  command: apt-get install -y docker
             - setup_remote_docker:
                   docker_layer_caching: true
             - run:
