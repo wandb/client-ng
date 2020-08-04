@@ -129,15 +129,15 @@ jobs:
             - run:
                   name: Install system deps
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
-            - run:
-                  name: Install python dependencies
-                  command: pip install -r requirements.txt
+            # - run:
+            #       name: Install python dependencies
+            #       command: pip install -r requirements.txt
             - run:
                   name: Install integration test python dependencies
                   command: pip install -r integration_tests/requirements.txt
             - run:
                   name: Install local wandb as package
-                  command: pip install -e .
+                  command: pip install --user .
             - run:
                   name: Waiting for server to be ready
                   command: python integration_tests/scripts/wait_for_server.py
