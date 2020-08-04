@@ -116,16 +116,13 @@ jobs:
 
     integration:
         docker:
-            - image: circleci/python:3.7.8
+            - image: circleci/python:3.7
         resource_class: large
         steps:
             - checkout
             - run:
                   name: Install system deps
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
-            - run:
-                  name: LS debug
-                  command: ls
             - run:
                   name: Install python dependencies
                   command: pip install -r requirements_dev.txt
