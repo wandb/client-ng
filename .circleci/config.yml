@@ -131,10 +131,13 @@ jobs:
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             - run:
                   name: Install python dependencies
-                  command: pip install -r requirements_dev.txt -f https://download.pytorch.org/whl/torch_stable.html
+                  command: pip install -r requirements.txt
             - run:
                   name: Install integration test python dependencies
                   command: pip install -r integration_tests/requirements.txt
+            - run:
+                  name: Install local wandb as package
+                  command: pip install -e .
             - run:
                   name: Waiting for server to be ready
                   command: python integration_tests/scripts/wait_for_server.py
