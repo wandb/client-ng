@@ -129,12 +129,17 @@ jobs:
             - run:
                   name: Install system deps
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
-            # - run:
-            #       name: Install python dependencies
-            #       command: pip install -r requirements.txt
+            - restore_cache:
+                  keys:
+                      - integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
             - run:
-                  name: Install integration test python dependencies
-                  command: pip install -r integration_tests/requirements.txt
+                  name: Install python dependencies
+                  command: pip install -r integration_tests/requirements.txt --target ./pip_deps
+            - save_cache:
+                  paths:
+                      - ./pip_deps
+                  key: integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
+
             - run:
                   name: Install local wandb as package
                   command: pip install --user .
