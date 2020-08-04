@@ -21,13 +21,6 @@ IMG_COUNT = 2
 # Step coun
 N = 3
 
-
-def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
-    return np.concatenate(
-        (np.random.rand(h//2, w),
-         np.zeros((h//2, w))),
-        axis=0)
-
 all_tests = {}
 all_tests.update(image.all_tests)
 all_tests.update(image_mask.all_tests)

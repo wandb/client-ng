@@ -1,2 +1,5 @@
-mysqlclient==1.4.6
 pytest
+mysqlclient==1.4.6
+numpy==1.16.6
+numpydoc==0.9.1
+pandas==0.23.4
