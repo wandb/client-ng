@@ -1,5 +1,5 @@
 import wandb
-from integration_tests.test_scripts.media.all_media_types import run_tests, all_tests
+from test_scripts.media.all_media_types import run_tests, all_tests
 
 def test_all_media():
     api = wandb.Api()
