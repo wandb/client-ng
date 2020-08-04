@@ -128,7 +128,7 @@ jobs:
                   background: true
             - run:
                   name: Install system deps
-                  command: apt-get update && apt-get install -y libsndfile1 ffmpeg
+                  command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             - run:
                   name: Install python dependencies
                   command: pip install -r requiremenks_dev.txt -f https://download.pytorch.org/whl/torch_stable.html
