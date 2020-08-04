@@ -123,6 +123,9 @@ jobs:
                   name: Install system deps
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             - run:
+                  name: LS debug
+                  command: ls
+            - run:
                   name: Install python dependencies
                   command: pip install -r requirements_dev.txt
             - run:
