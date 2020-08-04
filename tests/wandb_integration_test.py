@@ -17,7 +17,8 @@ import os
 
 
 def test_resume_allow_success(live_mock_server, test_settings):
-    live_mock_server.set_ctx({"resume": True})
+    res = live_mock_server.set_ctx({"resume": True})
+    print("CTX AFTER UPDATE", res)
     wandb.init(reinit=True, resume="allow", settings=test_settings)
     wandb.log({"acc": 10})
     wandb.join()
