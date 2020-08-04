@@ -122,7 +122,7 @@ jobs:
             - checkout
             - run:
                   name: Install system deps
-                  command: apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
+                  command: apt-get update && apt-get install -y libsndfile1 ffmpeg
             - run:
                   name: Install docker
                   command: apt-get install -y docker
