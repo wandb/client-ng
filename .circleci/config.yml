@@ -38,15 +38,9 @@ workflows:
             - "Python 2.7"
             - "Python 3.6"
 
-jobs:
-    test:
-        parameters:
-            image:
-              type: string
-            toxenv:
-              type: string
-        docker:
-            - image: << parameters.image >>
+commands:
+    setup-tests:
+        description: "Setup pyenv with cache"
         steps:
             - checkout
             - run:
@@ -64,6 +58,18 @@ jobs:
                   paths:
                       - ./venv
                   key: v0.2-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
+
+jobs:
+    test:
+        parameters:
+            image:
+              type: string
+            toxenv:
+              type: string
+        docker:
+            - image: << parameters.image >>
+        steps:
+            - setup-tests
             - run:
                   name: Run tests
                   command: |
@@ -111,10 +117,11 @@ jobs:
     integration:
         docker:
             - image: circleci/python:3.8.4
+        resource_class: large
         steps:
-            - checkout
             - setup_remote_docker:
                   docker_layer_caching: true
+            - setup-tests
             - run:
                   name: Install python dependencies
                   command: pip3 install tox
@@ -127,13 +134,13 @@ jobs:
                   command: python integration_tests/scripts/wait_for_server.py
             - run:
                   name: Set environment variables
-                  command: source <(python integration_tests/tests/setup.py)
+                  command: source <(python integration_tests/setup.py)
 
-            - run:
-                  name: Pip install
-                  command:  pip install -r requirements_dev.txt
+            # - run:
+            #       name: Pip install
+            #       command:  pip install -r requirements_dev.txt
 
             - run:
                   name: Run all media test script for setup
-                  command: python -m pytest integration_tests/
+                  command: python -m tox -e p37 integration_tests/
 

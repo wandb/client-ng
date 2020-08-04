@@ -11,6 +11,7 @@ soundfile
 boto3
 google-cloud-storage
 moviepy; python_version >= '3.5'
+MySQL-python==1.2.5
 imageio; python_version >= '3.5'
 ipython; python_version >= '3.5'
 ipython==5.4.1; python_version < '3.5'
