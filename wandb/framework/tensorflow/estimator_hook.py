@@ -1,6 +1,5 @@
 import tensorflow as tf
-
-from .log import log
+import wandb
 
 
 if hasattr(tf.estimator, "SessionRunHook"):
@@ -43,6 +42,6 @@ class WandbHook(SessionRunHook):
         print(run_values)
         step = run_values.results["global_step"]
         if step % self._steps_per_log == 0:
-            log(
+            wandb.tensorboard.log(
                 run_values.results["summary"], history=self._history, step=step,
             )

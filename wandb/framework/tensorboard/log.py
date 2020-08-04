@@ -220,7 +220,8 @@ def log(tf_summary_str_or_pb, history=None, step=0, namespace="", **kwargs):
         # Only commit our data if we're below the rate limit or don't have one
         if (
             RATE_LIMIT_SECONDS is None
-            or timestamp - STEPS["global"]["last_log"] >= RATE_LIMIT_SECONDS  # noqa: W503 E501
+            or timestamp - STEPS["global"]["last_log"]
+            >= RATE_LIMIT_SECONDS  # noqa: W503 E501
         ):
             history.add({}, **kwargs)
         STEPS["global"]["last_log"] = timestamp

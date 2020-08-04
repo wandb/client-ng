@@ -212,7 +212,7 @@ class TBEventConsumer(object):
                     self._save_row(item)
 
     def _handle_event(self, event, history=None):
-        wandb.tensorflow.log(
+        wandb.tensorboard.log(
             event.event,
             step=event.event.step,
             namespace=event.namespace,
@@ -225,7 +225,6 @@ class TBEventConsumer(object):
             if v is None:
                 continue
             data[k] = json.loads(json_dumps_safer_history(v))
-        # print("\n\nABOUT TO SAVE:\n", data, "\n\n")
         self._tbwatcher._sender._save_history(data)
 
 
