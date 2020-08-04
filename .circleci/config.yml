@@ -116,7 +116,7 @@ jobs:
 
     integration:
         docker:
-            - image: circleci/python:3.7
+            - image: python:3.7
         resource_class: large
         steps:
             - checkout
@@ -124,13 +124,16 @@ jobs:
                   name: Install system deps
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             - run:
+                  name: Install docker
+                  command: sudo apt-get install -y docker
+            - setup_remote_docker:
+                  docker_layer_caching: true
+            - run:
                   name: Install python dependencies
                   command: pip install -r requirements_dev.txt
             - run:
                   name: Install integration test python dependencies
                   command: pip install -r integration_tests/requirements.txt
-            - setup_remote_docker:
-                  docker_layer_caching: true
             - run:
                   name: Run local
                   command: sh integration_tests/scripts/serve-local.sh
