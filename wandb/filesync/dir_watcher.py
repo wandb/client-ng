@@ -146,6 +146,7 @@ class DirWatcher(object):
             self._per_file_event_handler(), self._dir, recursive=True
         )
         self._file_observer.start()
+        logger.info("watching files in: %s", settings.files_dir)
 
     @property
     def emitter(self):
@@ -248,6 +249,7 @@ class DirWatcher(object):
         return self._file_event_handlers[save_name]
 
     def finish(self):
+        logger.info("shutting down directory watcher")
         try:
             # avoid hanging if we crashed before the observer was started
             if self._file_observer.is_alive():

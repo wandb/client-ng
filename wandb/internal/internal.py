@@ -48,15 +48,17 @@ def handle_exit(*args):
             logger.exception("Internal process exited with exception:")
         else:
             logger.info("Process exited cleanly")
-        # logging.shutdown()
 
 
-# TODO: we need these?
+# TODO: we may not need these, for now we may as well
 signal.signal(signal.SIGTERM, handle_exit)
 signal.signal(signal.SIGINT, handle_exit)
 
 
 def setup_logging(log_fname, log_level, run_id=None):
+    # TODO: we may want make prints and stdout make it into the logs
+    # sys.stdout = open(settings.log_internal, "a")
+    # sys.stderr = open(settings.log_internal, "a")
     handler = logging.FileHandler(log_fname)
     handler.setLevel(log_level)
 

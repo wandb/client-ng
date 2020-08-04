@@ -59,7 +59,6 @@ class _WandbInit(object):
 
         """
         self.kwargs = kwargs
-
         # Some settings should be persisted across multiple runs the first
         # time setup is called.
         # TODO: Is this the best way to do this?
@@ -307,8 +306,6 @@ class _WandbInit(object):
         # TODO: pass mode to backend
         # run_synced = None
 
-        self._wl._global_run_stack.append(run)
-
         backend._hack_set_run(run)
 
         if s.mode == "online":
@@ -316,6 +313,10 @@ class _WandbInit(object):
             # TODO: fail on more errors, check return type
             # TODO: make the backend log stacktraces on catostrophic failure
             if ret.HasField("error"):
+                # Shutdown the backend and get rid of the logger
+                # we don't need to do console cleanup at this point
+                backend.cleanup()
+                self._wl.on_finish()
                 raise wandb.Error(ret.error.message)
             run._set_run_obj(ret.run)
         elif s.mode in ("offline", "dryrun"):
@@ -325,6 +326,7 @@ class _WandbInit(object):
             # TODO: on network error, do async run save
             backend.interface.send_run(run)
 
+        self._wl._global_run_stack.append(run)
         self.run = run
         self.backend = backend
         module.set_global(

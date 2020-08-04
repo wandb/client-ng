@@ -149,21 +149,10 @@ def test_settings(test_dir, mocker):
                               _start_datetime=datetime.datetime.now())
     settings.setdefaults()
     settings.files_dir = settings._path_convert(settings.files_dir_spec)
-    orig_init = wandb.init
-    run = None
-
-    def test_init(*args, **kwargs):
-        global run
-        run = orig_init(*args, **kwargs)
-        return run
-    # TODO: Tried this to cleanup, didn't work...
-    # mocker.patch("wandb.init", test_init)
     yield settings
-    # Make sure we join any runs after a test executes.
+    # Just incase someone forgets to join in tests
     if wandb.run is not None:
-        run = wandb.run
-    if run is not None:
-        run.join()
+        wandb.run.join()
 
 
 @pytest.fixture

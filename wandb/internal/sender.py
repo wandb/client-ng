@@ -93,6 +93,8 @@ class SendManager(object):
         exit = data.exit
         self._exit_code = exit.exit_code
 
+        logger.info("handling exit code: %s", exit.exit_code)
+
         # Ensure we've at least noticed every file in the run directory. Sometimes
         # we miss things because asynchronously watching filesystems isn't reliable.
         run_dir = self._settings.files_dir
@@ -102,10 +104,10 @@ class SendManager(object):
             for fname in filenames:
                 file_path = os.path.join(dirpath, fname)
                 save_name = os.path.relpath(file_path, run_dir)
-                logger.info("scan save: %s %s", file_path, save_name)
                 self._save_file(save_name)
 
         if data.control.req_resp:
+            logger.info("informing user process exit was handled")
             # TODO: send something more than an empty result
             resp = wandb_internal_pb2.ResultRecord()
             self._resp_q.put(resp)
@@ -323,10 +325,7 @@ class SendManager(object):
         # TODO(jhr): check result of upsert_run?
 
     def _save_file(self, fname, policy="end"):
-        directory = self._settings.files_dir
-        logger.info("saving file %s at %s", fname, directory)
-        path = os.path.abspath(os.path.join(directory, fname))
-        logger.info("saving file %s at full %s", fname, path)
+        logger.info("saving file %s with policy %s", fname, policy)
         self._dir_watcher.update_policy(fname, policy)
 
     def handle_files(self, data):
@@ -355,6 +354,7 @@ class SendManager(object):
         )
 
     def finish(self):
+        logger.info("shutting down sender")
         if self._dir_watcher:
             self._dir_watcher.finish()
         if self._pusher:

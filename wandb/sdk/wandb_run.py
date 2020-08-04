@@ -613,6 +613,7 @@ class RunManaged(Run):
         used when creating multiple runs in the same process.  We automatically
         call this method when your script exits.
         """
+        # detach logger, other setup cleanup
         self._wl.on_finish()
         self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
@@ -776,15 +777,20 @@ class RunManaged(Run):
         # make sure all uncommitted history is flushed
         self.history._flush()
 
-        ret = self._backend.interface.send_exit_sync(self._exit_code, timeout=60)
-        logger.info("got exit ret: %s", ret)
-        if ret is None:
-            print("Problem syncing data")
-            os._exit(1)
-
-        #  TODO: close the logging file handler
-        self._console_stop()
-        self._backend.cleanup()
+        # TODO: we need to handle catastrophic failure better
+        # some tests were timing out on sending exit for reasons not clear to me
+        try:
+            ret = self._backend.interface.send_exit_sync(
+                self._exit_code, timeout=EXIT_TIMEOUT
+            )
+            logger.info("got exit ret: %s", ret)
+            if ret is None:
+                # TODO: do we really want to exit here?
+                print("Problem syncing data")
+                os._exit(1)
+        finally:
+            self._console_stop()
+            self._backend.cleanup()
 
     def _on_final(self):
         # check for warnings and errors, show log file locations
