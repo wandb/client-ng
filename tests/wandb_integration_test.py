@@ -22,6 +22,7 @@ def test_resume_allow_success(live_mock_server, test_settings):
     wandb.log({"acc": 10})
     wandb.join()
     server_ctx = live_mock_server.get_ctx()
+    print("CTX", server_ctx)
     first_stream_hist = server_ctx["file_stream"][0]['files']['wandb-history.jsonl']
     print(first_stream_hist)
     assert first_stream_hist["offset"] == 15
