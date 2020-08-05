@@ -118,7 +118,7 @@ jobs:
         resource_class: large
         docker:
             - image: circleci/python:3.7
-            - image: wandb/local:0.9.12
+            - image: wandb/local:latest
               environment:
                 CI: "1"
                 DISABLE_TELEMETRY: "true"
