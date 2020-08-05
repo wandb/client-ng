@@ -34,7 +34,7 @@ def _link_and_save_file(path, base_path=None, sender=None):
     elif not os.path.exists(wandb_path):
         os.symlink(abs_path, wandb_path)
     # TODO(jhr): need to figure out policy, live/throttled?
-    sender._save_file(file_name)
+    sender._save_file(file_name, policy="live")
 
 
 class TBWatcher(object):
@@ -45,6 +45,7 @@ class TBWatcher(object):
         self._sender = sender
         # TODO(jhr): do we need locking in this queue?
         self._watcher_queue = queue.PriorityQueue()
+        wandb.tensorboard.reset_state()
 
     def _calculate_namespace(self, logdir):
         dirs = list(self._logdirs) + [logdir]
@@ -87,11 +88,15 @@ class TBWatcher(object):
 
 
 class TBDirWatcher(object):
-    from tensorboard.backend.event_processing import directory_watcher  # type: ignore
-    from tensorboard.backend.event_processing import event_file_loader  # type: ignore
-    from tensorboard.compat import tf as tf_compat  # type: ignore
-
     def __init__(self, tbwatcher, logdir, save, namespace, queue):
+        self.directory_watcher = util.get_module(
+                "tensorboard.backend.event_processing.directory_watcher",
+                required="Please install tensorboard package")
+        self.event_file_loader = util.get_module(
+                "tensorboard.backend.event_processing.event_file_loader",
+                required="Please install tensorboard package")
+        self.tf_compat = util.get_module("tensorboard.compat",
+                required="Please install tensorboard package")
         self._tbwatcher = tbwatcher
         self._generator = self.directory_watcher.DirectoryWatcher(
             logdir, self._loader(save, namespace), self._is_new_tensorflow_events_file
@@ -111,7 +116,7 @@ class TBDirWatcher(object):
         """Checks if a path has been modified since launch and contains tfevents"""
         if not path:
             raise ValueError("Path must be a nonempty string")
-        path = self.tf_compat.compat.as_str_any(path)
+        path = self.tf_compat.tf.compat.as_str_any(path)
         base = os.path.basename(path)
         start_time = self._tbwatcher._settings._start_time
         return (

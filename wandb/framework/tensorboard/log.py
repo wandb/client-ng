@@ -221,7 +221,7 @@ def log(tf_summary_str_or_pb, history=None, step=0, namespace="", **kwargs):
         if (
             RATE_LIMIT_SECONDS is None
             or timestamp - STEPS["global"]["last_log"]
-            >= RATE_LIMIT_SECONDS  # noqa: W503 E501
+            >= RATE_LIMIT_SECONDS
         ):
             history.add({}, **kwargs)
         STEPS["global"]["last_log"] = timestamp

@@ -2,6 +2,9 @@
 monkeypatch: patch code to add tensorboard hooks
 """
 
+import os
+import sys
+
 import wandb
 
 
@@ -15,6 +18,7 @@ def patch(save=None, tensorboardX=None, pytorch=None):
             "Tensorboard already patched, remove sync_tensorboard=True from wandb.init or only call wandb.tensorboard.patch once."
         )
 
+    wandb.util.get_module("tensorboard", required="Please install tensorboard package")
     c_writer = wandb.util.get_module(TENSORBOARD_C_MODULE)
     tb_writer = wandb.util.get_module(TENSORBOARD_PYTORCH_MODULE)
 
