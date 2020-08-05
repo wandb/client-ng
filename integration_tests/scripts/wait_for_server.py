@@ -13,7 +13,7 @@ def is_timeout():
 
 while not is_timeout():
     try:
-        res = requests.get("http://localhost:9000/ready", timeout=20)
+        res = requests.get("http://localhost:9001/ready", timeout=20)
         if res.status_code == 200:
             print("Server responded with 200. Success!")
             sys.exit(os.EX_OK)
