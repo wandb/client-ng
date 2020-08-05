@@ -10,6 +10,7 @@ import time
 import six
 from six.moves import queue
 import wandb
+from wandb import data_types
 from wandb import util
 from wandb.util import json_dumps_safer_history
 
@@ -255,6 +256,11 @@ class TBEventConsumer(object):
         data = {}
         for k, v in six.iteritems(row):
             if v is None:
+                continue
+            if isinstance(v, data_types.Histogram):
+                v = v.to_json()
+            elif isinstance(v, data_types.WBValue):
+                # TODO(jhr): support more wandb data types
                 continue
             data[k] = json.loads(json_dumps_safer_history(v))
         self._tbwatcher._sender._save_history(data)
