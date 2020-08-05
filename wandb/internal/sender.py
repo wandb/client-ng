@@ -109,6 +109,11 @@ class SendManager(object):
         run_dir = self._settings.files_dir
         logger.info("scan: %s", run_dir)
 
+        # shutdown tensorboard workers so we get all metrics flushed
+        if self._tb_watcher:
+            self._tb_watcher.finish()
+            self._tb_watcher = None
+
         for dirpath, _, filenames in os.walk(run_dir):
             for fname in filenames:
                 file_path = os.path.join(dirpath, fname)

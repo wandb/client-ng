@@ -14,6 +14,10 @@ from wandb import util
 from wandb.util import json_dumps_safer_history
 
 
+# Give some time for tensorboard data to be flushed
+SHUTDOWN_DELAY = 5
+
+
 def _link_and_save_file(path, base_path=None, sender=None):
     # TODO(jhr): should this logic be merged with Run.save()
     if base_path is None:
@@ -74,6 +78,8 @@ class TBWatcher(object):
         tbdir_watcher.start()
 
     def finish(self):
+        for tbdirwatcher in six.itervalues(self._logdirs):
+            tbdirwatcher.shutdown()
         for tbdirwatcher in six.itervalues(self._logdirs):
             tbdirwatcher.finish()
         if self._consumer:
@@ -136,6 +142,7 @@ class TBDirWatcher(object):
 
     def _thread_body(self):
         """Check for new events every second"""
+        shutdown_time = None
         while True:
             try:
                 for event in self._generator.Load():
@@ -143,9 +150,12 @@ class TBDirWatcher(object):
             except self.directory_watcher.DirectoryDeletedError:
                 break
             if self._shutdown:
-                break
-            else:
-                time.sleep(1)
+                now = time.time()
+                if not shutdown_time:
+                    shutdown_time = now + SHUTDOWN_DELAY
+                elif now > shutdown_time:
+                    break
+            time.sleep(1)
 
     def process_event(self, event):
         # print("\nEVENT:::", self._logdir, self._namespace, event, "\n")
@@ -158,8 +168,11 @@ class TBDirWatcher(object):
         if event.HasField("summary"):
             self._queue.put(Event(event, self._namespace))
 
-    def finish(self):
+    def shutdown(self):
         self._shutdown = True
+
+    def finish(self):
+        self.shutdown()
         self._thread.join()
 
 
@@ -206,6 +219,7 @@ class TBEventConsumer(object):
                 if event.created_at > time.time() - self._delay:
                     self._queue.put(event)
                     time.sleep(0.1)
+                    continue
             except queue.Empty:
                 event = None
                 if self._shutdown:
@@ -215,6 +229,11 @@ class TBEventConsumer(object):
                 items = tb_history._get_and_reset()
                 for item in items:
                     self._save_row(item)
+        # flush uncommitted data
+        tb_history._flush()
+        items = tb_history._get_and_reset()
+        for item in items:
+            self._save_row(item)
 
     def _handle_event(self, event, history=None):
         wandb.tensorboard.log(
@@ -239,10 +258,15 @@ class TBHistory(object):
         self._data = dict()
         self._added = []
 
-    def add(self, d):
+    def _flush(self):
+        if not self._data:
+            return
         self._data["_step"] = self._step
         self._added.append(self._data)
         self._step += 1
+
+    def add(self, d):
+        self._flush()
         self._data = dict()
         self._data.update(d)
 
