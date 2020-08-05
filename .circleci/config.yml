@@ -118,6 +118,8 @@ jobs:
         docker:
             - image: circleci/python:3.7
         resource_class: large
+        environment:
+            PYTHONUSERBASE: ~/.deps
         steps:
             - checkout
             - setup_remote_docker:
@@ -134,10 +136,10 @@ jobs:
                       - integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
             - run:
                   name: Install python dependencies
-                  command: pip install -r integration_tests/requirements.txt --target ./pip_deps
+                  command: pip install -r integration_tests/requirements.txt --user
             - save_cache:
                   paths:
-                      - ./pip_deps
+                      - ~/.deps
                   key: integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
 
             - run:
@@ -152,5 +154,5 @@ jobs:
 
             - run:
                   name: Run all media test script for setup
-                  command: PYTHON_PATH=$PYTHON_PATH:./pip_deps python -m pytest integration_tests/
+                  command: python -m pytest integration_tests/
 
