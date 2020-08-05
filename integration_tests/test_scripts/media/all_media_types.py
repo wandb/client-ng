@@ -10,8 +10,8 @@ from . import table
 from . import molecule
 from . import point_cloud_scene
 from . import object3D
-from . import plotly_fig
-from . import matplotlib_fig
+# from . import plotly_fig
+# from . import matplotlib_fig
 
 
 IMG_WIDTH = 5
@@ -31,7 +31,7 @@ all_tests.update(table.all_tests)
 all_tests.update(molecule.all_tests)
 all_tests.update(point_cloud_scene.all_tests)
 all_tests.update(object3D.all_tests)
-all_tests.update(plotly_fig.all_tests)
+# all_tests.update(plotly_fig.all_tests)
 # all_tests.update(matplotlib_fig.all_tests)
 
 if __name__ == "__main__":
