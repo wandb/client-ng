@@ -125,9 +125,9 @@ jobs:
                 GORILLA_FRONTEND_HOST: "http://localhost:9000"
         steps:
             - checkout
-            - run:
-                  name: Run local
-                  command: sh integration_tests/scripts/serve-local.sh
+            # - run:
+            #       name: Run local
+            #       command: sh integration_tests/scripts/serve-local.sh
             - run:
                   name: Waiting for server to be ready
                   command: python integration_tests/scripts/wait_for_server.py
