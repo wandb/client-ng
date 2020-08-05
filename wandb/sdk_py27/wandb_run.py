@@ -780,8 +780,9 @@ class RunManaged(Run):
         # TODO: we need to handle catastrophic failure better
         # some tests were timing out on sending exit for reasons not clear to me
         try:
-            ret = self._backend.interface.send_exit_sync(self._exit_code,
-                                                         timeout=EXIT_TIMEOUT)
+            ret = self._backend.interface.send_exit_sync(
+                self._exit_code, timeout=EXIT_TIMEOUT
+            )
             logger.info("got exit ret: %s", ret)
             if ret is None:
                 # TODO: do we really want to exit here?
