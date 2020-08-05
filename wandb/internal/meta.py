@@ -12,6 +12,7 @@ from shutil import copyfile
 import sys
 
 from wandb import util
+from wandb.lib.filenames import DIFF_FNAME
 from wandb.interface import interface
 from wandb.internal import git_repo
 from wandb.vendor.pynvml import pynvml
@@ -90,7 +91,7 @@ class Meta(object):
         to history editing as long as the user never does "push -f" to break
         history on an upstream branch.
 
-        Writes the first patch to <files_dir>/diff.patch and the second to
+        Writes the first patch to <files_dir>/<DIFF_FNAME> and the second to
         <files_dir>/upstream_diff_<commit_id>.patch.
 
         """
@@ -104,7 +105,7 @@ class Meta(object):
                 diff_args.append("--submodule=diff")
 
             if self._git.dirty:
-                patch_path = os.path.join(self._settings.files_dir, "diff.patch")
+                patch_path = os.path.join(self._settings.files_dir, DIFF_FNAME)
                 with open(patch_path, "wb") as patch:
                     # we diff against HEAD to ensure we get changes in the index
                     subprocess.check_call(

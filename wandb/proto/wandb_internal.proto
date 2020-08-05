@@ -216,6 +216,14 @@ message RunUpdateResult {
 }
 
 message RunExitResult {
+  FilesSynced files = 1;
+}
+
+message FilesSynced {
+  int32 wandb_count = 1;
+  int32 media_count = 2;
+  int32 artifact_count = 3;
+  int32 other_count = 4;
 }
 
 message LogResult {

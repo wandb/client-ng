@@ -14,6 +14,7 @@ import time
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface.interface import file_enum_to_policy
 from wandb.lib.config import save_config_file_from_dict
+from wandb.lib.filenames import CONFIG_FNAME, OUTPUT_FNAME
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
 
@@ -106,8 +107,12 @@ class SendManager(object):
                 self._save_file(save_name)
 
         if data.control.req_resp:
-            # TODO: send something more than an empty result
             resp = wandb_internal_pb2.ResultRecord()
+            file_counts = self._pusher.file_counts_by_category()
+            resp.exit_result.files.wandb_count = file_counts["wandb"]
+            resp.exit_result.files.media_count = file_counts["media"]
+            resp.exit_result.files.artifact_count = file_counts["artifact"]
+            resp.exit_result.files.other_count = file_counts["other"]
             self._resp_q.put(resp)
 
     def handle_run(self, data):
@@ -118,7 +123,7 @@ class SendManager(object):
         config_dict = None
         if run.HasField("config"):
             config_dict = _config_dict_from_proto_list(run.config.update)
-            config_path = os.path.join(self._settings.files_dir, "config.yaml")
+            config_path = os.path.join(self._settings.files_dir, CONFIG_FNAME)
             save_config_file_from_dict(config_path, config_dict)
 
         repo = GitRepo(remote=self._settings.git_remote)
@@ -197,6 +202,7 @@ class SendManager(object):
         summary_path = os.path.join(self._settings.files_dir, "wandb-summary.json")
         with open(summary_path, "w") as f:
             f.write(json_summary)
+            self._save_file("wandb-summary.json")
 
     def handle_stats(self, data):
         stats = data.stats
@@ -239,7 +245,7 @@ class SendManager(object):
             timestamp = datetime.utcfromtimestamp(cur_time).isoformat() + " "
             prev_str = self._partial_output.get(stream, "")
             line = u"{}{}{}{}".format(prepend, timestamp, prev_str, line)
-            self._fs.push("output.log", line)
+            self._fs.push(OUTPUT_FNAME, line)
             self._partial_output[stream] = ""
 
     def handle_config(self, data):
