@@ -125,7 +125,6 @@ jobs:
             - run:
                   name: Run local
                   command: sh integration_tests/scripts/serve-local.sh
-                  background: true
             - run:
                   name: Waiting for server to be ready
                   command: python integration_tests/scripts/wait_for_server.py
