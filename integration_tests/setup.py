@@ -9,7 +9,7 @@ def default_user():
 def ensure_user():
     # Add default local user
     data = {'email': 'local@wandb.com', 'password': 'perceptron'}
-    requests.put('http://localhost:8083/api/users', data=data)
+    requests.put('http://localhost:8080/api/users', data=data)
 
 
 def get_api_key():
