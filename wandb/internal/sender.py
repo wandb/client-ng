@@ -70,6 +70,10 @@ class SendManager(object):
 
         self._exit_code = 0
 
+        # keep track of config and summary from key/val updates
+        # self._consolidated_config = dict()
+        self._consolidated_summary = dict()
+
     def send(self, i):
         t = i.WhichOneof("data")
         if t is None:
@@ -193,21 +197,28 @@ class SendManager(object):
             # print("\n\nABOUT TO SAVE:\n", history_dict, "\n\n")
             self._fs.push("wandb-history.jsonl", json.dumps(history_dict))
             # print("got", x)
+        # save history into summary
+        self._consolidated_summary.update(history_dict)
+        self._save_summary(self._consolidated_summary)
 
     def handle_history(self, data):
         history = data.history
         history_dict = _dict_from_proto_list(history.item)
         self._save_history(history_dict)
 
-    def handle_summary(self, data):
-        summary = data.summary
-        summary_dict = _dict_from_proto_list(summary.update)
+    def _save_summary(self, summary_dict):
         json_summary = json.dumps(summary_dict)
         if self._fs:
             self._fs.push("wandb-summary.json", json_summary)
         summary_path = os.path.join(self._settings.files_dir, "wandb-summary.json")
         with open(summary_path, "w") as f:
             f.write(json_summary)
+
+    def handle_summary(self, data):
+        summary = data.summary
+        summary_dict = _dict_from_proto_list(summary.update)
+        self._consolidated_summary.update(summary_dict)
+        self._save_summary(self._consolidated_summary)
 
     def handle_stats(self, data):
         stats = data.stats

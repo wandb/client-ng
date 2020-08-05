@@ -96,6 +96,7 @@ class TBDirWatcher(object):
         self._queue = queue
         self._file_version = None
         self._namespace = namespace
+        self._logdir = logdir
 
     def start(self):
         self._thread.start()
@@ -147,6 +148,7 @@ class TBDirWatcher(object):
                 time.sleep(1)
 
     def process_event(self, event):
+        # print("\nEVENT:::", self._logdir, self._namespace, event, "\n")
         if self._first_event_timestamp is None:
             self._first_event_timestamp = event.wall_time
 

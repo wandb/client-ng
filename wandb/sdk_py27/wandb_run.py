@@ -289,7 +289,6 @@ class RunManaged(Run):
             self._config_callback(data=self._config._as_dict())
 
         self._backend.interface.send_history(row, step)
-        self.summary.update(row)
 
     def _console_callback(self, name, data):
         logger.info("console callback: %s, %s", name, data)
