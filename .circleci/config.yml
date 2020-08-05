@@ -118,7 +118,7 @@ jobs:
         docker:
             - image: circleci/python:3.7
         resource_class: large
-        env:
+        environment:
             PYTHON_PATH: ./pip_deps
         steps:
             - checkout
