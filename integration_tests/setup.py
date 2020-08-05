@@ -8,7 +8,9 @@ def ensure_user():
     data = {'email': 'local@wandb.com', 'password': 'perceptron'}
     requests.put('http://localhost:8080/api/users', data=data)
 
-def get_user_id(cursor):
+def get_user_id(db):
+    cursor = db.cursor()
+
     cursor.execute("SELECT id FROM users u WHERE u.email='local@wandb.com'")
     row = cursor.fetchone()
     return row[0]
