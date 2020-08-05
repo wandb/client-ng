@@ -5,7 +5,7 @@ import os
 
 start_time = time.time()
 
-TIMEOUT_SECONDS = 100
+TIMEOUT_SECONDS = 200
 RETRY_RATE = 0.8
 # Checks if the script should timeout
 def is_timeout():
