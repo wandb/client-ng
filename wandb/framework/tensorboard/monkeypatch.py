@@ -30,7 +30,7 @@ def patch(save=None, tensorboardX=None, pytorch=None):
             writer=tb_writer, module=TENSORBOARD_PYTORCH_MODULE, save=save
         )
     else:
-        raise ValueError("Unsupported tensorboard configuration")
+        wandb.termerror("Unsupported tensorboard configuration")
 
 
 def _patch_tensorflow2(writer, module, save=None):
@@ -67,5 +67,6 @@ def _patch_nontensorflow(writer, module, save=None):
 
 def _notify_tensorboard_logdir(logdir, save=None):
     if REMOTE_FILE_TOKEN in logdir:
-        raise wandb.Error("Can not handle tensorboard_sync remote files: %s" % logdir)
+        wandb.termerror("Can not handle tensorboard_sync remote files: %s" % logdir)
+        return
     wandb.run._tensorboard_callback(logdir, save=save)
