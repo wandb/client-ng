@@ -10,6 +10,7 @@ import wandb
 
 TENSORBOARD_C_MODULE = "tensorflow.python.ops.gen_summary_ops"
 TENSORBOARD_PYTORCH_MODULE = "tensorboard.summary.writer.event_file_writer"
+REMOTE_FILE_TOKEN = "://"
 
 
 def patch(save=None, tensorboardX=None, pytorch=None):
@@ -65,4 +66,6 @@ def _patch_nontensorflow(writer, module, save=None):
 
 
 def _notify_tensorboard_logdir(logdir, save=None):
+    if REMOTE_FILE_TOKEN in logdir:
+        raise wandb.Error("Can not handle tensorboard_sync remote files: %s" % logdir)
     wandb.run._tensorboard_callback(logdir, save=save)
