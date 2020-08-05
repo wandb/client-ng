@@ -118,8 +118,6 @@ jobs:
         docker:
             - image: circleci/python:3.7
         resource_class: large
-        environment:
-            PYTHON_PATH: ./pip_deps
         steps:
             - checkout
             - setup_remote_docker:
@@ -154,5 +152,5 @@ jobs:
 
             - run:
                   name: Run all media test script for setup
-                  command: python -m pytest integration_tests/
+                  command: PYTHON_PATH=$PYTHON_PATH:./pip_deps python -m pytest integration_tests/
 
