@@ -14,6 +14,7 @@ def ensure_user():
 
 def get_api_key():
     # mysql_uri = "mysql://wandb_local:wandb_local@127.0.0.1:3306/wandb_local"
+    # db = MySQLdb.connect(host="127.0.0.1",port=3306,user="wandb_local",passwd="wandb_local",db="wandb_local")
     db = MySQLdb.connect(
         host="127.0.0.1",
         port=3306,
