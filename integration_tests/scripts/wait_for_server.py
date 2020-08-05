@@ -5,7 +5,7 @@ import os
 
 start_time = time.time()
 
-TIMEOUT_SECONDS = 200
+TIMEOUT_SECONDS = 2000
 RETRY_RATE = 0.8
 # Checks if the script should timeout
 def is_timeout():
@@ -21,5 +21,4 @@ while not is_timeout():
         print("Pinging server failed. Retrying")
     time.sleep(RETRY_RATE)
 
-print("Server failed to respond with a 200.")
-sys.exit(os.EX_OK)
+sys.exit("Server failed to respond with a 200.")
