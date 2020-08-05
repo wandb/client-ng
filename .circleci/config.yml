@@ -115,10 +115,14 @@ jobs:
                       curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
 
     integration:
-        machine: 
-            image: circleci/python:3.7
-            docker_layer_caching: true
         resource_class: large
+        docker:
+            - image: circleci/python:3.7
+            - image: wandb/local:0.9.12
+              environment:
+                CI: "1"
+                DISABLE_TELEMETRY: "true"
+                GORILLA_FRONTEND_HOST: "http://localhost:9000"
         steps:
             - checkout
             - run:
