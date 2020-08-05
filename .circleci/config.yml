@@ -127,6 +127,9 @@ jobs:
                   command: sh integration_tests/scripts/serve-local.sh
                   background: true
             - run:
+                  name: Waiting for server to be ready
+                  command: python integration_tests/scripts/wait_for_server.py
+            - run:
                   name: Install system deps
                   command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             - restore_cache:
@@ -143,9 +146,6 @@ jobs:
             - run:
                   name: Install local wandb as package
                   command: pip install .
-            - run:
-                  name: Waiting for server to be ready
-                  command: python integration_tests/scripts/wait_for_server.py
             - run:
                   name: Set environment variables
                   command: source <(python integration_tests/setup.py)
