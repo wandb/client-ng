@@ -79,7 +79,7 @@ def start_mock_server():
             if res.status_code == 200:
                 started = True
                 break
-            print("Attempting to connect but got: %s", res)
+            print("Attempting to connect but got: %s" % res)
         except requests.exceptions.RequestException:
             print("Timed out waiting for server to start...")
             if server.poll() is None:
@@ -91,8 +91,7 @@ def start_mock_server():
               server._port)
     else:
         server.terminate()
-        output, _ = server.communicate(timeout=1)
-        print(output.decode("utf-8"))
+        print("Server failed to launch, see tests/logs/live_mock_server.log")
         raise ValueError("Failed to start server!  Exit code %s" % server.returncode)
     return server
 
@@ -218,8 +217,8 @@ def live_mock_server(request):
     os.environ["WANDB_BASE_URL"] = server.base_url
     os.environ["WANDB_ERROR_REPORTING"] = "false"
     # clear mock server ctx
-    yield server
     server.reset_ctx()
+    yield server
     del os.environ["WANDB_USERNAME"]
     del os.environ["WANDB_BASE_URL"]
     del os.environ["WANDB_ERROR_REPORTING"]

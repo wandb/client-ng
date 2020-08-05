@@ -1,13 +1,15 @@
 """Mock Server for simple calls the cli and public api make"""
 
-from flask import Flask, request
+from flask import Flask, request, g
 import os
 import sys
 from datetime import datetime
 import json
 import yaml
 import wandb
+import logging
 from six.moves import urllib
+import threading
 from tests.utils.mock_requests import RequestsMock
 
 # TODO: remove once python2 ripped out
@@ -126,37 +128,84 @@ def paginated(node, ctx, extra={}):
     }
 
 
-ctx = default_ctx()
+class CTX(object):
+    """This is a silly threadsafe wrapper for getting ctx into the server
+    NOTE: This will stop working for live_mock_server if we make pytest run
+    in parallel.
+    """
+    lock = threading.Lock()
+    STATE = None
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def get(self):
+        return self.ctx
+
+    def set(self, ctx):
+        self.ctx = ctx
+        CTX.persist(self)
+        return self.ctx
+
+    @classmethod
+    def persist(cls, instance):
+        with cls.lock:
+            cls.STATE = instance.ctx
+
+    @classmethod
+    def load(cls, default):
+        with cls.lock:
+            if cls.STATE is not None:
+                return CTX(cls.STATE)
+            else:
+                return CTX(default)
 
 
-def create_app(user_ctx):
-    global ctx
+def get_ctx():
+    if "ctx" not in g:
+        g.ctx = CTX.load(default_ctx())
+    return g.ctx.get()
+
+
+def set_ctx(ctx):
+    get_ctx()
+    g.ctx.set(ctx)
+
+
+def create_app(user_ctx=None):
     app = Flask(__name__)
     # When starting in live mode, user_ctx is a fancy object
     if isinstance(user_ctx, dict):
-        ctx = user_ctx
+        with app.app_context():
+            set_ctx(user_ctx)
+
+    @app.teardown_appcontext
+    def persist_ctx(exc):
+        if "ctx" in g:
+            CTX.persist(g.ctx)
 
     @app.route("/ctx", methods=["GET", "PUT", "DELETE"])
     def update_ctx():
         """Updating context for live_mock_server"""
-        global ctx
+        ctx = get_ctx()
         body = request.get_json()
         if request.method == "GET":
             return json.dumps(ctx)
         elif request.method == "DELETE":
             app.logger.info("reseting context")
-            ctx = default_ctx()
-            return json.dumps(ctx)
+            set_ctx(default_ctx())
+            return json.dumps(get_ctx())
         else:
             ctx.update(body)
             # TODO: tests in CI failed on this
-            ctx = ctx
+            set_ctx(ctx)
             app.logger.info("updated context %s", ctx)
-            return json.dumps(ctx)
+            return json.dumps(get_ctx())
 
     @app.route("/graphql", methods=["POST"])
     def graphql():
         #  TODO: in tests wandb-username is set to the test name, lets scope ctx to it
+        ctx = get_ctx()
         test_name = request.headers.get("X-WANDB-USERNAME")
         app.logger.info("Test request from: %s", test_name)
         if "fail_times" in ctx:
@@ -456,6 +505,7 @@ def create_app(user_ctx):
 
     @app.route("/storage", methods=["PUT", "GET"])
     def storage():
+        ctx = get_ctx()
         file = request.args.get("file")
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
@@ -477,12 +527,14 @@ def create_app(user_ctx):
 
     @app.route("/files/<entity>/<project>/<run>/file_stream", methods=["POST"])
     def file_stream(entity, project, run):
+        ctx = get_ctx()
         ctx["file_stream"] = ctx.get("file_stream", [])
         ctx["file_stream"].append(request.get_json())
         return json.dumps({"exitcode": None, "limits": {}})
 
     @app.route("/api/v1/namespaces/default/pods/test")
     def k8s_pod():
+        ctx = get_ctx()
         image_id = b"docker-pullable://test@sha256:1234"
         ms = b'{"status":{"containerStatuses":[{"imageID":"%s"}]}}' % image_id
         if ctx.get("k8s"):
@@ -520,5 +572,6 @@ def create_app(user_ctx):
 
 
 if __name__ == "__main__":
-    app = create_app(default_ctx())
-    app.run(debug=True, port=int(os.environ.get("PORT", 8547)))
+    app = create_app()
+    app.logger.setLevel(logging.INFO)
+    app.run(debug=False, port=int(os.environ.get("PORT", 8547)))
