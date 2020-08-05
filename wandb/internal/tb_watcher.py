@@ -90,13 +90,16 @@ class TBWatcher(object):
 class TBDirWatcher(object):
     def __init__(self, tbwatcher, logdir, save, namespace, queue):
         self.directory_watcher = util.get_module(
-                "tensorboard.backend.event_processing.directory_watcher",
-                required="Please install tensorboard package")
+            "tensorboard.backend.event_processing.directory_watcher",
+            required="Please install tensorboard package",
+        )
         self.event_file_loader = util.get_module(
-                "tensorboard.backend.event_processing.event_file_loader",
-                required="Please install tensorboard package")
-        self.tf_compat = util.get_module("tensorboard.compat",
-                required="Please install tensorboard package")
+            "tensorboard.backend.event_processing.event_file_loader",
+            required="Please install tensorboard package",
+        )
+        self.tf_compat = util.get_module(
+            "tensorboard.compat", required="Please install tensorboard package"
+        )
         self._tbwatcher = tbwatcher
         self._generator = self.directory_watcher.DirectoryWatcher(
             logdir, self._loader(save, namespace), self._is_new_tensorflow_events_file
