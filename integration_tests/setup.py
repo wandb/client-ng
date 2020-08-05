@@ -33,6 +33,7 @@ def get_api_key():
     return api_key
 
 def get_user_envs():
+    ensure_user()
     return {"WANDB_API_KEY":  get_api_key(),
             "WANDB_BASE_URL": "http://localhost:8080",
             "WANDB_USERNAME": "local"}
