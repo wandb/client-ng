@@ -14,7 +14,7 @@ import time
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface.interface import file_enum_to_policy
 from wandb.lib.config import save_config_file_from_dict
-from wandb.lib.filenames import CONFIG_FNAME, OUTPUT_FNAME
+from wandb.lib.filenames import CONFIG_FNAME, OUTPUT_FNAME, SUMMARY_FNAME
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
 
@@ -198,11 +198,11 @@ class SendManager(object):
         summary_dict = _dict_from_proto_list(summary.update)
         json_summary = json.dumps(summary_dict)
         if self._fs:
-            self._fs.push("wandb-summary.json", json_summary)
-        summary_path = os.path.join(self._settings.files_dir, "wandb-summary.json")
+            self._fs.push(SUMMARY_FNAME, json_summary)
+        summary_path = os.path.join(self._settings.files_dir, SUMMARY_FNAME)
         with open(summary_path, "w") as f:
             f.write(json_summary)
-            self._save_file("wandb-summary.json")
+            self._save_file(SUMMARY_FNAME)
 
     def handle_stats(self, data):
         stats = data.stats

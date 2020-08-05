@@ -1,6 +1,7 @@
 CONFIG_FNAME = "config.yaml"
 OUTPUT_FNAME = 'output.log'
 DIFF_FNAME = 'diff.patch'
+SUMMARY_FNAME = 'wandb-summary.json'
 
 
 def is_wandb_file(name):
