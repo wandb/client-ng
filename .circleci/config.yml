@@ -118,8 +118,6 @@ jobs:
         docker:
             - image: circleci/python:3.7
         resource_class: large
-        environment:
-            PYTHONUSERBASE: ~/.deps
         steps:
             - checkout
             - setup_remote_docker:
@@ -136,7 +134,7 @@ jobs:
                       - integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
             - run:
                   name: Install python dependencies
-                  command: pip install -r integration_tests/requirements.txt --user
+                  command: pip install -r integration_tests/requirements.txt 
             - save_cache:
                   paths:
                       - ~/.deps
@@ -144,7 +142,7 @@ jobs:
 
             - run:
                   name: Install local wandb as package
-                  command: pip install --user .
+                  command: pip install .
             - run:
                   name: Waiting for server to be ready
                   command: python integration_tests/scripts/wait_for_server.py
