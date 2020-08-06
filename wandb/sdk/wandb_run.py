@@ -19,11 +19,12 @@ import traceback
 
 import click
 from six import string_types
+from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
-from wandb.lib import redirect
+from wandb.lib import module, redirect
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
@@ -119,6 +120,7 @@ class RunManaged(Run):
         self._save_stderr = None
         self._stdout_slave_fd = None
         self._stderr_slave_fd = None
+        self._exit_code = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -199,6 +201,24 @@ class RunManaged(Run):
             return None
         return self._run_obj.display_name
 
+    @name.setter
+    def name(self, name):
+        self._name = name
+        if self._backend:
+            self._backend.interface.send_run(self)
+
+    @property
+    def notes(self):
+        if not self._run_obj:
+            return None
+        return self._run_obj.notes
+
+    @notes.setter
+    def notes(self, notes):
+        self._notes = notes
+        if self._backend:
+            self._backend.interface.send_run(self)
+
     @property
     def id(self):
         return self._run_id
@@ -269,11 +289,15 @@ class RunManaged(Run):
             self._config_callback(data=self._config._as_dict())
 
         self._backend.interface.send_history(row, step)
-        self.summary.update(row)
 
     def _console_callback(self, name, data):
-        logger.info("callback: %s, %s", name, data)
+        logger.info("console callback: %s, %s", name, data)
         self._backend.interface.send_output(name, data)
+
+    def _tensorboard_callback(self, logdir, save=None):
+        logger.info("tensorboard callback: %s, %s", logdir, save)
+        save = True if save is None else save
+        self._backend.interface.send_tbdata(logdir, save)
 
     def _set_library(self, library):
         self._wl = library
@@ -425,6 +449,9 @@ class RunManaged(Run):
         # TODO(cling): sync is a noop for now
         if not isinstance(data, collections.Mapping):
             raise ValueError("wandb.log must be passed a dictionary")
+
+        if any(not isinstance(key, string_types) for key in data.keys()):
+            raise ValueError("Key values passed to `wandb.log` must be strings.")
 
         if step is not None:
             if self.history._step > step:
@@ -579,19 +606,22 @@ class RunManaged(Run):
         self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
+        module.unset_globals()
 
     def _get_project_url(self):
         s = self._settings
         r = self._run_obj
         app_url = s.base_url.replace("//api.", "//app.")
-        url = "{}/{}/{}".format(app_url, r.entity, r.project)
+        url = "{}/{}/{}".format(app_url, url_quote(r.entity), url_quote(r.project))
         return url
 
     def _get_run_url(self):
         s = self._settings
         r = self._run_obj
         app_url = s.base_url.replace("//api.", "//app.")
-        url = "{}/{}/{}/runs/{}".format(app_url, r.entity, r.project, r.run_id)
+        url = "{}/{}/{}/runs/{}".format(
+            app_url, url_quote(r.entity), url_quote(r.project), url_quote(r.run_id)
+        )
         return url
 
     def _get_run_name(self):
@@ -694,17 +724,10 @@ class RunManaged(Run):
 
         exit_code = exit_code or self._hooks.exit_code if self._hooks else 0
         logger.info("got exitcode: %d", exit_code)
-        ret = self._backend.interface.send_exit_sync(exit_code, timeout=60)
-        logger.info("got exit ret: %s", ret)
-        if ret is None:
-            print("Problem syncing data")
-            os._exit(1)
 
-        #  TODO: close the logging file handler
-
-        self.on_finish()
-
-        self.on_final()
+        self._exit_code = exit_code
+        self._on_finish()
+        self._on_final()
 
     def _console_start(self):
         logger.info("atexit reg")
@@ -722,7 +745,7 @@ class RunManaged(Run):
     def _console_stop(self):
         self._restore()
 
-    def on_start(self):
+    def _on_start(self):
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
             run_state_str = "Syncing run"
@@ -734,12 +757,21 @@ class RunManaged(Run):
         print("")
         self._console_start()
 
-    def on_finish(self):
+    def _on_finish(self):
+        # make sure all uncommitted history is flushed
+        self.history._flush()
+
+        ret = self._backend.interface.send_exit_sync(self._exit_code, timeout=60)
+        logger.info("got exit ret: %s", ret)
+        if ret is None:
+            print("Problem syncing data")
+            os._exit(1)
+
+        #  TODO: close the logging file handler
         self._console_stop()
         self._backend.cleanup()
-        pass
 
-    def on_final(self):
+    def _on_final(self):
         # check for warnings and errors, show log file locations
         # if self._run_obj:
         #    self._display_run()
@@ -839,7 +871,9 @@ class RunManaged(Run):
             name = artifact_or_name
             if type is None:
                 raise ValueError("type required")
-            public_api = public.Api()
+            public_api = public.Api(
+                {"entity": r.entity, "project": r.project, "run": self.id}
+            )
             artifact = public_api.artifact(type=type, name=name)
             if type is not None and type != artifact.type:
                 raise ValueError(
@@ -926,3 +960,11 @@ class RunManaged(Run):
         self._use_redirect = use_redirect
         self._stdout_slave_fd = stdout_slave_fd
         self._stderr_slave_fd = stderr_slave_fd
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        exit_code = 0 if exc_type is None else 1
+        self.join(exit_code)
+        return exc_type is None

@@ -15,8 +15,7 @@ from six import raise_from, reraise
 import wandb
 from wandb.backend.backend import Backend
 from wandb.lib import console as lib_console
-from wandb.lib import filesystem, reporting
-from wandb.lib.globals import set_global
+from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
@@ -95,9 +94,6 @@ class _WandbInit(object):
             "allow_val_change",
             "resume",
             "force",
-            "tensorboard",
-            "sync_tensorboard",
-            "monitor_gym",
         )
         for key in unsupported:
             val = kwargs.pop(key, None)
@@ -105,6 +101,15 @@ class _WandbInit(object):
                 self._reporter.warning(
                     "currently unsupported wandb.init() arg: %s", key
                 )
+
+        monitor_gym = kwargs.pop("monitor_gym", None)
+        if monitor_gym and len(wandb.patched["gym"]) == 0:
+            wandb.gym.monitor()
+
+        tensorboard = kwargs.pop("tensorboard", None)
+        sync_tensorboard = kwargs.pop("sync_tensorboard", None)
+        if tensorboard or sync_tensorboard and len(wandb.patched["tensorboard"]) == 0:
+            wandb.tensorboard.patch()
 
         # prevent setting project, entity if in sweep
         # TODO(jhr): these should be locked elements in the future or at least
@@ -320,7 +325,7 @@ class _WandbInit(object):
 
         self.run = run
         self.backend = backend
-        set_global(
+        module.set_global(
             run=run,
             config=run.config,
             log=run.log,
@@ -332,7 +337,7 @@ class _WandbInit(object):
             log_artifact=run.log_artifact,
         )
         self._reporter.set_context(run=run)
-        run.on_start()
+        run._on_start()
 
         return run
 

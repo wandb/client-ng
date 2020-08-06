@@ -41,11 +41,9 @@ from sentry_sdk import configure_scope
 from wandb.env import error_reporting_enabled
 
 import wandb
-import wandb.old.core
 from wandb.old.core import wandb_dir
 from wandb.errors.error import CommError
 from wandb.internal.git_repo import GitRepo
-# from wandb import wandb_config
 from wandb import env
 
 logger = logging.getLogger(__name__)
@@ -55,9 +53,11 @@ _not_importable = set()
 OUTPUT_FNAME = 'output.log'
 DIFF_FNAME = 'diff.patch'
 
+IS_GIT = os.path.exists(
+    os.path.join(os.path.dirname(__file__), '..', '.git'))
 
 # these match the environments for gorilla
-if wandb.old.core.IS_GIT:
+if IS_GIT:
     SENTRY_ENV = 'development'
 else:
     SENTRY_ENV = 'production'
@@ -901,10 +901,12 @@ def sizeof_fmt(num, suffix='B'):
 
 def auto_project_name(program):
     # if we're in git, set project name to git repo name + relative path within repo
-    repo = GitRepo()
-    root_dir = repo.root_dir
+    root_dir = GitRepo().root_dir
     if root_dir is None:
         return None
+    # On windows, GitRepo returns paths in unix style, but os.path is windows
+    # style. Coerce here.
+    root_dir = to_native_slash_path(root_dir)
     repo_name = os.path.basename(root_dir)
     if program is None:
         return repo_name
@@ -954,6 +956,9 @@ def to_forward_slash_path(path):
     if platform.system() == "Windows":
         path = path.replace("\\", "/")
     return path
+
+def to_native_slash_path(path):
+    return path.replace('/', os.sep)
 
 def bytes_to_hex(bytestr):
     # Works in python2 / python3

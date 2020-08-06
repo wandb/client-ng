@@ -8,18 +8,11 @@ service InternalService {
   rpc RunUpdate(RunData) returns (RunUpdateResult) {}
   rpc RunExit(ExitData) returns (RunExitResult) {}
   rpc Log(HistoryData) returns (LogResult) {}
+  rpc Summary(SummaryData) returns (SummaryResult) {}
+  rpc Config(ConfigData) returns (ConfigResult) {}
+  rpc Output(OutputData) returns (OutputResult) {}
   rpc ServerShutdown(ServerShutdownRequest) returns (ServerShutdownResult) {}
   rpc ServerStatus(ServerStatusRequest) returns (ServerStatusResult) {}
-}
-
-message RunUpdateResult {
-  RunData run = 1;
-}
-
-message RunExitResult {
-}
-
-message LogResult {
 }
 
 message ServerShutdownRequest {

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-internal.
+sender.
 """
 
 from __future__ import print_function
@@ -23,6 +23,7 @@ from wandb.util import sentry_set_scope
 from . import artifacts
 from . import file_stream
 from . import internal_api
+from . import tb_watcher
 from .file_pusher import FilePusher
 from .git_repo import GitRepo
 
@@ -53,6 +54,7 @@ class SendManager(object):
         self._fs = None
         self._pusher = None
         self._dir_watcher = None
+        self._tb_watcher = None
 
         # is anyone using run_id?
         self._run_id = None
@@ -67,6 +69,10 @@ class SendManager(object):
         self._partial_output = dict()
 
         self._exit_code = 0
+
+        # keep track of config and summary from key/val updates
+        # self._consolidated_config = dict()
+        self._consolidated_summary = dict()
 
     def send(self, i):
         t = i.WhichOneof("data")
@@ -89,6 +95,11 @@ class SendManager(object):
                     for k2, v2 in v.items():
                         dictionary[k + "." + k2] = v2
 
+    def handle_tbdata(self, data):
+        if self._tb_watcher:
+            tbdata = data.tbdata
+            self._tb_watcher.add(tbdata.log_dir, tbdata.save)
+
     def handle_exit(self, data):
         exit = data.exit
         self._exit_code = exit.exit_code
@@ -98,6 +109,11 @@ class SendManager(object):
         run_dir = self._settings.files_dir
         logger.info("scan: %s", run_dir)
 
+        # shutdown tensorboard workers so we get all metrics flushed
+        if self._tb_watcher:
+            self._tb_watcher.finish()
+            self._tb_watcher = None
+
         for dirpath, _, filenames in os.walk(run_dir):
             for fname in filenames:
                 file_path = os.path.join(dirpath, fname)
@@ -106,7 +122,9 @@ class SendManager(object):
                 self._save_file(save_name)
 
         if data.control.req_resp:
-            self._resp_q.put(data)
+            # TODO: send something more than an empty result
+            resp = wandb_internal_pb2.ResultRecord()
+            self._resp_q.put(resp)
 
     def handle_run(self, data):
         run = data.run
@@ -139,25 +157,28 @@ class SendManager(object):
         )
 
         if data.control.req_resp:
+            resp = wandb_internal_pb2.ResultRecord()
+            resp.run_result.run.CopyFrom(run)
+            resp_run = resp.run_result.run
             storage_id = ups.get("id")
             if storage_id:
-                data.run.storage_id = storage_id
+                resp_run.storage_id = storage_id
             display_name = ups.get("displayName")
             if display_name:
-                data.run.display_name = display_name
+                resp_run.display_name = display_name
             project = ups.get("project")
             if project:
                 project_name = project.get("name")
                 if project_name:
-                    data.run.project = project_name
+                    resp_run.project = project_name
                     self._project = project_name
                 entity = project.get("entity")
                 if entity:
                     entity_name = entity.get("name")
                     if entity_name:
-                        data.run.entity = entity_name
+                        resp_run.entity = entity_name
                         self._entity = entity_name
-            self._resp_q.put(data)
+            self._resp_q.put(resp)
 
         if self._entity is not None:
             self._api_settings["entity"] = self._entity
@@ -169,29 +190,40 @@ class SendManager(object):
         self._fs.start()
         self._pusher = FilePusher(self._api)
         self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
+        self._tb_watcher = tb_watcher.TBWatcher(self._settings, sender=self)
         self._run_id = run.run_id
         if self._run_meta:
             self._run_meta.write()
         sentry_set_scope("internal", run.entity, run.project)
         logger.info("run started: %s", self._run_id)
 
+    def _save_history(self, history_dict):
+        if self._fs:
+            # print("\n\nABOUT TO SAVE:\n", history_dict, "\n\n")
+            self._fs.push("wandb-history.jsonl", json.dumps(history_dict))
+            # print("got", x)
+        # save history into summary
+        self._consolidated_summary.update(history_dict)
+        self._save_summary(self._consolidated_summary)
+
     def handle_history(self, data):
         history = data.history
         history_dict = _dict_from_proto_list(history.item)
-        if self._fs:
-            # print("about to send", d)
-            self._fs.push("wandb-history.jsonl", json.dumps(history_dict))
-            # print("got", x)
+        self._save_history(history_dict)
 
-    def handle_summary(self, data):
-        summary = data.summary
-        summary_dict = _dict_from_proto_list(summary.update)
+    def _save_summary(self, summary_dict):
         json_summary = json.dumps(summary_dict)
         if self._fs:
             self._fs.push("wandb-summary.json", json_summary)
         summary_path = os.path.join(self._settings.files_dir, "wandb-summary.json")
         with open(summary_path, "w") as f:
             f.write(json_summary)
+
+    def handle_summary(self, data):
+        summary = data.summary
+        summary_dict = _dict_from_proto_list(summary.update)
+        self._consolidated_summary.update(summary_dict)
+        self._save_summary(self._consolidated_summary)
 
     def handle_stats(self, data):
         stats = data.stats
@@ -280,6 +312,8 @@ class SendManager(object):
         )
 
     def finish(self):
+        if self._tb_watcher:
+            self._tb_watcher.finish()
         if self._dir_watcher:
             self._dir_watcher.finish()
         if self._pusher:
