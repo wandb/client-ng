@@ -276,11 +276,11 @@ class DirWatcher(object):
 
         # Ensure we've at least noticed every file in the run directory. Sometimes
         # we miss things because asynchronously watching filesystems isn't reliable.
-        logger.info("scan: %s", self.dir)
+        logger.info("scan: %s", self._dir)
 
-        for dirpath, _, filenames in os.walk(self.dir):
+        for dirpath, _, filenames in os.walk(self._dir):
             for fname in filenames:
                 file_path = os.path.join(dirpath, fname)
-                save_name = os.path.relpath(file_path, self.dir)
+                save_name = os.path.relpath(file_path, self._dir)
                 logger.info("scan save: %s %s", file_path, save_name)
                 self._get_file_event_handler(file_path, save_name).finish()
