@@ -50,9 +50,9 @@ def handle_exit(*args):
             logger.info("Process exited cleanly")
 
 
-# TODO: we may not need these, for now we may as well
-signal.signal(signal.SIGTERM, handle_exit)
-signal.signal(signal.SIGINT, handle_exit)
+# TODO: we may want this someday, but are avoiding it now to avoid conflicts
+# signal.signal(signal.SIGTERM, handle_exit)
+# signal.signal(signal.SIGINT, handle_exit)
 
 
 def setup_logging(log_fname, log_level, run_id=None):
