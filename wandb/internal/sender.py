@@ -12,7 +12,7 @@ import os
 import time
 
 from wandb.filesync.dir_watcher import DirWatcher
-from wandb.interface.interface import file_enum_to_policy
+from wandb.interface import interface
 from wandb.lib.config import save_config_file_from_dict
 from wandb.lib.filenames import CONFIG_FNAME, OUTPUT_FNAME, SUMMARY_FNAME
 from wandb.proto import wandb_internal_pb2  # type: ignore
@@ -46,7 +46,7 @@ def _config_dict_from_proto_list(obj_list):
 
 
 class SendManager(object):
-    def __init__(self, settings, resp_q, run_meta=None):
+    def __init__(self, settings, process_q, notify_q, resp_q, run_meta=None):
         self._settings = settings
         self._resp_q = resp_q
         self._run_meta = run_meta
@@ -66,6 +66,11 @@ class SendManager(object):
 
         # TODO(jhr): do something better, why do we need to send full lines?
         self._partial_output = dict()
+
+        self._interface = interface.BackendSender(
+                process_queue=process_q,
+                notify_queue=notify_q,
+                )
 
         self._exit_code = 0
 
@@ -103,19 +108,28 @@ class SendManager(object):
             self._dir_watcher.finish()
             self._dir_watcher = None
 
+        if data.control.req_resp and self._pusher:
+            # send exit_final to give the queue a chance to flush
+            # response will be handled in handle_exit_final
+            logger.info("send final")
+            self._interface.send_exit_final()
+
+    def handle_final(self, data):
+        logger.info("handle final")
         if self._pusher:
             self._pusher.finish()
             while self._pusher.is_alive():
                 time.sleep(0.1)
 
-        if data.control.req_resp and self._pusher:
-            resp = wandb_internal_pb2.ResultRecord()
-            file_counts = self._pusher.file_counts_by_category()
-            resp.exit_result.files.wandb_count = file_counts["wandb"]
-            resp.exit_result.files.media_count = file_counts["media"]
-            resp.exit_result.files.artifact_count = file_counts["artifact"]
-            resp.exit_result.files.other_count = file_counts["other"]
-            self._resp_q.put(resp)
+        # NB: assume we always need to send a response for this message
+        # since it was sent on behalf of handle_exit req/resp logic
+        resp = wandb_internal_pb2.ResultRecord()
+        file_counts = self._pusher.file_counts_by_category()
+        resp.exit_result.files.wandb_count = file_counts["wandb"]
+        resp.exit_result.files.media_count = file_counts["media"]
+        resp.exit_result.files.artifact_count = file_counts["artifact"]
+        resp.exit_result.files.other_count = file_counts["other"]
+        self._resp_q.put(resp)
 
     def handle_run(self, data):
         run = data.run
@@ -271,7 +285,7 @@ class SendManager(object):
         files = data.files
         for k in files.files:
             # TODO(jhr): fix paths with directories
-            self._save_file(k.path, file_enum_to_policy(k.policy))
+            self._save_file(k.path, interface.file_enum_to_policy(k.policy))
 
     def handle_artifact(self, data):
         artifact = data.artifact
