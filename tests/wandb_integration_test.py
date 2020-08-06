@@ -17,7 +17,6 @@ import os
 # errors until we ensure we propogate the errors up.
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason="live mock server busted in py2")
 def test_resume_allow_success(live_mock_server, test_settings):
     res = live_mock_server.set_ctx({"resume": True})
     print("CTX AFTER UPDATE", res)
@@ -44,7 +43,6 @@ def test_resume_must_failure(live_mock_server, test_settings):
     assert "resume='must' but run" in e.value.message
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason="live mock server busted in py2")
 def test_resume_never_failure(live_mock_server, test_settings):
     # TODO: this test passes independently but fails in the suite
     live_mock_server.set_ctx({"resume": True})

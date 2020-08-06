@@ -12,12 +12,6 @@ from six.moves import urllib
 import threading
 from tests.utils.mock_requests import RequestsMock
 
-# TODO: remove once python2 ripped out
-if sys.version_info < (3, 5):
-    from mock import patch
-else:
-    from unittest.mock import patch
-
 
 def default_ctx():
     return {
@@ -30,19 +24,19 @@ def default_ctx():
     }
 
 
-def mock_server():
+def mock_server(mocker):
     ctx = default_ctx()
     app = create_app(ctx)
     mock = RequestsMock(app, ctx)
     # We mock out all requests libraries, couldn't find a way to mock the core lib
-    patch("gql.transport.requests.requests", mock).start()
-    patch("wandb.internal.file_stream.requests", mock).start()
-    patch("wandb.internal.internal_api.requests", mock).start()
-    patch("wandb.internal.update.requests", mock).start()
-    patch("wandb.apis.internal_runqueue.requests", mock).start()
-    patch("wandb.apis.public.requests", mock).start()
-    patch("wandb.util.requests", mock).start()
-    patch("wandb.wandb_sdk.wandb_artifacts.requests", mock).start()
+    mocker.patch("gql.transport.requests.requests", mock)
+    mocker.patch("wandb.internal.file_stream.requests", mock)
+    mocker.patch("wandb.internal.internal_api.requests", mock)
+    mocker.patch("wandb.internal.update.requests", mock)
+    mocker.patch("wandb.apis.internal_runqueue.requests", mock)
+    mocker.patch("wandb.apis.public.requests", mock)
+    mocker.patch("wandb.util.requests", mock)
+    mocker.patch("wandb.wandb_sdk.wandb_artifacts.requests", mock)
     print("Patched requests everywhere", os.getpid())
     return mock
 

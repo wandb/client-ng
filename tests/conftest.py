@@ -114,16 +114,17 @@ def test_dir(request):
 
 
 @pytest.fixture
-def git_repo(test_dir):
-    r = git.Repo.init(".")
-    mkdir_exists_ok("wandb")
-    # Because the forked process doesn't use my monkey patch above
-    with open("wandb/settings", "w") as f:
-        f.write("[default]\nproject: test")
-    open("README", "wb").close()
-    r.index.add(["README"])
-    r.index.commit("Initial commit")
-    yield GitRepo(lazy=False)
+def git_repo(runner):
+    with runner.isolated_filesystem():
+        r = git.Repo.init(".")
+        mkdir_exists_ok("wandb")
+        # Because the forked process doesn't use my monkey patch above
+        with open("wandb/settings", "w") as f:
+            f.write("[default]\nproject: test")
+        open("README", "wb").close()
+        r.index.add(["README"])
+        r.index.commit("Initial commit")
+        yield GitRepo(lazy=False)
 
 
 @pytest.fixture
@@ -132,6 +133,7 @@ def test_settings(test_dir, mocker):
     #  TODO: likely not the right thing to do, we shouldn't be setting this
     wandb._IS_INTERNAL_PROCESS = False
     wandb.wandb_sdk.wandb_run.EXIT_TIMEOUT = 5
+    wandb.wandb_sdk.wandb_setup._WandbSetup.instance = None
     wandb_dir = os.path.join(os.getcwd(), "wandb")
     mkdir_exists_ok(wandb_dir)
     # root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -204,8 +206,8 @@ def local_settings(mocker):
 
 
 @pytest.fixture
-def mock_server():
-    return utils.mock_server()
+def mock_server(mocker):
+    return utils.mock_server(mocker)
 
 
 @pytest.fixture
