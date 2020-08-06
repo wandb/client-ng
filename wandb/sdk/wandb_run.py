@@ -92,7 +92,7 @@ class RunManaged(Run):
         self._config._set_callback(self._config_callback)
         self.summary = wandb_summary.Summary()
         self.summary._set_callback(self._summary_callback)
-        self.history = wandb_history.History()
+        self.history = wandb_history.History(self)
         self.history._set_callback(self._history_callback)
 
         _datatypes_set_callback(self._datatypes_callback)
@@ -109,6 +109,7 @@ class RunManaged(Run):
         self._job_type = None
         self._run_id = settings.run_id
         self._start_time = time.time()
+        self._starting_step = 0
         self._name = None
         self._notes = None
         self._tags = None
@@ -243,6 +244,13 @@ class RunManaged(Run):
         else:
             return self._run_obj.start_time.ToSeconds()
 
+    @property
+    def starting_step(self):
+        if not self._run_obj:
+            return self._starting_step
+        else:
+            return self._run_obj.starting_step
+
     def project_name(self, api=None):
         if not self._run_obj:
             wandb.termwarn("Project name not available in offline run")
@@ -318,9 +326,8 @@ class RunManaged(Run):
 
     def _set_run_obj(self, run_obj):
         self._run_obj = run_obj
-        # Set our step and start_time when resuming
-        self.history._step = run_obj.starting_step
-        self.history._start_time = self.start_time
+        # TODO: Update run summary when resuming?
+        self.history._update_step()
         # TODO: It feels weird to call this twice..
         sentry_set_scope("user", run_obj.entity, run_obj.project, self._get_run_url())
 

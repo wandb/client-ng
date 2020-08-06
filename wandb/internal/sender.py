@@ -54,8 +54,7 @@ class SendManager(object):
         self._pusher = None
         self._dir_watcher = None
 
-        # is anyone using run_id?
-        self._run_id = None
+        self._run = None
 
         self._entity = None
         self._project = None
@@ -194,31 +193,31 @@ class SendManager(object):
         # TODO: not checking `inserted` for now
 
         start_time = run.start_time.ToSeconds() - offsets["runtime"]
+        resp = wandb_internal_pb2.ResultRecord()
+        resp.run_result.run.CopyFrom(run)
+        self.run = resp.run_result.run
+        self.run.starting_step = offsets["step"]
+        # TODO: is this really what we want?
+        self.run.start_time.FromSeconds(start_time)
+        storage_id = ups.get("id")
+        if storage_id:
+            self.run.storage_id = storage_id
+        display_name = ups.get("displayName")
+        if display_name:
+            self.run.display_name = display_name
+        project = ups.get("project")
+        if project:
+            project_name = project.get("name")
+            if project_name:
+                self.run.project = project_name
+                self._project = project_name
+            entity = project.get("entity")
+            if entity:
+                entity_name = entity.get("name")
+                if entity_name:
+                    self.run.entity = entity_name
+                    self._entity = entity_name
         if data.control.req_resp:
-            resp = wandb_internal_pb2.ResultRecord()
-            resp.run_result.run.CopyFrom(run)
-            resp_run = resp.run_result.run
-            resp_run.starting_step = offsets["step"]
-            # TODO: is this really what we want?
-            resp_run.start_time.FromSeconds(start_time)
-            storage_id = ups.get("id")
-            if storage_id:
-                resp_run.storage_id = storage_id
-            display_name = ups.get("displayName")
-            if display_name:
-                resp_run.display_name = display_name
-            project = ups.get("project")
-            if project:
-                project_name = project.get("name")
-                if project_name:
-                    resp_run.project = project_name
-                    self._project = project_name
-                entity = project.get("entity")
-                if entity:
-                    entity_name = entity.get("name")
-                    if entity_name:
-                        resp_run.entity = entity_name
-                        self._entity = entity_name
             self._resp_q.put(resp)
 
         if self._entity is not None:
@@ -283,8 +282,7 @@ class SendManager(object):
         self._flatten(row)
         row["_wandb"] = True
         row["_timestamp"] = now
-        # TODO: run has a start_time, as well as history and settings :(
-        row["_runtime"] = int(now - self._settings._start_time)
+        row["_runtime"] = int(now - self.run.start_time.ToSeconds())
         self._fs.push("wandb-events.jsonl", json.dumps(row))
         # TODO(jhr): check fs.push results?
 

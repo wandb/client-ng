@@ -30,8 +30,8 @@ else:
     get_or_create_global_step = tf.compat.v1.train.get_or_create_global_step
 
 
-def test_tf_log():
-    history = wandb_sdk.History()
+def test_tf_log(mocked_run):
+    history = wandb_sdk.History(mocked_run)
     summaries_logged = []
 
     def spy_cb(row, step=None):
@@ -92,8 +92,8 @@ def test_tf_log():
     }
 
 
-def test_hook():
-    history = wandb_sdk.History()
+def test_hook(mocked_run):
+    history = wandb_sdk.History(mocked_run)
     summaries_logged = []
 
     def spy_cb(row, step=None):
