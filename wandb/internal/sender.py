@@ -94,7 +94,21 @@ class SendManager(object):
         exit = data.exit
         self._exit_code = exit.exit_code
 
-        if data.control.req_resp:
+        # Ensure we've at least noticed every file in the run directory. Sometimes
+        # we miss things because asynchronously watching filesystems isn't reliable.
+        run_dir = self._settings.files_dir
+        logger.info("scan: %s", run_dir)
+
+        if self._dir_watcher:
+            self._dir_watcher.finish()
+            self._dir_watcher = None
+
+        if self._pusher:
+            self._pusher.finish()
+            while self._pusher.is_alive():
+                time.sleep(0.1)
+
+        if data.control.req_resp and self._pusher:
             resp = wandb_internal_pb2.ResultRecord()
             file_counts = self._pusher.file_counts_by_category()
             resp.exit_result.files.wandb_count = file_counts["wandb"]
