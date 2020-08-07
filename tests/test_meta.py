@@ -9,6 +9,16 @@ from wandb.lib.filenames import DIFF_FNAME
 
 
 @pytest.fixture()
+def process_q():
+    return queue.Queue()
+
+
+@pytest.fixture()
+def notify_q():
+    return queue.Queue()
+
+
+@pytest.fixture()
 def resp_q():
     return queue.Queue()
 
@@ -26,7 +36,7 @@ def meta(test_settings, req_q):
 @pytest.fixture()
 def sm(runner, git_repo, resp_q, test_settings, meta, mock_server, mocked_run, req_q):
     test_settings.root_dir = os.getcwd()
-    sm = SendManager(test_settings, resp_q)
+    sm = SendManager(test_settings, process_q, notify_q, resp_q)
     meta._interface.send_run(mocked_run)
     sm.send(req_q.get())
     yield sm

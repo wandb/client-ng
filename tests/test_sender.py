@@ -10,6 +10,16 @@ from wandb.interface.interface import BackendSender
 
 
 @pytest.fixture()
+def process_q():
+    return queue.Queue()
+
+
+@pytest.fixture()
+def notify_q():
+    return queue.Queue()
+
+
+@pytest.fixture()
 def resp_q():
     return queue.Queue()
 
@@ -25,10 +35,10 @@ def sender(req_q):
 
 
 @pytest.fixture()
-def sm(runner, resp_q, test_settings, sender, mock_server, mocked_run, req_q):
+def sm(runner, process_q, notify_q, resp_q, test_settings, sender, mock_server, mocked_run, req_q):
     with runner.isolated_filesystem():
         test_settings.root_dir = os.getcwd()
-        sm = SendManager(test_settings, resp_q)
+        sm = SendManager(test_settings, process_q, notify_q, resp_q)
         sender.send_run(mocked_run)
         sm.send(req_q.get())
         yield sm
