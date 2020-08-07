@@ -789,7 +789,8 @@ class RunManaged(Run):
             )
             self._display_run()
         print("")
-        self._run_status_checker = RunStatusChecker(self._backend.interface)
+        if self._backend:
+            self._run_status_checker = RunStatusChecker(self._backend.interface)
         self._console_start()
 
     def _halt_bg_threads(self):
