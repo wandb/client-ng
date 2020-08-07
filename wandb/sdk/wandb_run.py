@@ -26,6 +26,7 @@ from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
 from wandb.lib import module, redirect
+from wandb.lib.filenames import JOBSPEC_FNAME
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
@@ -870,7 +871,7 @@ class RunManaged(Run):
         }
 
         s = json.dumps(job_spec, indent=4)
-        spec_filename = "wandb-jobspec.json"
+        spec_filename = JOBSPEC_FNAME
         with open(spec_filename, "w") as f:
             print(s, file=f)
         self.save(spec_filename)

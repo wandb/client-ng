@@ -14,7 +14,13 @@ import time
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface import interface
 from wandb.lib.config import save_config_file_from_dict
-from wandb.lib.filenames import CONFIG_FNAME, OUTPUT_FNAME, SUMMARY_FNAME
+from wandb.lib.filenames import (
+    CONFIG_FNAME,
+    OUTPUT_FNAME,
+    SUMMARY_FNAME,
+    HISTORY_FNAME,
+    EVENTS_FNAME,
+)
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
 
@@ -230,7 +236,7 @@ class SendManager(object):
     def _save_history(self, history_dict):
         if self._fs:
             # print("\n\nABOUT TO SAVE:\n", history_dict, "\n\n")
-            self._fs.push("wandb-history.jsonl", json.dumps(history_dict))
+            self._fs.push(HISTORY_FNAME, json.dumps(history_dict))
             # print("got", x)
         # save history into summary
         self._consolidated_summary.update(history_dict)
@@ -271,7 +277,7 @@ class SendManager(object):
         row["_wandb"] = True
         row["_timestamp"] = now
         row["_runtime"] = int(now - self._settings._start_time)
-        self._fs.push("wandb-events.jsonl", json.dumps(row))
+        self._fs.push(EVENTS_FNAME, json.dumps(row))
         # TODO(jhr): check fs.push results?
 
     def handle_output(self, data):

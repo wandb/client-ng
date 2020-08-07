@@ -4,6 +4,10 @@ DIFF_FNAME = 'diff.patch'
 SUMMARY_FNAME = 'wandb-summary.json'
 METADATA_FNAME = 'wandb-metadata.json'
 REQUIREMENTS_FNAME = 'requirements.txt'
+HISTORY_FNAME = 'wandb-history.jsonl'
+EVENTS_FNAME = 'wandb-events.jsonl'
+JOBSPEC_FNAME = 'wandb-jobspec.json'
+ENTRYPOINT_FNAME = 'wandb-entrypoint.sh'
 
 
 def is_wandb_file(name):
