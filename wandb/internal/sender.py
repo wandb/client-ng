@@ -135,9 +135,6 @@ class SendManager(object):
 
         if self._pusher:
             self._pusher.finish()
-            # TODO: move this into pusher.finish()
-            while self._pusher.is_alive():
-                time.sleep(0.1)
 
         if self._fs:
             # TODO(jhr): now is a good time to output pending output lines
@@ -157,9 +154,7 @@ class SendManager(object):
         # TODO(david): this info should be in exit_result footer?
         if self._pusher:
             self._pusher.print_status()
-
-        # Dont let anyone else touch pusher
-        self._pusher = None
+            self._pusher = None
 
     def handle_run(self, data):
         run = data.run

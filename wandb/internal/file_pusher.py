@@ -128,6 +128,8 @@ class FilePusher(object):
 
     def finish(self):
         self._incoming_queue.put(step_checksum.RequestFinish())
+        while self.is_alive():
+            time.sleep(0.2)
 
     def is_alive(self):
         return (self._step_checksum.is_alive()
