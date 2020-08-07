@@ -29,7 +29,7 @@ def test_resume_allow_success(live_mock_server, test_settings):
     first_stream_hist = server_ctx["file_stream"][0]['files']['wandb-history.jsonl']
     print(first_stream_hist)
     assert first_stream_hist["offset"] == 15
-    assert json.loads(first_stream_hist['content'][0])["_step"] == 15
+    assert json.loads(first_stream_hist['content'][0])["_step"] == 16
     # TODO: test _runtime offset setting
     # TODO: why no event stream?
     # assert first_stream['files']['wandb-events.jsonl'] == {

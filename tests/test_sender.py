@@ -47,7 +47,7 @@ def test_resume_success(mocked_run, test_settings, mock_server, sender, req_q, r
     res = resp_q.get()
     print("WHAT?", res.run_result.HasField("error"), dir(res.run_result))
     assert res.run_result.HasField("error") is False
-    assert res.run_result.run.starting_step == 15
+    assert res.run_result.run.starting_step == 16
 
 
 def test_resume_error_never(

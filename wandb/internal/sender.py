@@ -195,7 +195,7 @@ class SendManager(object):
                     events_rt = events.get("_runtime", 0)
                     history_rt = history.get("_runtime", 0)
                     self._offsets["runtime"] = max(events_rt, history_rt)
-                    self._offsets["step"] = history.get("_step", 0)
+                    self._offsets["step"] = history.get("_step", -1) + 1
                     self._offsets["history"] = resume_status["historyLineCount"]
                     self._offsets["events"] = resume_status["eventsLineCount"]
                     self._offsets["output"] = resume_status["logLineCount"]

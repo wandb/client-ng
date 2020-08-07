@@ -20,8 +20,8 @@ def main(args):
     wandb.join()
     print("Run finished at: ", int(time.time()))
 
-    print("Sleeping 30 seconds...")
-    time.sleep(30)
+    print("Sleeping 5 seconds...")
+    time.sleep(5)
 
     wandb.init(project="resuming", resume="allow", id=id, reinit=True)
     print("Run starting step: ", wandb.run.history._step)

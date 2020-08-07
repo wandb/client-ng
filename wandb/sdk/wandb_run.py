@@ -782,7 +782,10 @@ class RunManaged(Run):
     def _on_start(self):
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
-            run_state_str = "Syncing run"
+            if self.resumed:
+                run_state_str = "Resuming run"
+            else:
+                run_state_str = "Syncing run"
             run_name = self._get_run_name()
             wandb.termlog(
                 "{} {}".format(run_state_str, click.style(run_name, fg="yellow"))
