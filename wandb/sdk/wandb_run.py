@@ -12,6 +12,7 @@ import collections
 import glob
 import json
 import logging
+import numbers
 import os
 import platform
 import sys
@@ -121,6 +122,7 @@ class RunManaged(Run):
         self._stdout_slave_fd = None
         self._stderr_slave_fd = None
         self._exit_code = None
+        self._exit_result = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -767,6 +769,8 @@ class RunManaged(Run):
             print("Problem syncing data")
             os._exit(1)
 
+        self._exit_result = ret
+
         #  TODO: close the logging file handler
         self._console_stop()
         self._backend.cleanup()
@@ -802,14 +806,44 @@ class RunManaged(Run):
                     self._settings.log_internal
                 )
             )
+
+        self._print_summary()
+
+        if self._exit_result.files:
+            logger.info("logging synced files")
+            wandb.termlog(
+                "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
+                    self._exit_result.files.wandb_count,
+                    self._exit_result.files.media_count,
+                    self._exit_result.files.artifact_count,
+                    self._exit_result.files.other_count,
+                )
+            )
+
         if self._run_obj:
             run_url = self._get_run_url()
             run_name = self._get_run_name()
             wandb.termlog(
-                "Synced {}: {}".format(
+                "\nSynced {}: {}".format(
                     click.style(run_name, fg="yellow"), click.style(run_url, fg="blue")
                 )
             )
+
+    def _print_summary(self):
+        summary = self.summary._as_dict()
+        if len(summary):
+            logger.info("rendering summary")
+            wandb.termlog("Run summary:")
+            max_len = max([len(k) for k in summary.keys()])
+            format_str = "  {:>%s} {}" % max_len
+            for k, v in summary.items():
+                # arrays etc. might be too large. for now we just don't print them
+                if isinstance(v, string_types):
+                    if len(v) >= 20:
+                        v = v[:20] + "..."
+                    wandb.termlog(format_str.format(k, v))
+                elif isinstance(v, numbers.Number):
+                    wandb.termlog(format_str.format(k, v))
 
     def _save_job_spec(self):
         envdict = dict(python="python3.6", requirements=[],)

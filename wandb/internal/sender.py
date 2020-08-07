@@ -12,8 +12,9 @@ import os
 import time
 
 from wandb.filesync.dir_watcher import DirWatcher
-from wandb.interface.interface import file_enum_to_policy
+from wandb.interface import interface
 from wandb.lib.config import save_config_file_from_dict
+from wandb.lib.filenames import CONFIG_FNAME, OUTPUT_FNAME, SUMMARY_FNAME
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
 
@@ -46,7 +47,7 @@ def _config_dict_from_proto_list(obj_list):
 
 
 class SendManager(object):
-    def __init__(self, settings, resp_q, run_meta=None):
+    def __init__(self, settings, process_q, notify_q, resp_q, run_meta=None):
         self._settings = settings
         self._resp_q = resp_q
         self._run_meta = run_meta
@@ -67,6 +68,10 @@ class SendManager(object):
 
         # TODO(jhr): do something better, why do we need to send full lines?
         self._partial_output = dict()
+
+        self._interface = interface.BackendSender(
+            process_queue=process_q, notify_queue=notify_q,
+        )
 
         self._exit_code = 0
 
@@ -114,17 +119,47 @@ class SendManager(object):
             self._tb_watcher.finish()
             self._tb_watcher = None
 
-        for dirpath, _, filenames in os.walk(run_dir):
-            for fname in filenames:
-                file_path = os.path.join(dirpath, fname)
-                save_name = os.path.relpath(file_path, run_dir)
-                logger.info("scan save: %s %s", file_path, save_name)
-                self._save_file(save_name)
-
+        # Pass the responsibility to respond to handle_final()
         if data.control.req_resp:
-            # TODO: send something more than an empty result
-            resp = wandb_internal_pb2.ResultRecord()
-            self._resp_q.put(resp)
+            # send exit_final to give the queue a chance to flush
+            # response will be handled in handle_exit_final
+            logger.info("send final")
+            self._interface.send_exit_final()
+
+    def handle_final(self, data):
+        logger.info("handle final")
+
+        if self._dir_watcher:
+            self._dir_watcher.finish()
+            self._dir_watcher = None
+
+        if self._pusher:
+            self._pusher.finish()
+            # TODO: move this into pusher.finish()
+            while self._pusher.is_alive():
+                time.sleep(0.1)
+
+        if self._fs:
+            # TODO(jhr): now is a good time to output pending output lines
+            self._fs.finish(self._exit_code)
+            self._fs = None
+
+        # NB: assume we always need to send a response for this message
+        # since it was sent on behalf of handle_exit() req/resp logic
+        resp = wandb_internal_pb2.ResultRecord()
+        file_counts = self._pusher.file_counts_by_category()
+        resp.exit_result.files.wandb_count = file_counts["wandb"]
+        resp.exit_result.files.media_count = file_counts["media"]
+        resp.exit_result.files.artifact_count = file_counts["artifact"]
+        resp.exit_result.files.other_count = file_counts["other"]
+        self._resp_q.put(resp)
+
+        # TODO(david): this info should be in exit_result footer?
+        if self._pusher:
+            self._pusher.print_status()
+
+        # Dont let anyone else touch pusher
+        self._pusher = None
 
     def handle_run(self, data):
         run = data.run
@@ -134,7 +169,7 @@ class SendManager(object):
         config_dict = None
         if run.HasField("config"):
             config_dict = _config_dict_from_proto_list(run.config.update)
-            config_path = os.path.join(self._settings.files_dir, "config.yaml")
+            config_path = os.path.join(self._settings.files_dir, CONFIG_FNAME)
             save_config_file_from_dict(config_path, config_dict)
 
         repo = GitRepo(remote=self._settings.git_remote)
@@ -214,10 +249,11 @@ class SendManager(object):
     def _save_summary(self, summary_dict):
         json_summary = json.dumps(summary_dict)
         if self._fs:
-            self._fs.push("wandb-summary.json", json_summary)
-        summary_path = os.path.join(self._settings.files_dir, "wandb-summary.json")
+            self._fs.push(SUMMARY_FNAME, json_summary)
+        summary_path = os.path.join(self._settings.files_dir, SUMMARY_FNAME)
         with open(summary_path, "w") as f:
             f.write(json_summary)
+            self._save_file(SUMMARY_FNAME)
 
     def handle_summary(self, data):
         summary = data.summary
@@ -266,7 +302,7 @@ class SendManager(object):
             timestamp = datetime.utcfromtimestamp(cur_time).isoformat() + " "
             prev_str = self._partial_output.get(stream, "")
             line = u"{}{}{}{}".format(prepend, timestamp, prev_str, line)
-            self._fs.push("output.log", line)
+            self._fs.push(OUTPUT_FNAME, line)
             self._partial_output[stream] = ""
 
     def handle_config(self, data):
@@ -290,7 +326,7 @@ class SendManager(object):
         files = data.files
         for k in files.files:
             # TODO(jhr): fix paths with directories
-            self._save_file(k.path, file_enum_to_policy(k.policy))
+            self._save_file(k.path, interface.file_enum_to_policy(k.policy))
 
     def handle_artifact(self, data):
         artifact = data.artifact
@@ -319,7 +355,4 @@ class SendManager(object):
         if self._pusher:
             self._pusher.finish()
         if self._fs:
-            # TODO(jhr): now is a good time to output pending output lines
             self._fs.finish(self._exit_code)
-        if self._pusher:
-            self._pusher.print_status()
