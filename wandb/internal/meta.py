@@ -14,7 +14,7 @@ import sys
 from wandb import util
 from wandb.interface import interface
 from wandb.internal import git_repo
-from wandb.lib.filenames import DIFF_FNAME
+from wandb.lib.filenames import DIFF_FNAME, METADATA_FNAME, REQUIREMENTS_FNAME
 from wandb.vendor.pynvml import pynvml
 
 if os.name == "posix" and sys.version_info[0] < 3:
@@ -22,8 +22,6 @@ if os.name == "posix" and sys.version_info[0] < 3:
 else:
     import subprocess  # type: ignore[no-redef]
 
-
-METADATA_FNAME = "wandb-metadata.json"
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,7 @@ class Meta(object):
         self._saved_patches = []
 
     def _save_pip(self):
-        """Saves the current working set of pip packages to requirements.txt"""
+        """Saves the current working set of pip packages to {REQUIREMENTS_FNAME}"""
         try:
             import pkg_resources
 
@@ -58,7 +56,7 @@ class Meta(object):
                 ["%s==%s" % (i.key, i.version) for i in installed_packages]
             )
             with open(
-                os.path.join(self._settings.files_dir, "requirements.txt"), "w"
+                os.path.join(self._settings.files_dir, REQUIREMENTS_FNAME), "w"
             ) as f:
                 f.write("\n".join(installed_packages_list))
         except Exception:

@@ -35,7 +35,7 @@ from wandb.old import retry
 from wandb import util
 from wandb.apis.normalize import normalize_exceptions
 from wandb.errors.error import CommError, UsageError
-from wandb.lib.filenames import DIFF_FNAME
+from wandb.lib.filenames import DIFF_FNAME, METADATA_FNAME
 
 from .file_stream import FileStreamApi
 from .progress import Progress
@@ -539,7 +539,7 @@ class Api(object):
                     config
                     commit
                     patch
-                    files(names: ["wandb-metadata.json"]) {
+                    files(names: ["{}"]) {
                         edges {
                             node {
                                 url
@@ -549,7 +549,7 @@ class Api(object):
                 }
             }
         }
-        ''')
+        '''.format(METADATA_FNAME))
 
         response = self.gql(query, variable_values={
             'name': project, 'run': run, 'entity': entity
