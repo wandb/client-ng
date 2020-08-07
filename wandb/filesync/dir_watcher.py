@@ -174,6 +174,7 @@ class DirWatcher(object):
         file_event_handler._ignore_patterns = [
             "*.tmp",
             "*.wandb",
+            "wandb-summary.json",
             os.path.join(self._dir, ".*"),
             os.path.join(self._dir, "*/.*"),
         ]

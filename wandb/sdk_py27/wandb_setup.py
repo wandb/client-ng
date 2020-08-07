@@ -208,8 +208,8 @@ class _WandbSetup(object):
 
     _instance = None
 
-    def __init__(self, settings=None):
-        if _WandbSetup._instance is not None:
+    def __init__(self, settings=None, _warn=True):
+        if _WandbSetup._instance is not None and _warn:
             logger.warning(
                 "Ignoring settings passed to wandb.setup() "
                 "which has already been configured."
@@ -224,7 +224,7 @@ class _WandbSetup(object):
         self._instance._log_handler = handler
 
 
-def setup(settings=None):
+def setup(settings=None, _warn=True):
     """Setup library context."""
-    wl = _WandbSetup(settings=settings)
+    wl = _WandbSetup(settings=settings, _warn=_warn)
     return wl

@@ -82,7 +82,6 @@ class ExitHooks(object):
         if self.was_ctrl_c():
             self.exit_code = 255
 
-        print("except handle")
         traceback.print_exception(exc_type, exc, *tb)
 
 
@@ -250,6 +249,14 @@ class RunManaged(Run):
             return self._starting_step
         else:
             return self._run_obj.starting_step
+
+    @property
+    def resumed(self):
+        return self._starting_step > 0
+
+    @property
+    def step(self):
+        return self.history._step
 
     def project_name(self, api=None):
         if not self._run_obj:

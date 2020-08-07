@@ -17,6 +17,7 @@ message Record {
     FilesData       files = 6;
     StatsData       stats = 7;
     ArtifactData    artifact = 8;
+    LoginData       login = 9;
     RunData         run = 17;
     ExitData        exit = 18;
     StatusData      status = 19;
@@ -31,6 +32,14 @@ message Record {
 message Control {
   bool req_resp = 1;
   bool local = 2;  /* should not be persisted or synchronized */
+}
+
+/*
+ * LoginData: wandb/sdk/wandb_login#login()
+ */
+message LoginData {
+  string api_key = 1;
+  string anonymous = 2;
 }
 
 /*
@@ -253,6 +262,10 @@ message OutputResult {
 message ConfigResult {
 }
 
+message LoginResult {
+  string active_entity = 1;
+}
+
 message ResultRecord {
   oneof data {
     RunUpdateResult run_result = 17;
@@ -262,5 +275,6 @@ message ResultRecord {
     SummaryResult   summary_result = 21;
     OutputResult    output_result = 22;
     ConfigResult    config_result = 23;
+    LoginResult     login_result = 24;
   }
 }

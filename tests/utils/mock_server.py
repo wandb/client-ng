@@ -227,7 +227,7 @@ def create_app(user_ctx=None):
             )
         if "historyTail" in body["query"]:
             if ctx["resume"] is True:
-                tail = '["{\\"_step\\": 15, \\"acc\\": 1, \\"_runtime\\": 60}"]'
+                hist_tail = '["{\\"_step\\": 15, \\"acc\\": 1, \\"_runtime\\": 60}"]'
                 return json.dumps(
                     {
                         "data": {
@@ -240,8 +240,8 @@ def create_app(user_ctx=None):
                                     "logLineCount": 14,
                                     "historyLineCount": 15,
                                     "eventsLineCount": 0,
-                                    "historyTail": tail,
-                                    "eventsTail": "[]",
+                                    "historyTail": hist_tail,
+                                    "eventsTail": '["{\\"_runtime\\": 70}"}"]',
                                 }
                             }
                         }

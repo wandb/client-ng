@@ -10,7 +10,6 @@ import logging
 import multiprocessing
 import os
 import platform
-import signal
 import sys
 import threading
 import time
@@ -243,7 +242,7 @@ def wandb_internal(  # noqa: C901
 
     pid = os.getpid()
 
-    logger.info("W&B internal server running at pid: %s" % pid)
+    logger.info("W&B internal server running at pid: %s", pid)
 
     system_stats = None
     if not settings._disable_stats:

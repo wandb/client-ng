@@ -14,6 +14,7 @@ import time
 from six import raise_from, reraise
 import wandb
 from wandb.backend.backend import Backend
+from wandb.errors.error import UsageError
 from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
@@ -64,7 +65,7 @@ class _WandbInit(object):
         # TODO: Is this the best way to do this?
         session_settings_keys = ["anonymous"]
         session_settings = {k: kwargs[k] for k in session_settings_keys}
-        self._wl = wandb.setup(settings=session_settings)
+        self._wl = wandb.setup(settings=session_settings, _warn=False)
         # Make sure we have a logger setup (might be an early logger)
         _set_logger(self._wl._get_logger())
 
@@ -271,9 +272,6 @@ class _WandbInit(object):
             # TODO(jhr): return dummy object
             return None
 
-        # Make sure we are logged in
-        wandb.login()
-
         console = s.console
         use_redirect = True
         stdout_master_fd, stderr_master_fd = None, None
@@ -294,6 +292,8 @@ class _WandbInit(object):
             use_redirect=use_redirect,
         )
         backend.server_connect()
+        # Make sure we are logged in
+        wandb.login(backend=backend)
 
         # resuming needs access to the server, check server_status()?
 
@@ -320,7 +320,7 @@ class _WandbInit(object):
                 # we don't need to do console cleanup at this point
                 backend.cleanup()
                 self._wl.on_finish()
-                raise wandb.Error(ret.error.message)
+                raise UsageError(ret.error.message)
             run._set_run_obj(ret.run)
         elif s.mode in ("offline", "dryrun"):
             backend.interface.send_run(run)
@@ -409,12 +409,13 @@ def init(
                 sentry_exc(e)
             getcaller()
             assert logger
-            logger.exception("we got issues")
             if wi.settings.problem == "fatal":
                 raise
             if wi.settings.problem == "warn":
                 pass
             run = RunDummy()
+    except UsageError:
+        raise
     except KeyboardInterrupt as e:
         assert logger
         logger.warning("interrupted", exc_info=e)

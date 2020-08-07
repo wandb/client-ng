@@ -231,6 +231,14 @@ class BackendSender(object):
             f.policy = file_policy_to_enum(policy)
         return files
 
+    def _make_login(self, api_key=None, anonymous=None):
+        login = wandb_internal_pb2.LoginData()
+        if api_key:
+            login.api_key = api_key
+        if anonymous:
+            login.anonymous = anonymous
+        return login
+
     def _make_record(
         self,
         run=None,
@@ -241,6 +249,7 @@ class BackendSender(object):
         stats=None,
         exit=None,
         artifact=None,
+        login=None,
     ):
         rec = wandb_internal_pb2.Record()
         if run:
@@ -259,6 +268,8 @@ class BackendSender(object):
             rec.exit.CopyFrom(exit)
         if artifact:
             rec.artifact.CopyFrom(artifact)
+        if login:
+            rec.login.CopyFrom(login)
         return rec
 
     def _queue_process(self, rec):
@@ -290,6 +301,18 @@ class BackendSender(object):
 
         # returns response, err
         return rsp
+
+    def send_login_sync(self, api_key=None, anonymous=None, timeout=5):
+        login = self._make_login(api_key, anonymous)
+        rec = self._make_record(login=login)
+        resp = self._request_response(rec, timeout=timeout)
+        if resp is None:
+            # TODO: friendlier error message here
+            raise wandb.Error(
+                "Couldn't communicate with backend after %s seconds" % timeout
+            )
+        assert resp.login_result
+        return resp.login_result
 
     def send_run(self, run_obj):
         run = self._make_run(run_obj)

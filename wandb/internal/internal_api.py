@@ -573,9 +573,9 @@ class Api(object):
         """Check if a run exists and get resume information.
 
         Args:
-            entity (str, optional): The entity to scope this project to.
+            entity (str): The entity to scope this project to.
             project_name (str): The project to download, (can include bucket)
-            run (str, optional): The run to download
+            run (str): The run to download
         """
         query = gql('''
         query Model($project: String!, $entity: String, $name: String!) {
