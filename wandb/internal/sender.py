@@ -95,6 +95,19 @@ class SendManager(object):
                     for k2, v2 in v.items():
                         dictionary[k + "." + k2] = v2
 
+    def handle_status(self, data):
+        if data.control.req_resp and data.status.check_stop_req:
+            resp = wandb_internal_pb2.ResultRecord()
+            resp.status_result.run_should_stop = False
+            if self._entity and self._project and self._run_id:
+                try:
+                    resp.status_result.run_should_stop = self._api.check_stop_requested(
+                        self._project, self._entity, self._run_id
+                    )
+                except Exception:
+                    pass
+            self._resp_q.put(resp)
+
     def handle_tbdata(self, data):
         if self._tb_watcher:
             tbdata = data.tbdata

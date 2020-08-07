@@ -205,8 +205,8 @@ message ExitData {
   int32 exit_code = 1;
 }
 
-
 message StatusData {
+  bool check_stop_req = 1;
 }
 
 message TBData {
@@ -228,6 +228,7 @@ message LogResult {
 }
 
 message StatusResult {
+  bool run_should_stop = 1;
 }
 
 message SummaryResult {

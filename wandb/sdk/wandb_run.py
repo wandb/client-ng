@@ -15,10 +15,12 @@ import logging
 import os
 import platform
 import sys
+import threading
 import traceback
 
 import click
 from six import string_types
+from six.moves import _thread as thread
 from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public
@@ -84,6 +86,35 @@ class ExitHooks(object):
         traceback.print_exception(exc_type, exc, *tb)
 
 
+class RunStatusChecker(object):
+    """Periodically polls the background process for relevant updates.
+
+    For now, we just use this to figure out if the user has requested a stop.
+    """
+
+    def __init__(self, interface, polling_interval=15):
+        self._interface = interface
+        self._polling_interval = polling_interval
+
+        self._join_event = threading.Event()
+        self._thread = threading.Thread(target=self.check_status)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def check_status(self):
+        join_requested = False
+        while not join_requested:
+            status_result = self._interface.send_status_sync(check_stop_req=True)
+            if status_result.run_should_stop:
+                thread.interrupt_main()
+                return
+            join_requested = self._join_event.wait(self._polling_interval)
+
+    def join(self):
+        self._join_event.set()
+        self._thread.join()
+
+
 class RunManaged(Run):
     def __init__(self, config=None, settings=None):
         self._config = wandb_config.Config()
@@ -131,6 +162,9 @@ class RunManaged(Run):
 
         # Returned from backend send_run_sync, set from wandb_init?
         self._run_obj = None
+
+        # Created when the run "starts".
+        self._run_status_checker = None
 
         config = config or dict()
         wandb_key = "_wandb"
@@ -726,6 +760,7 @@ class RunManaged(Run):
         logger.info("got exitcode: %d", exit_code)
 
         self._exit_code = exit_code
+        self._halt_bg_threads()
         self._on_finish()
         self._on_final()
 
@@ -740,7 +775,6 @@ class RunManaged(Run):
             self._redirect_cb = self._console_callback
 
         self._redirect(self._stdout_slave_fd, self._stderr_slave_fd)
-        pass
 
     def _console_stop(self):
         self._restore()
@@ -755,7 +789,13 @@ class RunManaged(Run):
             )
             self._display_run()
         print("")
+        self._run_status_checker = RunStatusChecker(self._backend.interface)
         self._console_start()
+
+    def _halt_bg_threads(self):
+        if self._run_status_checker:
+            self._run_status_checker.join()
+            self._run_status_checker = None
 
     def _on_finish(self):
         # make sure all uncommitted history is flushed

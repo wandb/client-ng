@@ -241,6 +241,7 @@ class BackendSender(object):
         stats=None,
         exit=None,
         artifact=None,
+        status=None,
     ):
         rec = wandb_internal_pb2.Record()
         if run:
@@ -259,6 +260,8 @@ class BackendSender(object):
             rec.exit.CopyFrom(exit)
         if artifact:
             rec.artifact.CopyFrom(artifact)
+        if status:
+            rec.status.CopyFrom(status)
         return rec
 
     def _queue_process(self, rec):
@@ -273,11 +276,12 @@ class BackendSender(object):
         # wait for it to come back
         pass
 
-    def _request_response(self, rec, timeout=5):
+    def _request_response(self, rec, timeout=5, local=False):
         # TODO: make sure this is called from main process.
         # can only be one outstanding
         # add a cancel queue
         rec.control.req_resp = True
+        rec.control.local = local
         self.request_queue.put(rec)
         self.notify_queue.put(constants.NOTIFY_REQUEST)
 
@@ -356,6 +360,15 @@ class BackendSender(object):
             proto_artifact.aliases.append(alias)
         rec = self._make_record(artifact=proto_artifact)
         self._queue_process(rec)
+
+    def send_status_sync(self, check_stop_req, timeout=None):
+        status = wandb_internal_pb2.StatusData()
+        status.check_stop_req = check_stop_req
+        req = self._make_record(status=status)
+
+        resp = self._request_response(req, timeout=timeout, local=True)
+        assert resp.status_result
+        return resp.status_result
 
     def send_exit(self, exit_code):
         pass
