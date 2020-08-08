@@ -19,7 +19,7 @@ import sys
 import traceback
 
 import click
-from six import string_types, iteritems
+from six import iteritems, string_types
 from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public

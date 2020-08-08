@@ -9,19 +9,19 @@ from datetime import datetime
 import json
 import logging
 import os
-import six
 import time
 
+import six
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface import interface
 from wandb.lib.config import save_config_file_from_dict
 from wandb.lib.dict import dict_from_proto_list
 from wandb.lib.filenames import (
     CONFIG_FNAME,
+    EVENTS_FNAME,
+    HISTORY_FNAME,
     OUTPUT_FNAME,
     SUMMARY_FNAME,
-    HISTORY_FNAME,
-    EVENTS_FNAME,
 )
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
