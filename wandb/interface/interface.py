@@ -7,6 +7,7 @@ Manage backend sender.
 
 import json
 import logging
+import time
 
 import six
 from six.moves import queue
@@ -242,6 +243,7 @@ class BackendSender(object):
         exit=None,
         artifact=None,
         final=None,
+        poll=None,
     ):
         rec = wandb_internal_pb2.Record()
         if run:
@@ -262,6 +264,8 @@ class BackendSender(object):
             rec.artifact.CopyFrom(artifact)
         if final:
             rec.final.CopyFrom(final)
+        if poll:
+            rec.poll.CopyFrom(poll)
         return rec
 
     def _queue_process(self, rec):
@@ -276,20 +280,64 @@ class BackendSender(object):
         # wait for it to come back
         pass
 
-    def _request_response(self, rec, timeout=5):
+    def _poll_response(self, rec, poll_callback=None, poll_interval=None, poll_timeout=None):
+        poll_interval = poll_interval or 2
+        poll_timeout = poll_timeout or 30
+        done = False
+        poll_data = wandb_internal_pb2.PollData()
+        poll_data.record.CopyFrom(rec)
+
+        poll_rec = self._make_record(poll=poll_data)
+        poll_rec.control.local = True
+        poll_rec.control.req_resp = True
+        while not done:
+            self.request_queue.put(poll_rec)
+            self.notify_queue.put(constants.NOTIFY_REQUEST)
+
+            time.sleep(poll_interval)
+            try:
+                rsp = self.response_queue.get(timeout=poll_timeout)
+            except queue.Empty:
+                self._request_flush()
+                # raise BackendSender.ExceptionTimeout("timeout")
+                return None
+            res = rsp.poll_result
+            if res.done:
+                done = True
+                rsp = res.result_record
+                break
+            if poll_callback:
+                ret = poll_callback(res)
+                if ret:
+                    print("timeout poll")
+                    return None
+        return rsp
+
+
+    def _request_response(self, rec, timeout=5, poll_callback=None, poll_interval=None):
         # TODO: make sure this is called from main process.
         # can only be one outstanding
         # add a cancel queue
-        rec.control.req_resp = True
-        self.request_queue.put(rec)
-        self.notify_queue.put(constants.NOTIFY_REQUEST)
 
-        try:
-            rsp = self.response_queue.get(timeout=timeout)
-        except queue.Empty:
-            self._request_flush()
-            # raise BackendSender.ExceptionTimeout("timeout")
-            return None
+        if poll_callback:
+            rec.control.poll_req_resp = True
+            self.request_queue.put(rec)
+            self.notify_queue.put(constants.NOTIFY_REQUEST)
+            rsp = self._poll_response(rec, poll_callback=poll_callback, poll_interval=poll_interval)
+            if not rsp:
+                # oh no
+                print("got nothing")
+                return None
+        else:
+            rec.control.req_resp = True
+            self.request_queue.put(rec)
+            self.notify_queue.put(constants.NOTIFY_REQUEST)
+            try:
+                rsp = self.response_queue.get(timeout=timeout)
+            except queue.Empty:
+                self._request_flush()
+                # raise BackendSender.ExceptionTimeout("timeout")
+                return None
 
         # returns response, err
         return rsp
@@ -363,19 +411,19 @@ class BackendSender(object):
     def send_exit(self, exit_code):
         pass
 
-    def _send_exit_sync(self, exit_data, timeout=None):
+    def _send_exit_sync(self, exit_data, timeout=None, poll_callback=None):
         req = self._make_record(exit=exit_data)
 
-        resp = self._request_response(req, timeout=timeout)
+        resp = self._request_response(req, timeout=timeout, poll_callback=poll_callback)
         assert resp.exit_result
         return resp.exit_result
 
-    def send_exit_final(self):
-        finalize_data = wandb_internal_pb2.ExitFinalData()
+    def send_exit_final(self, poll=None):
+        finalize_data = wandb_internal_pb2.ExitFinalData(poll=True)
         rec = self._make_record(final=finalize_data)
         rec.control.local = True
         self._queue_process(rec)
 
-    def send_exit_sync(self, exit_code, timeout=None):
+    def send_exit_sync(self, exit_code, timeout=None, poll_callback=None):
         exit_data = self._make_exit(exit_code)
-        return self._send_exit_sync(exit_data, timeout=timeout)
+        return self._send_exit_sync(exit_data, timeout=timeout, poll_callback=poll_callback)

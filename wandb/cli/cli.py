@@ -173,6 +173,9 @@ def login(key, host, cloud, relogin, anonymously):
         # To avoid writing an empty local settings file, we only clear if it exists
         if os.path.exists(Settings._local_path()):
             api.clear_setting("base_url", persist=True)
+    if host == "test":
+        host = "http://api.wandb.test"
+        api.set_setting("base_url", host.strip("/"), globally=True, persist=True)
     elif host:
         if not host.startswith("http"):
             raise ClickException("host must start with http(s)://")
@@ -203,12 +206,43 @@ def superagent(project=None, entity=None, agent_spec=None):
 
 
 @cli.command(context_settings=CONTEXT, help="Configure a directory with Weights & Biases")
+@click.option("--project", "-p", help="The project to use.")
+@click.option("--entity", "-e", help="The entity to scope the project to.")
+@click.option("--setting", "-s", help="enable an arbitrary setting.", multiple=True)
+@click.option('--interactive', "-i", is_flag=True, help="Interactive setup")
+@click.option('--reset', is_flag=True, help="Reset settings")
+@click.option('--show', is_flag=True, help="Show settings")
 @click.pass_context
 @display_error
-def init(ctx):
+def init(ctx, project, entity, setting, interactive, reset, show):
     from wandb.old.core import _set_stage_dir, __stage_dir__, wandb_dir
     if __stage_dir__ is None:
         _set_stage_dir('wandb')
+
+
+    if show:
+        api = InternalApi()
+        print("settings: ", api.settings())
+        return
+
+    # non interactive init
+    if reset or project or entity or setting:
+        api = InternalApi()
+        if reset:
+            api.clear_setting("entity", persist=True)
+            api.clear_setting("project", persist=True)
+        if entity:
+            api.set_setting('entity', entity, persist=True)
+        if project:
+            api.set_setting('project', project, persist=True)
+        #api.set_setting('base_url', api.settings().get('base_url'), persist=True)
+        return
+
+    if not interactive:
+        click.echo(click.style("To interactively setup your directory run: ",
+               fg="green") + click.style("wandb -i", bold=True))
+        return
+
     if os.path.isdir(wandb_dir()) and os.path.exists(os.path.join(wandb_dir(), "settings")):
         click.confirm(click.style(
             "This directory has been configured previously, should we re-configure it?", bold=True), abort=True)

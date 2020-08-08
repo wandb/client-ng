@@ -33,6 +33,17 @@ from . import wandb_config
 from . import wandb_history
 from . import wandb_summary
 
+import rich
+from rich.progress import Progress
+from rich.panel import Panel
+from rich.console import Console
+
+class MyProgress(Progress):
+    def get_renderables(self):
+        #yield "CATCAT\nDOGDOG\n"+Panel(self.make_tasks_table(self.tasks))
+        yield "\n"
+        yield Panel(self.make_tasks_table(self.tasks))
+
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import Optional
 
@@ -759,15 +770,39 @@ class RunManaged(Run):
         print("")
         self._console_start()
 
+    def _on_finish_wait(self, data=None):
+        total = data.poll_record.exit_poll.total_bytes
+        completed = data.poll_record.exit_poll.upload_bytes
+        #print(total, completed)
+        if total == 0:
+            return
+        print("UPDATE", total, completed, data.done)
+        self._sugar_progress.update(self._sugar_task, total=total, completed=completed, visible=True)
+        self._sugar_progress.refresh()
+
     def _on_finish(self):
         # make sure all uncommitted history is flushed
         self.history._flush()
 
-        ret = self._backend.interface.send_exit_sync(self._exit_code, timeout=60)
-        logger.info("got exit ret: %s", ret)
-        if ret is None:
-            print("Problem syncing data")
-            os._exit(1)
+        my_console = Console(record=True, markup=False)
+
+        with MyProgress(console=my_console, auto_refresh=False) as progress:
+            task1 = progress.add_task("[red] Uploading...", total=0, visible=False)
+            #cb = lambda: my_update(progress, [task1,task2,task3], track)
+            #def my_update(progress, l, track):
+            #    for t in l:
+            #        progress.update(t, advance=2.3)
+            self._sugar_progress = progress
+            self._sugar_task = task1
+            #self._sugar_progress.update(self._sugar_task, advance=2.3)
+            #self._sugar_progress.refresh()
+
+            ret = self._backend.interface.send_exit_sync(self._exit_code, timeout=60, poll_callback=self._on_finish_wait)
+            logger.info("got exit ret: %s", ret)
+            if ret is None:
+                print("Problem syncing data")
+                os._exit(1)
+            progress.update(task1, visible=False)
 
         self._exit_result = ret
 

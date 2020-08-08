@@ -90,6 +90,21 @@ class FilePusher(object):
         # clear progress line.
         wandb.termlog(' ' * 79, prefix=prefix)
 
+    def get_status(self, prefix=True):
+        if not self.is_alive():
+            return
+        step = 0
+        spinner_states = ['-', '\\', '|', '/']
+        summary = self._stats.summary()
+        line = ' %.2fMB of %.2fMB uploaded (%.2fMB deduped)\r' % (
+            summary['uploaded_bytes'] / 1048576.0,
+            summary['total_bytes'] / 1048576.0,
+            summary['deduped_bytes'] / 1048576.0)
+        line = spinner_states[step % 4] + line
+        step += 1
+        # wandb.termlog(line, newline=False, prefix=prefix)
+        return (summary['uploaded_bytes'], summary['total_bytes'], summary['deduped_bytes'])
+
     def file_counts_by_category(self):
         return self._stats.file_counts_by_category()
 

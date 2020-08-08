@@ -22,6 +22,7 @@ message Record {
     StatusData      status = 19;
     TBData          tbdata = 20;
     ExitFinalData   final = 21;
+    PollData        poll = 22;
   }
   Control       control = 16;
 }
@@ -32,6 +33,7 @@ message Record {
 message Control {
   bool req_resp = 1;
   bool local = 2;  /* should not be persisted or synchronized */
+  bool poll_req_resp = 3;
 }
 
 /*
@@ -206,7 +208,13 @@ message ExitData {
   int32 exit_code = 1;
 }
 
+/* internal message for second stage of ExitData request */
 message ExitFinalData {
+  bool  poll = 1;
+}
+
+message PollData {
+  Record     record = 1;
 }
 
 message StatusData {
@@ -226,6 +234,12 @@ message RunUpdateResult {
 
 message RunExitResult {
   FilesSynced files = 1;
+}
+
+message PollResult {
+  bool         done = 1;
+  ResultRecord result_record = 2;
+  PollRecord   poll_record = 3;
 }
 
 message FilesSynced {
@@ -252,12 +266,25 @@ message ConfigResult {
 
 message ResultRecord {
   oneof data {
-    RunUpdateResult run_result = 17;
-    RunExitResult   exit_result = 18;
-    StatusResult    status_result = 19;
-    LogResult       log_result = 20;
-    SummaryResult   summary_result = 21;
-    OutputResult    output_result = 22;
-    ConfigResult    config_result = 23;
+    RunUpdateResult   run_result = 17;
+    RunExitResult     exit_result = 18;
+    StatusResult      status_result = 19;
+    LogResult         log_result = 20;
+    SummaryResult     summary_result = 21;
+    OutputResult      output_result = 22;
+    ConfigResult      config_result = 23;
+    PollResult        poll_result = 24;
+  }
+}
+
+message RunExitPoll {
+  int64 upload_bytes = 1;
+  int64 total_bytes = 2;
+  int64 dedup_bytes = 3;
+}
+
+message PollRecord {
+  oneof data {
+    RunExitPoll       exit_poll = 17;
   }
 }

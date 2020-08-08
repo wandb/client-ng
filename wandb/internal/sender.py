@@ -79,6 +79,8 @@ class SendManager(object):
         # self._consolidated_config = dict()
         self._consolidated_summary = dict()
 
+        self._poll_exit_result = None
+
     def send(self, i):
         t = i.WhichOneof("data")
         if t is None:
@@ -105,6 +107,41 @@ class SendManager(object):
             tbdata = data.tbdata
             self._tb_watcher.add(tbdata.log_dir, tbdata.save)
 
+    def handle_poll(self, data):
+        t = data.poll.record.WhichOneof("data")
+        if t is None:
+            return
+        handler = getattr(self, "handle_poll_" + t, None)
+        if handler is None:
+            print("unknown handle_poll", t)
+            return
+
+        # run the handler
+        handler(data)
+
+    def handle_poll_exit(self, data):
+        resp = wandb_internal_pb2.ResultRecord()
+        resp.poll_result.CopyFrom(wandb_internal_pb2.PollResult())
+        if self._poll_exit_result:
+            resp.poll_result.done = True
+            resp.poll_result.result_record.CopyFrom(self._poll_exit_result)
+
+        if data.control.req_resp:
+            if self._pusher:
+                logger.info("getstatus")
+                info = self._pusher.get_status()
+                if info is None:
+                    resp.poll_result.done = True
+                    # resp.poll_result.result_record.CopyFrom(self._poll_exit_result)
+                else:
+                    up, tot, dedup = info
+                    logger.info("getstatus: %d %d %d", up, tot, dedup)
+                    #resp.poll_result.poll_record.CopyFrom(wandb_internal_pb2.PollRecord())
+                    resp.poll_result.poll_record.exit_poll.upload_bytes = up
+                    resp.poll_result.poll_record.exit_poll.total_bytes = tot
+                    resp.poll_result.poll_record.exit_poll.dedup_bytes = dedup
+            self._resp_q.put(resp)
+
     def handle_exit(self, data):
         exit = data.exit
         self._exit_code = exit.exit_code
@@ -126,6 +163,12 @@ class SendManager(object):
             logger.info("send final")
             self._interface.send_exit_final()
 
+        if data.control.poll_req_resp:
+            # send exit_final to give the queue a chance to flush
+            # response will be handled in handle_exit_final
+            logger.info("send final")
+            self._interface.send_exit_final(poll=True)
+
     def handle_final(self, data):
         logger.info("handle final")
 
@@ -133,6 +176,16 @@ class SendManager(object):
             self._dir_watcher.finish()
             self._dir_watcher = None
 
+        if self._pusher:
+            self._pusher.finish()
+
+        if data.poll:
+            logger.info("final poll, exit here")
+            return
+
+        # self.do_final_backhalf(data)
+
+    def do_final_backhalf(self, data):
         if self._pusher:
             self._pusher.finish()
             # TODO: move this into pusher.finish()
@@ -152,6 +205,7 @@ class SendManager(object):
         resp.exit_result.files.media_count = file_counts["media"]
         resp.exit_result.files.artifact_count = file_counts["artifact"]
         resp.exit_result.files.other_count = file_counts["other"]
+        self._poll_exit_result = resp
         self._resp_q.put(resp)
 
         # TODO(david): this info should be in exit_result footer?
