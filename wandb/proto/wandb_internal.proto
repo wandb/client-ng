@@ -17,6 +17,7 @@ message Record {
     FilesData       files = 6;
     StatsData       stats = 7;
     ArtifactData    artifact = 8;
+    LoginData       login = 9;
     RunData         run = 17;
     ExitData        exit = 18;
     StatusData      status = 19;
@@ -36,6 +37,14 @@ message Control {
 }
 
 /*
+ * LoginData: wandb/sdk/wandb_login#login()
+ */
+message LoginData {
+  string api_key = 1;
+  string anonymous = 2;
+}
+
+/*
  * RunData: wandb/sdk/wandb_run/Run
  */
 message RunData {
@@ -52,6 +61,7 @@ message RunData {
   SettingsData settings = 11;
   string sweep_id = 12;
   string host = 13;
+  int64 starting_step = 14;
 
   string storage_id = 16;
   google.protobuf.Timestamp start_time = 17;
@@ -213,6 +223,18 @@ message ExitFinalData {
 message GetSummaryData {
 }
 
+message ErrorData {
+  enum ErrorCode {
+    UNKNOWN = 0;
+    INVALID = 1;
+    PERMISSION = 2;
+    NETWORK = 3;
+    INTERNAL = 4;
+  }
+  string  message = 1;
+  ErrorCode code = 2;
+}
+
 message StatusData {
 }
 
@@ -226,6 +248,7 @@ message TBData {
  */
 message RunUpdateResult {
   RunData run = 1;
+  ErrorData error = 2;
 }
 
 message RunExitResult {
@@ -259,15 +282,20 @@ message GetSummaryResult {
   repeated SummaryItem item = 1;
 }
 
+message LoginResult {
+  string active_entity = 1;
+}
+
 message ResultRecord {
   oneof data {
-    RunUpdateResult   run_result = 17;
-    RunExitResult     exit_result = 18;
-    StatusResult      status_result = 19;
-    LogResult         log_result = 20;
-    SummaryResult     summary_result = 21;
-    OutputResult      output_result = 22;
-    ConfigResult      config_result = 23;
-    GetSummaryResult  get_summary_result = 24;
+    RunUpdateResult run_result = 17;
+    RunExitResult   exit_result = 18;
+    StatusResult    status_result = 19;
+    LogResult       log_result = 20;
+    SummaryResult   summary_result = 21;
+    OutputResult    output_result = 22;
+    ConfigResult    config_result = 23;
+    LoginResult     login_result = 24;
+    GetSummaryResult  get_summary_result = 25;
   }
 }
