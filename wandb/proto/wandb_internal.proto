@@ -22,6 +22,7 @@ message Record {
     StatusData      status = 19;
     TBData          tbdata = 20;
     ExitFinalData   final = 21;
+    GetSummaryData  get_summary = 22;
   }
   Control       control = 16;
 }
@@ -209,6 +210,9 @@ message ExitData {
 message ExitFinalData {
 }
 
+message GetSummaryData {
+}
+
 message StatusData {
 }
 
@@ -226,6 +230,7 @@ message RunUpdateResult {
 
 message RunExitResult {
   FilesSynced files = 1;
+
 }
 
 message FilesSynced {
@@ -250,14 +255,19 @@ message OutputResult {
 message ConfigResult {
 }
 
+message GetSummaryResult {
+  repeated SummaryItem item = 1;
+}
+
 message ResultRecord {
   oneof data {
-    RunUpdateResult run_result = 17;
-    RunExitResult   exit_result = 18;
-    StatusResult    status_result = 19;
-    LogResult       log_result = 20;
-    SummaryResult   summary_result = 21;
-    OutputResult    output_result = 22;
-    ConfigResult    config_result = 23;
+    RunUpdateResult   run_result = 17;
+    RunExitResult     exit_result = 18;
+    StatusResult      status_result = 19;
+    LogResult         log_result = 20;
+    SummaryResult     summary_result = 21;
+    OutputResult      output_result = 22;
+    ConfigResult      config_result = 23;
+    GetSummaryResult  get_summary_result = 24;
   }
 }

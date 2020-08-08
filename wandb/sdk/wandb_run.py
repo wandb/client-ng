@@ -19,13 +19,14 @@ import sys
 import traceback
 
 import click
-from six import string_types
+from six import string_types, iteritems
 from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
 from wandb.lib import module, redirect
+from wandb.lib.dict import dict_from_proto_list
 from wandb.lib.filenames import JOBSPEC_FNAME
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
@@ -124,6 +125,7 @@ class RunManaged(Run):
         self._stderr_slave_fd = None
         self._exit_code = None
         self._exit_result = None
+        self._final_summary = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -772,6 +774,9 @@ class RunManaged(Run):
 
         self._exit_result = ret
 
+        ret = self._backend.interface.send_get_summary_sync()
+        self._final_summary = dict_from_proto_list(ret)
+
         #  TODO: close the logging file handler
         self._console_stop()
         self._backend.cleanup()
@@ -831,13 +836,12 @@ class RunManaged(Run):
             )
 
     def _print_summary(self):
-        summary = self.summary._as_dict()
-        if len(summary):
+        if len(self._final_summary):
             logger.info("rendering summary")
             wandb.termlog("Run summary:")
-            max_len = max([len(k) for k in summary.keys()])
+            max_len = max([len(k) for k in self._final_summary.keys()])
             format_str = "  {:>%s} {}" % max_len
-            for k, v in summary.items():
+            for k, v in iteritems(self._final_summary):
                 # arrays etc. might be too large. for now we just don't print them
                 if isinstance(v, string_types):
                     if len(v) >= 20:

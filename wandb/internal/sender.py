@@ -9,11 +9,13 @@ from datetime import datetime
 import json
 import logging
 import os
+import six
 import time
 
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface import interface
 from wandb.lib.config import save_config_file_from_dict
+from wandb.lib.dict import dict_from_proto_list
 from wandb.lib.filenames import (
     CONFIG_FNAME,
     OUTPUT_FNAME,
@@ -36,13 +38,6 @@ from .git_repo import GitRepo
 
 
 logger = logging.getLogger(__name__)
-
-
-def _dict_from_proto_list(obj_list):
-    d = dict()
-    for item in obj_list:
-        d[item.key] = json.loads(item.value_json)
-    return d
 
 
 def _config_dict_from_proto_list(obj_list):
@@ -244,7 +239,7 @@ class SendManager(object):
 
     def handle_history(self, data):
         history = data.history
-        history_dict = _dict_from_proto_list(history.item)
+        history_dict = dict_from_proto_list(history.item)
         self._save_history(history_dict)
 
     def _save_summary(self, summary_dict):
@@ -258,7 +253,7 @@ class SendManager(object):
 
     def handle_summary(self, data):
         summary = data.summary
-        summary_dict = _dict_from_proto_list(summary.update)
+        summary_dict = dict_from_proto_list(summary.update)
         self._consolidated_summary.update(summary_dict)
         self._save_summary(self._consolidated_summary)
 
@@ -347,6 +342,16 @@ class SendManager(object):
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,
         )
+
+    def handle_get_summary(self, data):
+        resp = wandb_internal_pb2.ResultRecord()
+        for key, value in six.iteritems(self._consolidated_summary):
+            item = wandb_internal_pb2.SummaryItem()
+            item.key = key
+            item.value_json = json.dumps(value)
+            resp.get_summary.item.append(item)
+
+        self._resp_q.put(resp)
 
     def finish(self):
         if self._tb_watcher:
