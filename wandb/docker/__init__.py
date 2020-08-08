@@ -6,10 +6,9 @@ import requests
 import six
 from wandb.docker import auth
 from wandb.docker import www_authenticate
-from wandb.lib.filenames import ENTRYPOINT_FNAME
 
 entrypoint = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), ENTRYPOINT_FNAME
+    os.path.dirname(os.path.abspath(__file__)), "wandb-entrypoint.sh"
 )
 auth_config = auth.load_config()
 log = logging.getLogger(__name__)

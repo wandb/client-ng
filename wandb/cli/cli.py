@@ -23,7 +23,6 @@ from wandb import Error
 from wandb import wandb_agent
 from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
-from wandb.lib.filenames import ENTRYPOINT_FNAME
 from wandb.old.settings import Settings
 from wandb.sync import SyncManager
 import yaml
@@ -591,7 +590,7 @@ def docker(ctx, docker_run_args, docker_image, nvidia, digest, jupyter, dir, no_
             exit(0)
     cwd = os.getcwd()
     command = ['docker', 'run', '-e', 'LANG=C.UTF-8', '-e', 'WANDB_DOCKER=%s' % resolved_image, '--ipc=host',
-               '-v', wandb.docker.entrypoint + ':/' + ENTRYPOINT_FNAME, '--entrypoint', ENTRYPOINT_FNAME]
+               '-v', wandb.docker.entrypoint + ':/wandb-entrypoint.sh', '--entrypoint', 'wandb-entrypoint.sh']
     if nvidia:
         command.extend(['--runtime', 'nvidia'])
     if not no_dir:
