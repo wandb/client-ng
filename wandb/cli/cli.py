@@ -590,7 +590,7 @@ def docker(ctx, docker_run_args, docker_image, nvidia, digest, jupyter, dir, no_
             exit(0)
     cwd = os.getcwd()
     command = ['docker', 'run', '-e', 'LANG=C.UTF-8', '-e', 'WANDB_DOCKER=%s' % resolved_image, '--ipc=host',
-               '-v', wandb.docker.entrypoint + ':/wandb-entrypoint.sh', '--entrypoint', 'wandb-entrypoint.sh']
+               '-v', wandb.docker.entrypoint + ':/wandb-entrypoint.sh', '--entrypoint', '/wandb-entrypoint.sh']
     if nvidia:
         command.extend(['--runtime', 'nvidia'])
     if not no_dir:
