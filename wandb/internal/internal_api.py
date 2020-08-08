@@ -539,7 +539,7 @@ class Api(object):
                     config
                     commit
                     patch
-                    files(names: ["{fname}"]) {
+                    files(names: ["wandb-metadata.json"]) {
                         edges {
                             node {
                                 url
@@ -549,7 +549,7 @@ class Api(object):
                 }
             }
         }
-        '''.format(fname=METADATA_FNAME))
+        ''')
 
         response = self.gql(query, variable_values={
             'name': project, 'run': run, 'entity': entity
