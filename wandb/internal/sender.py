@@ -349,7 +349,7 @@ class SendManager(object):
             item = wandb_internal_pb2.SummaryItem()
             item.key = key
             item.value_json = json.dumps(value)
-            resp.get_summary.item.append(item)
+            resp.get_summary_result.item.append(item)
 
         self._resp_q.put(resp)
 

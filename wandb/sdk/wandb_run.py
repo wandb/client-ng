@@ -775,7 +775,7 @@ class RunManaged(Run):
         self._exit_result = ret
 
         ret = self._backend.interface.send_get_summary_sync()
-        self._final_summary = dict_from_proto_list(ret)
+        self._final_summary = dict_from_proto_list(ret.item)
 
         #  TODO: close the logging file handler
         self._console_stop()
