@@ -194,12 +194,6 @@ class SendManager(object):
             self._pusher.print_status()
             self._pusher = None
 
-        if data.control.req_resp:
-            logger.info("informing user process exit was handled")
-            # TODO: send something more than an empty result
-            resp = wandb_internal_pb2.Result()
-            self._resp_q.put(resp)
-
     def _maybe_setup_resume(self, run):
         """This maybe queries the backend for a run and fails if the settings are
         incompatible."""
