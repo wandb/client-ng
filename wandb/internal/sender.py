@@ -97,15 +97,15 @@ class SendManager(object):
 
     def handle_status(self, data):
         if data.control.req_resp and data.status.check_stop_req:
-            resp = wandb_internal_pb2.ResultRecord()
+            resp = wandb_internal_pb2.ResultRecord(uuid=data.control.uuid)
             resp.status_result.run_should_stop = False
             if self._entity and self._project and self._run_id:
                 try:
                     resp.status_result.run_should_stop = self._api.check_stop_requested(
                         self._project, self._entity, self._run_id
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to check stop requested status: %s", e)
             self._resp_q.put(resp)
 
     def handle_tbdata(self, data):
@@ -136,7 +136,7 @@ class SendManager(object):
 
         if data.control.req_resp:
             # TODO: send something more than an empty result
-            resp = wandb_internal_pb2.ResultRecord()
+            resp = wandb_internal_pb2.ResultRecord(uuid=data.control.uuid)
             self._resp_q.put(resp)
 
     def handle_run(self, data):
@@ -170,7 +170,7 @@ class SendManager(object):
         )
 
         if data.control.req_resp:
-            resp = wandb_internal_pb2.ResultRecord()
+            resp = wandb_internal_pb2.ResultRecord(uuid=data.control.uuid)
             resp.run_result.run.CopyFrom(run)
             resp_run = resp.run_result.run
             storage_id = ups.get("id")

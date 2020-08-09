@@ -7,6 +7,8 @@ Manage backend sender.
 
 import json
 import logging
+import threading
+import uuid
 
 import six
 from six.moves import queue
@@ -45,6 +47,70 @@ def file_enum_to_policy(enum):
     return policy
 
 
+class SyncMessageRouter(object):
+    class _Future(object):
+        def __init__(self):
+            self._object = None
+            self._object_ready = threading.Event()
+            self._lock = threading.Lock()
+
+        def get(self, timeout=None):
+            is_set = self._object_ready.wait(timeout)
+            if is_set and self._object:
+                return self._object
+            return None
+
+        def _set_object(self, obj):
+            self._object = obj
+            self._object_ready.set()
+
+    def __init__(self, request_queue, notify_queue, response_queue):
+        self._request_queue = request_queue
+        self._notify_queue = notify_queue
+        self._response_queue = response_queue
+
+        self._pending_reqs = {}
+        self._lock = threading.Lock()
+
+        self._join_event = threading.Event()
+        self._thread = threading.Thread(target=self.message_loop)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def message_loop(self):
+        while not self._join_event.is_set():
+            try:
+                msg = self._response_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            self._handle_msg_rcv(msg)
+
+    def send_and_receive(self, rec, local=False):
+        rec.control.req_resp = True
+        rec.control.local = local
+        rec.control.uuid = uuid.uuid4().hex
+        future = self._Future()
+        with self._lock:
+            self._pending_reqs[rec.control.uuid] = future
+
+        self._request_queue.put(rec)
+        self._notify_queue.put(constants.NOTIFY_REQUEST)
+
+        return future
+
+    def join(self):
+        self._join_event.set()
+        self._thread.join()
+
+    def _handle_msg_rcv(self, msg):
+        with self._lock:
+            future = self._pending_reqs.pop(msg.uuid)
+        if future is None:
+            logger.warning("No listener found for msg with uuid %s", msg.uuid)
+            return
+        future._set_object(msg)
+
+
 class BackendSender(object):
     class ExceptionTimeout(Exception):
         pass
@@ -63,6 +129,11 @@ class BackendSender(object):
         self.response_queue = response_queue
         self._run = None
         self._process = process
+
+        if self.request_queue:
+            self._sync_message_router = SyncMessageRouter(
+                request_queue, notify_queue, response_queue
+            )
 
     def _hack_set_run(self, run):
         self._run = run
@@ -280,20 +351,25 @@ class BackendSender(object):
         # TODO: make sure this is called from main process.
         # can only be one outstanding
         # add a cancel queue
-        rec.control.req_resp = True
-        rec.control.local = local
-        self.request_queue.put(rec)
-        self.notify_queue.put(constants.NOTIFY_REQUEST)
+        # rec.control.req_resp = True
+        # rec.control.local = local
+        # self.request_queue.put(rec)
+        # self.notify_queue.put(constants.NOTIFY_REQUEST)
 
-        try:
-            rsp = self.response_queue.get(timeout=timeout)
-        except queue.Empty:
-            self._request_flush()
-            # raise BackendSender.ExceptionTimeout("timeout")
-            return None
+        # try:
+        #     rsp = self.response_queue.get(timeout=timeout)
+        # except queue.Empty:
+        #     self._request_flush()
+        #     # raise BackendSender.ExceptionTimeout("timeout")
+        #     return None
 
-        # returns response, err
-        return rsp
+        # # returns response, err
+        # return rsp
+        assert (
+            self._sync_message_router is not None
+        ), "BackendSender can't send sync messages without a process queue"
+        future = self._sync_message_router.send_and_receive(rec, local)
+        return future.get(timeout)
 
     def send_run(self, run_obj):
         run = self._make_run(run_obj)
@@ -383,3 +459,7 @@ class BackendSender(object):
     def send_exit_sync(self, exit_code, timeout=None):
         exit_data = self._make_exit(exit_code)
         return self._send_exit_sync(exit_data, timeout=timeout)
+
+    def join(self):
+        if self._sync_message_router:
+            self._sync_message_router.join()

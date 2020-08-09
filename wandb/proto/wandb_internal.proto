@@ -31,6 +31,7 @@ message Record {
 message Control {
   bool req_resp = 1;
   bool local = 2;  /* should not be persisted or synchronized */
+  string uuid = 3;
 }
 
 /*
@@ -250,4 +251,6 @@ message ResultRecord {
     OutputResult    output_result = 22;
     ConfigResult    config_result = 23;
   }
+  // Corresponds to the request uuid present in the control
+  string uuid = 24;
 }

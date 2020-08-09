@@ -104,7 +104,10 @@ class RunStatusChecker(object):
     def check_status(self):
         join_requested = False
         while not join_requested:
-            status_result = self._interface.send_status_sync(check_stop_req=True)
+            status_result = (
+                # 'or False' because this could return None.
+                self._interface.send_status_sync(check_stop_req=True) or False
+            )
             if status_result.run_should_stop:
                 thread.interrupt_main()
                 return
