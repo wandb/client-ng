@@ -264,8 +264,6 @@ class BackendSender(object):
         stats=None,
         exit=None,
         artifact=None,
-        final=None,
-        get_summary=None,
         request=None,
     ):
         record = wandb_internal_pb2.Record()
@@ -285,10 +283,6 @@ class BackendSender(object):
             record.exit.CopyFrom(exit)
         elif artifact:
             record.artifact.CopyFrom(artifact)
-        elif final:
-            record.final.CopyFrom(final)
-        elif get_summary:
-            record.get_summary.CopyFrom(get_summary)
         elif request:
             record.request.CopyFrom(request)
         else:
