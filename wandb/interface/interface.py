@@ -367,7 +367,7 @@ class BackendSender(object):
         # return rsp
         assert (
             self._sync_message_router is not None
-        ), "BackendSender can't send sync messages without a process queue"
+        ), "This BackendSender instance does not have a SyncMessageRouter"
         future = self._sync_message_router.send_and_receive(rec, local)
         return future.get(timeout)
 
