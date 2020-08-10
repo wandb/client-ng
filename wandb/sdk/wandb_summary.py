@@ -93,7 +93,7 @@ class Summary(SummaryDict):
     _callback: Callable
 
     def __init__(self):
-        super().__init__()
+        super(Summary, self).__init__()
         object.__setattr__(self, "_root", self)
         object.__setattr__(self, "_callback", None)
 
