@@ -806,8 +806,13 @@ class S3Handler(StorageHandler):
             relpath = os.path.relpath(obj.key, start=prefix)
             name = os.path.join(name, relpath)
             ref = os.path.join(path, relpath)
-        return ArtifactManifestEntry(name, ref,
-            self._md5_from_obj(obj), size=self._size_from_obj(obj), extra=self._extra_from_obj(obj))
+        return ArtifactManifestEntry(
+            name,
+            ref,
+            self._md5_from_obj(obj),
+            size=self._size_from_obj(obj),
+            extra=self._extra_from_obj(obj),
+        )
 
     @staticmethod
     def _md5_from_obj(obj):
