@@ -19,10 +19,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = "0.0.36"
+__version__ = '0.0.40'
 
 # Used with pypi checks and other messages related to pip
-_wandb_module = "wandb-ng"
+_wandb_module = 'wandb-ng'
 
 import sys
 
@@ -126,12 +126,14 @@ log_artifact = _preinit.PreInitCallable(
 # record of patched libraries
 patched = {"tensorboard": [], "keras": [], "gym": []}
 
-keras = _lazyloader.LazyLoader("wandb.keras", globals(), "wandb.framework.keras")
+keras = _lazyloader.LazyLoader("wandb.keras", globals(), "wandb.integration.keras")
 sklearn = _lazyloader.LazyLoader("wandb.sklearn", globals(), "wandb.sklearn")
-tensorflow = _lazyloader.LazyLoader("wandb.tensorflow", globals(), "wandb.tensorflow")
-xgboost = _lazyloader.LazyLoader("wandb.xgboost", globals(), "wandb.framework.xgboost")
+tensorflow = _lazyloader.LazyLoader("wandb.tensorflow", globals(), "wandb.integration.tensorflow")
+xgboost = _lazyloader.LazyLoader("wandb.xgboost", globals(), "wandb.integration.xgboost")
+tensorboard = _lazyloader.LazyLoader("wandb.tensorboard", globals(), "wandb.integration.tensorboard")
+gym = _lazyloader.LazyLoader("wandb.gym", globals(), "wandb.integration.gym")
 lightgbm = _lazyloader.LazyLoader(
-    "wandb.lightgbm", globals(), "wandb.framework.lightgbm"
+    "wandb.lightgbm", globals(), "wandb.integration.lightgbm"
 )
 docker = _lazyloader.LazyLoader("wandb.docker", globals(), "wandb.docker")
 jupyter = _lazyloader.LazyLoader("wandb.jupyter", globals(), "wandb.jupyter")

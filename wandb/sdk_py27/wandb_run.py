@@ -12,18 +12,23 @@ import collections
 import glob
 import json
 import logging
+import numbers
 import os
 import platform
 import sys
+import time
 import traceback
 
 import click
-from six import string_types
+from six import iteritems, string_types
+from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
-from wandb.lib import redirect
+from wandb.lib import module, redirect
+from wandb.lib.dict import dict_from_proto_list
+from wandb.lib.filenames import JOBSPEC_FNAME
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
@@ -36,6 +41,7 @@ if wandb.TYPE_CHECKING:  # type: ignore
 
 
 logger = logging.getLogger("wandb")
+EXIT_TIMEOUT = 60
 
 
 class Run(object):
@@ -79,7 +85,6 @@ class ExitHooks(object):
         if self.was_ctrl_c():
             self.exit_code = 255
 
-        print("except handle")
         traceback.print_exception(exc_type, exc, *tb)
 
 
@@ -89,7 +94,7 @@ class RunManaged(Run):
         self._config._set_callback(self._config_callback)
         self.summary = wandb_summary.Summary()
         self.summary._set_callback(self._summary_callback)
-        self.history = wandb_history.History()
+        self.history = wandb_history.History(self)
         self.history._set_callback(self._history_callback)
 
         _datatypes_set_callback(self._datatypes_callback)
@@ -105,6 +110,8 @@ class RunManaged(Run):
         self._group = None
         self._job_type = None
         self._run_id = settings.run_id
+        self._start_time = time.time()
+        self._starting_step = 0
         self._name = None
         self._notes = None
         self._tags = None
@@ -119,6 +126,9 @@ class RunManaged(Run):
         self._save_stderr = None
         self._stdout_slave_fd = None
         self._stderr_slave_fd = None
+        self._exit_code = None
+        self._exit_result = None
+        self._final_summary = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -177,6 +187,8 @@ class RunManaged(Run):
         if self._tags is not None:
             for tag in self._tags:
                 run.tags.append(tag)
+        if self._start_time is not None:
+            run.start_time.FromSeconds(int(self._start_time))
         # Note: run.config is set in interface/interface:_make_run()
 
     def __getstate__(self):
@@ -199,6 +211,24 @@ class RunManaged(Run):
             return None
         return self._run_obj.display_name
 
+    @name.setter
+    def name(self, name):
+        self._name = name
+        if self._backend:
+            self._backend.interface.send_run(self)
+
+    @property
+    def notes(self):
+        if not self._run_obj:
+            return None
+        return self._run_obj.notes
+
+    @notes.setter
+    def notes(self, notes):
+        self._notes = notes
+        if self._backend:
+            self._backend.interface.send_run(self)
+
     @property
     def id(self):
         return self._run_id
@@ -211,12 +241,33 @@ class RunManaged(Run):
                 parts.append(e)
         return "/".join(parts)
 
+    @property
+    def start_time(self):
+        if not self._run_obj:
+            return self._start_time
+        else:
+            return self._run_obj.start_time.ToSeconds()
+
+    @property
+    def starting_step(self):
+        if not self._run_obj:
+            return self._starting_step
+        else:
+            return self._run_obj.starting_step
+
+    @property
+    def resumed(self):
+        return self._starting_step > 0
+
+    @property
+    def step(self):
+        return self.history._step
+
     def project_name(self, api=None):
-        # TODO(jhr): this is probably not right needed by dataframes?
-        # api = api or self.api
-        # return (api.settings('project') or self.auto_project_name(api) or
-        #         "uncategorized")
-        return self._project
+        if not self._run_obj:
+            wandb.termwarn("Project name not available in offline run")
+            return
+        return self._run_obj.project
 
     @property
     def entity(self):
@@ -270,11 +321,15 @@ class RunManaged(Run):
             self._config_callback(data=self._config._as_dict())
 
         self._backend.interface.send_history(row, step)
-        self.summary.update(row)
 
     def _console_callback(self, name, data):
-        logger.info("callback: %s, %s", name, data)
+        logger.info("console callback: %s, %s", name, data)
         self._backend.interface.send_output(name, data)
+
+    def _tensorboard_callback(self, logdir, save=None):
+        logger.info("tensorboard callback: %s, %s", logdir, save)
+        save = True if save is None else save
+        self._backend.interface.send_tbdata(logdir, save)
 
     def _set_library(self, library):
         self._wl = library
@@ -287,6 +342,8 @@ class RunManaged(Run):
 
     def _set_run_obj(self, run_obj):
         self._run_obj = run_obj
+        # TODO: Update run summary when resuming?
+        self.history._update_step()
         # TODO: It feels weird to call this twice..
         sentry_set_scope("user", run_obj.entity, run_obj.project, self._get_run_url())
 
@@ -427,6 +484,9 @@ class RunManaged(Run):
         if not isinstance(data, collections.Mapping):
             raise ValueError("wandb.log must be passed a dictionary")
 
+        if any(not isinstance(key, string_types) for key in data.keys()):
+            raise ValueError("Key values passed to `wandb.log` must be strings.")
+
         if step is not None:
             if self.history._step > step:
                 wandb.termwarn(
@@ -443,7 +503,6 @@ class RunManaged(Run):
                 self.history._step = step
         elif commit is None:
             commit = True
-        #  TODO: ensure history is pushed on exit for non-added rows
         if commit:
             self.history._row_add(data)
         else:
@@ -572,27 +631,32 @@ class RunManaged(Run):
             return None
         return files[0].download(root=root, replace=True)
 
-    def join(self):
+    def join(self, exit_code=None):
         """Marks a run as finished, and finishes uploading all data.  This is
         used when creating multiple runs in the same process.  We automatically
         call this method when your script exits.
         """
-        self._atexit_cleanup()
+        # detach logger, other setup cleanup
+        self._wl.on_finish()
+        self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
+        module.unset_globals()
 
     def _get_project_url(self):
         s = self._settings
         r = self._run_obj
         app_url = s.base_url.replace("//api.", "//app.")
-        url = "{}/{}/{}".format(app_url, r.entity, r.project)
+        url = "{}/{}/{}".format(app_url, url_quote(r.entity), url_quote(r.project))
         return url
 
     def _get_run_url(self):
         s = self._settings
         r = self._run_obj
         app_url = s.base_url.replace("//api.", "//app.")
-        url = "{}/{}/{}/runs/{}".format(app_url, r.entity, r.project, r.run_id)
+        url = "{}/{}/{}/runs/{}".format(
+            app_url, url_quote(r.entity), url_quote(r.project), url_quote(r.run_id)
+        )
         return url
 
     def _get_run_name(self):
@@ -685,7 +749,7 @@ class RunManaged(Run):
             sys.stderr = self._save_stderr
         logger.info("restore done")
 
-    def _atexit_cleanup(self):
+    def _atexit_cleanup(self, exit_code=None):
         if self._backend is None:
             logger.warning("process exited without backend configured")
             return False
@@ -693,19 +757,16 @@ class RunManaged(Run):
             return
         self._atexit_cleanup_called = True
 
-        exit_code = self._hooks.exit_code if self._hooks else 0
+        exit_code = exit_code or self._hooks.exit_code if self._hooks else 0
         logger.info("got exitcode: %d", exit_code)
-        ret = self._backend.interface.send_exit_sync(exit_code, timeout=60)
-        logger.info("got exit ret: %s", ret)
-        if ret is None:
-            print("Problem syncing data")
-            os._exit(1)
+        if exit_code == 0:
+            # Cleanup our resume file on a clean exit
+            if os.path.exists(self._settings.resume_fname):
+                os.remove(self._settings.resume_fname)
 
-        #  TODO: close the logging file handler
-
-        self.on_finish()
-
-        self.on_final()
+        self._exit_code = exit_code
+        self._on_finish()
+        self._on_final()
 
     def _console_start(self):
         logger.info("atexit reg")
@@ -723,10 +784,13 @@ class RunManaged(Run):
     def _console_stop(self):
         self._restore()
 
-    def on_start(self):
+    def _on_start(self):
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
         if self._run_obj:
-            run_state_str = "Syncing run"
+            if self.resumed:
+                run_state_str = "Resuming run"
+            else:
+                run_state_str = "Syncing run"
             run_name = self._get_run_name()
             wandb.termlog(
                 "{} {}".format(run_state_str, click.style(run_name, fg="yellow"))
@@ -735,12 +799,31 @@ class RunManaged(Run):
         print("")
         self._console_start()
 
-    def on_finish(self):
-        self._console_stop()
-        self._backend.cleanup()
-        pass
+    def _on_finish(self):
+        # make sure all uncommitted history is flushed
+        self.history._flush()
 
-    def on_final(self):
+        # TODO: we need to handle catastrophic failure better
+        # some tests were timing out on sending exit for reasons not clear to me
+        try:
+            ret = self._backend.interface.send_exit_sync(
+                self._exit_code, timeout=EXIT_TIMEOUT
+            )
+            logger.info("got exit ret: %s", ret)
+            if ret is None:
+                # TODO: do we really want to exit here?
+                print("Problem syncing data")
+                os._exit(1)
+
+            self._exit_result = ret
+
+            ret = self._backend.interface.send_get_summary_sync()
+            self._final_summary = dict_from_proto_list(ret.item)
+        finally:
+            self._console_stop()
+            self._backend.cleanup()
+
+    def _on_final(self):
         # check for warnings and errors, show log file locations
         # if self._run_obj:
         #    self._display_run()
@@ -771,14 +854,43 @@ class RunManaged(Run):
                     self._settings.log_internal
                 )
             )
+
+        self._print_summary()
+
+        if self._exit_result.files:
+            logger.info("logging synced files")
+            wandb.termlog(
+                "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
+                    self._exit_result.files.wandb_count,
+                    self._exit_result.files.media_count,
+                    self._exit_result.files.artifact_count,
+                    self._exit_result.files.other_count,
+                )
+            )
+
         if self._run_obj:
             run_url = self._get_run_url()
             run_name = self._get_run_name()
             wandb.termlog(
-                "Synced {}: {}".format(
+                "\nSynced {}: {}".format(
                     click.style(run_name, fg="yellow"), click.style(run_url, fg="blue")
                 )
             )
+
+    def _print_summary(self):
+        if len(self._final_summary):
+            logger.info("rendering summary")
+            wandb.termlog("Run summary:")
+            max_len = max([len(k) for k in self._final_summary.keys()])
+            format_str = "  {:>%s} {}" % max_len
+            for k, v in iteritems(self._final_summary):
+                # arrays etc. might be too large. for now we just don't print them
+                if isinstance(v, string_types):
+                    if len(v) >= 20:
+                        v = v[:20] + "..."
+                    wandb.termlog(format_str.format(k, v))
+                elif isinstance(v, numbers.Number):
+                    wandb.termlog(format_str.format(k, v))
 
     def _save_job_spec(self):
         envdict = dict(python="python3.6", requirements=[],)
@@ -805,7 +917,7 @@ class RunManaged(Run):
         }
 
         s = json.dumps(job_spec, indent=4)
-        spec_filename = "wandb-jobspec.json"
+        spec_filename = JOBSPEC_FNAME
         with open(spec_filename, "w") as f:
             print(s, file=f)
         self.save(spec_filename)
@@ -840,7 +952,9 @@ class RunManaged(Run):
             name = artifact_or_name
             if type is None:
                 raise ValueError("type required")
-            public_api = public.Api()
+            public_api = public.Api(
+                {"entity": r.entity, "project": r.project, "run": self.id}
+            )
             artifact = public_api.artifact(type=type, name=name)
             if type is not None and type != artifact.type:
                 raise ValueError(
@@ -927,3 +1041,11 @@ class RunManaged(Run):
         self._use_redirect = use_redirect
         self._stdout_slave_fd = stdout_slave_fd
         self._stderr_slave_fd = stderr_slave_fd
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        exit_code = 0 if exc_type is None else 1
+        self.join(exit_code)
+        return exc_type is None

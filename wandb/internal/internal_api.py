@@ -35,6 +35,7 @@ from wandb.old import retry
 from wandb import util
 from wandb.apis.normalize import normalize_exceptions
 from wandb.errors.error import CommError, UsageError
+from wandb.lib.filenames import DIFF_FNAME, METADATA_FNAME
 
 from .file_stream import FileStreamApi
 from .progress import Progress
@@ -161,7 +162,7 @@ class Api(object):
         to history editing as long as the user never does "push -f" to break
         history on an upstream branch.
 
-        Writes the first patch to <out_dir>/diff.patch and the second to
+        Writes the first patch to <out_dir>/<DIFF_FNAME> and the second to
         <out_dir>/upstream_diff_<commit_id>.patch.
 
         Args:
@@ -173,7 +174,7 @@ class Api(object):
         try:
             root = self.git.root
             if self.git.dirty:
-                patch_path = os.path.join(out_dir, 'diff.patch')
+                patch_path = os.path.join(out_dir, DIFF_FNAME)
                 if self.git.has_submodule_diff:
                     with open(patch_path, 'wb') as patch:
                         # we diff against HEAD to ensure we get changes in the index
@@ -573,9 +574,9 @@ class Api(object):
         """Check if a run exists and get resume information.
 
         Args:
-            entity (str, optional): The entity to scope this project to.
+            entity (str): The entity to scope this project to.
             project_name (str): The project to download, (can include bucket)
-            run (str, optional): The run to download
+            run (str): The run to download
         """
         query = gql('''
         query Model($project: String!, $entity: String, $name: String!) {
@@ -766,6 +767,7 @@ class Api(object):
                         }
                     }
                 }
+                inserted
             }
         }
         ''')
@@ -779,7 +781,8 @@ class Api(object):
             kwargs['num_retries'] = num_retries
 
         variable_values = {
-            'id': id, 'entity': entity or self.settings('entity'), 'name': name, 'project': project,
+            'id': id, 'entity': entity or self.settings('entity'), 'name': name,
+            'project': project or util.auto_project_name(program_path),
             'groupName': group, 'tags': tags,
             'description': description, 'config': config, 'commit': commit,
             'displayName': display_name, 'notes': notes,
@@ -799,7 +802,7 @@ class Api(object):
             if entity:
                 self.set_setting('entity', entity['name'])
 
-        return response['upsertBucket']['bucket']
+        return response['upsertBucket']['bucket'], response['upsertBucket']['inserted']
 
     @normalize_exceptions
     def upload_urls(self, project, files, run=None, entity=None, description=None):
@@ -1301,15 +1304,6 @@ class Api(object):
                 responses.append(self.upload_file_retry(file_info['url'], open_file, extra_headers=extra_headers))
             open_file.close()
         return responses
-
-    def get_file_stream_api(self):
-        """This creates a new file pusher thread.  Call start to initiate the thread that talks to W&B"""
-        if not self._file_stream_api:
-            if self._current_run_id is None:
-                raise UsageError(
-                    'Must have a current run to use file stream API.')
-            self._file_stream_api = FileStreamApi(self, self._current_run_id)
-        return self._file_stream_api
 
     def use_artifact(self, artifact_id, entity_name=None, project_name=None, run_name=None):
         query = gql('''

@@ -10,6 +10,16 @@ from wandb.interface.interface import BackendSender
 
 
 @pytest.fixture()
+def process_q():
+    return queue.Queue()
+
+
+@pytest.fixture()
+def notify_q():
+    return queue.Queue()
+
+
+@pytest.fixture()
 def resp_q():
     return queue.Queue()
 
@@ -20,18 +30,70 @@ def req_q():
 
 
 @pytest.fixture()
-def sender(req_q):
-    return BackendSender(process_queue=req_q, notify_queue=queue.Queue())
+def sender(req_q, resp_q):
+    return BackendSender(
+        process_queue=req_q, notify_queue=queue.Queue(), response_queue=resp_q
+    )
 
 
 @pytest.fixture()
-def sm(runner, resp_q, test_settings, sender, mock_server, mocked_run, req_q):
+def sm(runner, process_q, notify_q, resp_q, test_settings, sender, mock_server, mocked_run, req_q):
     with runner.isolated_filesystem():
         test_settings.root_dir = os.getcwd()
-        sm = SendManager(test_settings, resp_q)
+        sm = SendManager(test_settings, process_q, notify_q, resp_q)
         sender.send_run(mocked_run)
         sm.send(req_q.get())
         yield sm
+
+
+def test_resume_success(mocked_run, test_settings, mock_server, sender, process_q, notify_q, req_q, resp_q):
+    test_settings.resume = "allow"
+    mock_server.ctx["resume"] = True
+    sm = SendManager(test_settings, process_q, notify_q, resp_q)
+    sender.send_run(mocked_run)
+    payload = req_q.get()
+    payload.control.req_resp = True
+    sm.send(payload)
+    res = resp_q.get()
+    print("WHAT?", res.run_result.HasField("error"), dir(res.run_result))
+    assert res.run_result.HasField("error") is False
+    assert res.run_result.run.starting_step == 16
+
+
+def test_resume_error_never(
+    mocked_run, test_settings, mock_server, sender, process_q, notify_q, req_q, resp_q
+):
+    test_settings.resume = "never"
+    mock_server.ctx["resume"] = True
+    sm = SendManager(test_settings, process_q, notify_q, resp_q)
+    sender.send_run(mocked_run)
+    payload = req_q.get()
+    payload.control.req_resp = True
+    sm.send(payload)
+    res = resp_q.get()
+    assert res.run_result.HasField("error")
+    assert (
+        res.run_result.error.message
+        == "resume='never' but run (%s) exists" % mocked_run.id
+    )
+
+
+def test_resume_error_must(
+    mocked_run, test_settings, mock_server, sender, process_q, notify_q, req_q, resp_q
+):
+    test_settings.resume = "must"
+    mock_server.ctx["resume"] = False
+    sm = SendManager(test_settings, process_q, notify_q, resp_q)
+    sender.send_run(mocked_run)
+    payload = req_q.get()
+    payload.control.req_resp = True
+    sm.send(payload)
+    res = resp_q.get()
+    assert res.run_result.HasField("error")
+    assert (
+        res.run_result.error.message
+        == "resume='must' but run (%s) doesn't exist" % mocked_run.id
+    )
 
 
 def test_save_live_existing_file(mocked_run, mock_server, sender, sm, req_q):
@@ -211,4 +273,6 @@ def test_save_now_twice(mocked_run, mock_server, sender, sm, req_q):
     sm.finish()
     print("DAMN DUDE", mock_server.ctx)
     assert len(mock_server.ctx["storage?file=foo/test.txt"]) == 2
+
+
 # TODO: test other sender methods

@@ -6,7 +6,6 @@ import os
 import six
 import tensorflow as tf
 import wandb
-from wandb import tensorflow as wandb_tensorflow
 from wandb import wandb_sdk
 
 
@@ -30,8 +29,8 @@ else:
     get_or_create_global_step = tf.compat.v1.train.get_or_create_global_step
 
 
-def test_tf_log():
-    history = wandb_sdk.History()
+def test_tf_log(mocked_run):
+    history = wandb_sdk.History(mocked_run)
     summaries_logged = []
 
     def spy_cb(row, step=None):
@@ -39,7 +38,7 @@ def test_tf_log():
 
     history._set_callback(spy_cb)
 
-    wandb_tensorflow.log(SUMMARY_PB, history=history)
+    wandb.tensorboard.log(SUMMARY_PB, history=history)
     history.add({})  # Flush the previous row.
     assert len(summaries_logged) == 1
     summary = summaries_logged[0]
@@ -68,6 +67,8 @@ def test_tf_log():
     assert all(isinstance(hist, wandb.Histogram) for hist in histos)
     assert summary == {
         "_step": 0,
+        "_runtime": summary["_runtime"],
+        "_timestamp": summary["_timestamp"],
         "accuracy_1": 0.8799999952316284,
         "cross_entropy_1": 0.37727174162864685,
         "dropout/dropout_keep_probability": 0.8999999761581421,
@@ -90,8 +91,8 @@ def test_tf_log():
     }
 
 
-def test_hook():
-    history = wandb_sdk.History()
+def test_hook(mocked_run):
+    history = wandb_sdk.History(mocked_run)
     summaries_logged = []
 
     def spy_cb(row, step=None):
@@ -106,10 +107,10 @@ def test_hook():
         tf_summary.scalar("c1", c1)
         summary_op = tf_summary.merge_all()
 
-        hook = wandb_tensorflow.WandbHook(summary_op, history=history, steps_per_log=1)
+        hook = wandb.tensorflow.WandbHook(summary_op, history=history, steps_per_log=1)
         with MonitoredTrainingSession(hooks=[hook]) as sess:
             summary, acc = sess.run([summary_op, c1])
         history.add({})  # Flush the previous row.
 
-    assert wandb_tensorflow.tf_summary_to_dict(summary) == {"c1": 42.0}
+    assert wandb.tensorboard.tf_summary_to_dict(summary) == {"c1": 42.0}
     assert summaries_logged[0]["c1"] == 42.0

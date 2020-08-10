@@ -83,12 +83,15 @@ tox -e py37 -- --open-files
 `tests/conftest.py` contains a number of helpful fixtures automatically exposed to all tests as arguments for testing the app:
 
 - `local_netrc` - used automatically for all tests and patches the netrc logic to avoid interacting with your system .netrc
+- `local_settings` - used automatically for all tests and patches the global settings path to an isolated directory.
+- `test_settings` - returns a `wandb.Settings` object that can be used to initialize runs against the `live_mock_server`.  See `tests/wandb_integration_test.py`
 - `runner` — exposes a click.CliRunner object which can be used by calling `.isolated_filesystem()`.  This also mocks out calls for login returning a dummy api key.
 - `mocked_run` - returns a mocked out run object that replaces the backend interface with a MagicMock so no actual api calls are made.
 - `wandb_init_run` - returns a fully functioning run with a mocked out interface (the result of calling wandb.init).  No api's are actually called, but you can access what apis were called via `run._backend.{summary,history,files}`.  See `test/utils/mock_backend.py` and `tests/frameworks/test_keras.py`
 - `mock_server` - mocks all calls to the `requests` module with sane defaults.  You can customize `tests/utils/mock_server.py` to use context or add api calls.
-- `live_mock_server` - actually starts a background process to serve up mock_server requests
+- `live_mock_server` - we start a live flask server when tests start.  live_mock_server configures WANDB_BASE_URL point to this server.  You can alter or get it's context with the `get_ctx` and `set_ctx` methods.  See `tests/wandb_integration_test.py`.  NOTE: this currently doesn't support concurrent requests so if we run tests in parallel we need to solve for this.
 - `git_repo` — places the test context into an isolated git repository
+- `test_dir` - places the test into `tests/logs/NAME_OF_TEST` this is useful for looking at debug logs.  This is used by `test_settings`
 - `notebook` — gives you a context manager for reading a notebook providing `execute_cell`.  See `tests/utils/notebook_client.py` and `tests/test_notebooks.py`.  This uses `live_mock_server` to enable actual api calls in a notebook context.
 
 ## Live development
@@ -112,7 +115,7 @@ tox -e dev
 
 ### Supported user interface
 
-All objects and methods that users are intended to interact with are in the wand/sdk directory.  Any
+All objects and methods that users are intended to interact with are in the wandb/sdk directory.  Any
 method on an object that is not prefixed with an underscore is part of the supported interface and should
 be documented.
 
@@ -127,7 +130,7 @@ of settings:
 
  - Enforced settings from organization, team, user, project
  - settings set by environment variables: WANDB_PROJECT=
- - settings passed to wand function: wandb.init(project=)
+ - settings passed to wandb function: wandb.init(project=)
  - Default settings from organization, team, project
  - settings in global settings file: ~/.config/wandb/settings
  - settings in local settings file: ./wandb/settings
@@ -172,13 +175,63 @@ run.log(dict(this=3))
 
 ### Steps
 
+#### import wandb
+
+- minimal code should be run on import
+
 #### wandb.init()
 
-- Creates a Run object (specifically RunManaged)
+User Process:
+
+- Calls internal wandb.setup() in case the user has not yet initialized the global wandb state
+- Sets up notification and request queues for communicating with internal process
+- Spawns internal process used for syncing passing queues and the settings object
+- Creates a Run object `RunManaged`
+- Encodes passed config dictionary into RunManaged object
+- Sends synchronous protocol buffer request message `RunData` to internal process
+- Wait for response for configurable amount of time.  Populate run object with response data
+- Terminal (sys.stdout, sys.stderr) is wrapped which sends output to internal process with `RunOutput` message
 - Sets a global Run object for users who use wandb.log() syntax
+- Run.on_start() is called to display initial information about the run
 - Returns Run object
 
-TODO(jhr): finish this
+Internal Process:
 
+- Process initialization
+- Wait on notify queue for work
+- When RunData message is seen, queue this message to be written to disk `wandb_write` and sent to cloud `wandb_send`
+- wandb_send thread sends upsert_run graphql http request
+- response is populated into a response message
+- Spin up internal threads which monitor system metrics
+- Queue response message to the user process context
 
-## Sync details
+#### run.config attribute setter
+
+User Process:
+
+- Callback on the Run object is called with the changed config item
+- Run object callback generates ConfigData message and asynchronously sends to internal process 
+
+Internal Process:
+
+- When ConfigData message is seen, queue message to wandb_write and wandb_send
+- wandb_send thread sends upsert_run grapql http request
+
+#### wandb.log()
+
+User process:
+
+- Log dictionary is serialized and sent asynchronously as HistoryData message to internal process
+
+Internal Process:
+
+- When HistoryData message is seen, queue message to wandb_write and wandb_send
+- wandb_send thread sends file_stream data to cloud server
+
+#### end of program or wandb.join()
+
+User process:
+
+- Terminal wrapper is shutdown and flushed to internal process
+- Exit code of program is captured and sent synchronously to internal process as ExitData
+- Run.on_final() is called to display final information about the run
