@@ -198,9 +198,9 @@ class BackendSender(object):
             json_value = {}
             for key, value in six.iteritems(value):
                 json_value[key] = self._summary_encode(
-                    value, path_from_root + '.' + key
+                    value, path_from_root + "." + key
                 )
-                print('sub encoded', json_value[key])
+                print("sub encoded", json_value[key])
             return json_value
         else:
             path = ".".join(path_from_root)
@@ -218,8 +218,7 @@ class BackendSender(object):
             return json_value
 
     def _make_summary(
-        self,
-        summary_record: summary_record.SummaryRecord
+        self, summary_record: summary_record.SummaryRecord
     ) -> wandb_internal_pb2.SummaryRecord:
         pb_summary_record = wandb_internal_pb2.SummaryRecord()
 
@@ -239,8 +238,7 @@ class BackendSender(object):
             json_value, _ = json_friendly(json_value)
 
             pb_summary_item.value_json = json.dumps(
-                json_value,
-                cls=WandBJSONEncoderOld,
+                json_value, cls=WandBJSONEncoderOld,
             )
 
         for item in summary_record.remove:

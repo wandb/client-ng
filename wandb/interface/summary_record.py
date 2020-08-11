@@ -5,7 +5,8 @@ if wandb.TYPE_CHECKING:
 
 
 class SummaryRecord(object):
-    '''Encodes a diff -- analogous to the SummaryRecord protobuf message'''
+    """Encodes a diff -- analogous to the SummaryRecord protobuf message"""
+
     update: t.Tuple["SummaryItem"]
     remove: t.Tuple["SummaryItem"]
 
@@ -26,7 +27,8 @@ class SummaryRecord(object):
 
 
 class SummaryItem:
-    '''Analogous to the SummaryItem protobuf message.'''
+    """Analogous to the SummaryItem protobuf message."""
+
     key: t.Tuple[str]
     value: t.Any
 

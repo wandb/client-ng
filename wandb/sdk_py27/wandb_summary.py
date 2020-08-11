@@ -2,7 +2,7 @@ import abc
 
 import six
 import wandb
-from wandb.interface.summary_record import SummaryRecord, SummaryItem
+from wandb.interface.summary_record import SummaryItem, SummaryRecord
 
 if wandb.TYPE_CHECKING:
     import typing as t
