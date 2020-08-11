@@ -57,7 +57,8 @@ class ArtifactManifest(object):
         raise NotImplementedError()
 
     def add_entry(self, entry):
-        if entry.path in self.entries:
+        # TODO: is this what we want? Then refactor to clean up
+        if entry.path in self.entries and entry.digest != self.entries[entry.path].digest:
             raise ValueError("Cannot add the same path twice: %s" % entry.path)
         self.entries[entry.path] = entry
 

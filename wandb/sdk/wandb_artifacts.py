@@ -2,8 +2,11 @@ import re
 import os
 import time
 import shutil
+import string
+import random
 import requests
 from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlunparse
 
 from wandb.compat import tempfile as compat_tempfile
 from wandb import env
@@ -13,6 +16,8 @@ from wandb.apis import InternalApi
 from wandb.errors.error import CommError
 from wandb import util
 from wandb.errors.term import termwarn, termlog
+
+from wandb.sdk.wandb_media import *
 
 
 class ArtifactsCache(object):
@@ -49,6 +54,20 @@ def get_artifacts_cache():
     return _artifacts_cache
 
 
+class ArtifactReference(object):
+    @classmethod
+    def from_creater_path(cls, artifact, path):
+        return cls(artifact.name, artifact.writer_id, path)
+
+    def __init__(self, artifact_name, version_id, path):
+        self._artifact_name = artifact_name
+        self._version_id = version_id
+        self._path = path
+
+    def to_url(self):
+        return urlunparse(('wandb-artifact', '', '/'.join((self._artifact_name, self._version_id, self._path)), '', '', ''))
+
+
 class Artifact(object):
     """An artifact object you can write files into, and pass to log_artifact."""
 
@@ -76,6 +95,8 @@ class Artifact(object):
         self.name = name
         self.description = description
         self.metadata = metadata
+
+        self.writer_id = ''.join(random.choice(string.ascii_lowercase) for _ in range(12))
 
     @property
     def id(self):
@@ -130,16 +151,18 @@ class Artifact(object):
         )
         self._manifest.add_entry(entry)
 
+        return entry
+
     def add_dir(self, local_path, name=None):
         self._ensure_can_add()
         if not os.path.isdir(local_path):
             raise ValueError("Path is not a directory: %s" % local_path)
 
-        termlog(
-            "Adding directory to artifact (%s)... "
-            % os.path.join(".", os.path.normpath(local_path)),
-            newline=False,
-        )
+        # termlog(
+        #     "Adding directory to artifact (%s)... "
+        #     % os.path.join(".", os.path.normpath(local_path)),
+        #     newline=False,
+        # )
         start_time = time.time()
 
         paths = []
@@ -171,7 +194,7 @@ class Artifact(object):
         pool.close()
         pool.join()
 
-        termlog("Done. %.1fs" % (time.time() - start_time), prefix=False)
+        # termlog("Done. %.1fs" % (time.time() - start_time), prefix=False)
 
     def add_reference(self, uri, name=None, checksum=True, max_objects=None):
         url = urlparse(uri)
@@ -186,6 +209,14 @@ class Artifact(object):
         )
         for entry in manifest_entries:
             self._manifest.add_entry(entry)
+
+    def add(self, obj, name):
+        if isinstance(obj, Media):
+            with self.new_file(name) as f:
+                import json
+                f.write(json.dumps(obj.to_json(self)))
+        else:
+            raise ValueError('Can\'t add obj to artifact')
 
     def get_path(self, name):
         raise ValueError("Cannot load paths from an artifact before it has been saved")
@@ -228,6 +259,13 @@ class Artifact(object):
 
             for entry in self._manifest.entries.values():
                 remap_entry(entry)
+        
+        # TODO: should users need to explicitly add tables, or do we discover them.
+        # find table entries
+        # table_entries = [e for e in self._manifest.entries if e.name.endswith('json')]
+
+        # find file references that point to another artifact. rewrite them
+        # 
 
 
 class ArtifactManifestV1(ArtifactManifest):
