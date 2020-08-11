@@ -1,80 +1,122 @@
 """
-settings test.
+summary test.
 """
 
 import pytest  # type: ignore
 
-from wandb import wandb_sdk
+from wandb import wandb_sdk, TYPE_CHECKING
+from wandb.interface.summary_record import SummaryRecord
+
+if TYPE_CHECKING:
+    import typing as t
 
 
 class MockCallback(object):
-    def __init__(self):
-        self._dict = {}
-        self.reset()
+    current_dict: t.Dict
+    summary_record: t.Optional[SummaryRecord]
 
-    def reset(self):
-        self.key = None
-        self.val = None
-        self.data = None
+    def __init__(self, current_dict: t.Dict):
+        self.reset(current_dict)
 
-    def callback(self, key=None, val=None, data=None):
-        self.key = key
-        self.val = val
-        self.data = data
+    def reset(self, current_dict: t.Dict):
+        self.summary_record = None
+        self.current_dict = current_dict
 
-    def check(self, key=None, val=None, data=None):
-        if key:
-            assert self.key == key
-        if val:
-            assert self.val == val
-        if data:
-            assert self.data == data
-        return self
+    def update_callback(self, summary_record: SummaryRecord):
+        self.summary_record = summary_record
+
+    def get_current_summary_callback(self):
+        return self.current_dict
+
+    def check_updates(self, key: t.Tuple[str], value: t.Any):
+        assert self.summary_record is not None
+
+        for item in self.summary_record.update:
+            print('item', item.key, item.value)
+            if item.key == key and item.value == value:
+                return self
+
+        assert False
+
+    def check_removes(self, key: t.Tuple[str]):
+        assert self.summary_record is not None
+
+        for item in self.summary_record.remove:
+            if item.key == key:
+                return self
+
+        assert False
+
+
+def create_summary_and_mock(current_dict: t.Dict):
+    m = MockCallback(current_dict)
+    s = wandb_sdk.Summary(
+        m.get_current_summary_callback,
+    )
+    s._set_update_callback(
+        m.update_callback,
+    )
+
+    return s, m
 
 
 def test_attrib_get():
-    s = wandb_sdk.Summary()
-    s['this'] = 2
+    s, _ = create_summary_and_mock({'this': 2})
     assert s.this == 2
 
 
 def test_item_get():
-    s = wandb_sdk.Summary()
-    s['this'] = 2
+    s, _ = create_summary_and_mock({'this': 2})
     assert s['this'] == 2
 
 
 def test_cb_attrib():
-    m = MockCallback()
-    s = wandb_sdk.Summary()
-    s._set_callback(m.callback)
+    s, m = create_summary_and_mock({})
     s.this = 2
-    m.check(key='this', val=2, data=dict(this=2))
+    m.check_updates(('this',), 2)
 
 
 def test_cb_item():
-    m = MockCallback()
-    s = wandb_sdk.Summary()
-    s._set_callback(m.callback)
+    s, m = create_summary_and_mock({})
     s['this'] = 2
-    m.check(key='this', val=2, data=dict(this=2))
+    m.check_updates(('this',), 2)
 
 
 def test_cb_item_nested():
-    m = MockCallback()
-    s = wandb_sdk.Summary()
-    s._set_callback(m.callback)
+    s, m = create_summary_and_mock({})
     s['this'] = 2
-    m.check(key='this', val=2, data=dict(this=2)).reset()
+    m.check_updates(('this',), 2)
 
+    m.reset({})
     s['that'] = dict(nest1=dict(nest2=4, nest2b=5))
-    m.check(key='that', val=dict(nest1=dict(nest2=4, nest2b=5)), data=dict(this=2, that=dict(nest1=dict(nest2=4, nest2b=5)))).reset()
+    m.check_updates(
+        ('that',),
+        dict(nest1=dict(nest2=4, nest2b=5)))
 
+    m.reset({'that': {'nest1': {}}})
     s['that']["nest1"]["nest2"] = 3
-    m.check(key=('that', "nest1", "nest2"), val=3, data=dict(this=2, that=dict(nest1=dict(nest2=3, nest2b=5)))).reset()
+    m.check_updates(
+        ('that', 'nest1', 'nest2'),
+        3)
 
+    m.reset({'that': {}})
     s['that']["nest1"] = 8
-    m.check(key=('that', "nest1"), val=8, data=dict(this=2, that=dict(nest1=8))).reset()
+    m.check_updates(
+        ('that', "nest1"),
+        8)
 
+    m.reset({'that': {}})
     s['that']["nest1a"] = dict(nest2c=9)
-    m.check(key=('that', "nest1a"), val=dict(nest2c=9), data=dict(this=2, that=dict(nest1=8, nest1a=dict(nest2c=9)))).reset()
+    m.check_updates(
+        ('that', 'nest1a'),
+        dict(nest2c=9))
+
+
+def test_cb_delete_item():
+    s, m = create_summary_and_mock({'this': 3})
+    del s['this']
+    m.check_removes(('this',))
+
+    m.reset({'this': {'nest1': 2}})
+    del s['this']['nest1']
+    m.check_removes(('this', 'nest1'))

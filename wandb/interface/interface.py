@@ -12,7 +12,7 @@ import six
 from six.moves import queue
 import wandb
 from wandb import data_types
-from wandb.interface import constants
+from wandb.interface import constants, summary_record
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import (
     get_h5_typename,
@@ -197,7 +197,10 @@ class BackendSender(object):
         if isinstance(value, dict):
             json_value = {}
             for key, value in six.iteritems(value):
-                json_value[key] = self._summary_encode(value, path_from_root + (key,))
+                json_value[key] = self._summary_encode(
+                    value, path_from_root + '.' + key
+                )
+                print('sub encoded', json_value[key])
             return json_value
         else:
             path = ".".join(path_from_root)
@@ -214,14 +217,44 @@ class BackendSender(object):
 
             return json_value
 
-    def _make_summary(self, summary_dict):
-        data = self._summary_encode(summary_dict, tuple())
-        summary = wandb_internal_pb2.SummaryRecord()
-        for k, v in six.iteritems(data):
-            update = summary.update.add()
-            update.key = k
-            update.value_json = json.dumps(json_friendly(v)[0], cls=WandBJSONEncoderOld)
-        return summary
+    def _make_summary(
+        self,
+        summary_record: summary_record.SummaryRecord
+    ) -> wandb_internal_pb2.SummaryRecord:
+        pb_summary_record = wandb_internal_pb2.SummaryRecord()
+
+        for item in summary_record.update:
+            pb_summary_item = pb_summary_record.update.add()
+            key_length = len(item.key)
+
+            assert key_length > 0
+
+            pb_summary_item.key = item.key[0]
+
+            if key_length > 1:
+                pb_summary_item.nested_key.extend(item.key[1:])
+
+            path_from_root = ".".join(item.key)
+            json_value = self._summary_encode(item.value, path_from_root)
+            json_value, _ = json_friendly(json_value)
+
+            pb_summary_item.value_json = json.dumps(
+                json_value,
+                cls=WandBJSONEncoderOld,
+            )
+
+        for item in summary_record.remove:
+            pb_summary_item = pb_summary_record.remove.add()
+            key_length = len(item.key)
+
+            assert key_length > 0
+
+            pb_summary_item.key = item.key[0]
+
+            if key_length > 1:
+                pb_summary_item.nested_key.extend(item.key[1:])
+
+        return pb_summary_record
 
     def _make_files(self, files_dict):
         files = wandb_internal_pb2.FilesRecord()
@@ -345,9 +378,9 @@ class BackendSender(object):
         rec = self._make_record(config=cfg)
         self._queue_process(rec)
 
-    def send_summary(self, summary_dict):
-        summary = self._make_summary(summary_dict)
-        self._send_summary(summary)
+    def send_summary(self, summary_record: summary_record.SummaryRecord):
+        pb_summary_record = self._make_summary(summary_record)
+        self._send_summary(pb_summary_record)
 
     def _send_summary(self, summary):
         rec = self._make_record(summary=summary)

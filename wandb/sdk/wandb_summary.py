@@ -1,11 +1,11 @@
 import abc
 
 import six
+import wandb
+from wandb.interface.summary_record import SummaryRecord, SummaryItem
 
-try:
-    from typing import Callable, Optional, Tuple
-except ImportError:
-    pass
+if wandb.TYPE_CHECKING:
+    import typing as t
 
 
 def _get_dict(d):
@@ -20,95 +20,98 @@ class SummaryDict(object):
     """dict-like which wraps all nested dictionraries in a SummarySubDict,
      and triggers self._root._callback on property changes."""
 
-    _items: dict
-    _root: "Summary"
-
-    def __init__(self):
-        object.__setattr__(self, "_items", dict())
-        object.__setattr__(self, "_root", None)
-        object.__setattr__(self, "_parent_path", None)
+    @abc.abstractmethod
+    def _as_dict(self):
+        raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_full_path(self, key=None) -> Optional[Tuple[str]]:
+    def _update(self, record: SummaryRecord):
         raise NotImplementedError
 
     def keys(self):
-        return [k for k in self._items.keys() if k != "_wandb"]
-
-    def _as_dict(self):
-        return self._items
+        return [k for k in self._as_dict().keys() if k != "_wandb"]
 
     def __getitem__(self, key):
-        item = self._items[key]
+        item = self._as_dict()[key]
 
         if isinstance(item, dict):
             # this nested dict needs to be wrapped:
             wrapped_item = SummarySubDict()
             object.__setattr__(wrapped_item, "_items", item)
-            object.__setattr__(wrapped_item, "_parent_path", self._get_full_path(key))
-            object.__setattr__(wrapped_item, "_root", self._root)
+            object.__setattr__(wrapped_item, "_parent", self)
+            object.__setattr__(wrapped_item, "_parent_key", key)
 
             return wrapped_item
 
         # this item isn't a nested dict
         return item
 
+    __getattr__ = __getitem__
+
     def __setitem__(self, key, val):
-        self._items[key] = val
-        full_path = self._get_full_path(key)
-        self._notify(key=full_path, val=val, data=self._root._items)
+        self.update({key: val})
 
     __setattr__ = __setitem__
 
-    def __getattr__(self, key):
-        return self.__getitem__(key)
+    def __delattr__(self, key):
+        record = SummaryRecord()
+        item = SummaryItem()
+        item.key = (key,)
+        record.remove = (item,)
+        self._update(record)
 
-    def _notify(self, key=None, val=None, data=None):
-        if not self._root._callback:
-            return
+    __delitem__ = __delattr__
 
-        if isinstance(key, tuple) and len(key) == 1:
-            callback_key = key[0]
-        else:
-            callback_key = key
+    def update(self, d: t.Dict):
+        record = SummaryRecord()
+        for key, value in six.iteritems(d):
+            item = SummaryItem()
+            item.key = (key,)
+            item.value = value
+            record.update = (item,)
 
-        self._root._callback(key=callback_key, val=val, data=data)
-
-    def update(self, d):
-        self._items.update(_get_dict(d))
-        full_path = self._get_full_path()
-        self._notify(key=full_path, data=dict(self))
-
-    def setdefaults(self, d):
-        d = _get_dict(d)
-        for k, v in six.iteritems(d):
-            self._items.setdefault(k, v)
-        full_path = self._get_full_path()
-        self._notify(key=full_path, data=dict(self))
+        self._update(record)
 
 
 class Summary(SummaryDict):
     """Root node of the summary data structure. Contains the callback."""
 
-    _callback: Callable
+    _update_callback: t.Callable
+    _get_current_summary_callback: t.Callable
 
-    def __init__(self):
+    def __init__(self, get_current_summary_callback: t.Callable):
         super(Summary, self).__init__()
-        object.__setattr__(self, "_root", self)
-        object.__setattr__(self, "_callback", None)
+        object.__setattr__(self, "_update_callback", None)
+        object.__setattr__(
+            self, "_get_current_summary_callback", get_current_summary_callback
+        )
 
-    def _set_callback(self, cb):
-        object.__setattr__(self, "_callback", cb)
+    def _set_update_callback(self, update_callback: t.Callable):
+        object.__setattr__(self, "_update_callback", update_callback)
 
-    def _get_full_path(self, key=None):
-        return (key,) if key else None
+    def _as_dict(self):
+        return self._get_current_summary_callback()
+
+    def _update(self, record: SummaryRecord):
+        if self._update_callback:
+            self._update_callback(record)
 
 
 class SummarySubDict(SummaryDict):
     """Non-root node of the summary data structure. Contains a path to itself
     from the root."""
 
-    _parent_path: Tuple[str]
+    _items: t.Dict
+    _parent: SummaryDict
+    _parent_key: str
 
-    def _get_full_path(self, key=None):
-        return (self._parent_path + (key,)) if key else self._parent_path
+    def __init__(self):
+        object.__setattr__(self, "_items", dict())
+        object.__setattr__(self, "_parent", None)
+        object.__setattr__(self, "_parent_key", None)
+
+    def _as_dict(self):
+        return self._items
+
+    def _update(self, record: SummaryRecord):
+        return self._parent._update(record._add_next_parent(self._parent_key))
