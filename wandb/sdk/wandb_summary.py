@@ -63,6 +63,7 @@ class SummaryDict(object):
     __delitem__ = __delattr__
 
     def update(self, d: t.Dict):
+        # import ipdb; ipdb.set_trace()
         record = SummaryRecord()
         for key, value in six.iteritems(d):
             item = SummaryItem()

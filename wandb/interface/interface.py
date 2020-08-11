@@ -200,7 +200,6 @@ class BackendSender(object):
                 json_value[key] = self._summary_encode(
                     value, path_from_root + "." + key
                 )
-                print("sub encoded", json_value[key])
             return json_value
         else:
             path = ".".join(path_from_root)

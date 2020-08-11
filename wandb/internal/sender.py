@@ -385,8 +385,31 @@ class SendManager(object):
 
     def handle_summary(self, data):
         summary = data.summary
-        summary_dict = dict_from_proto_list(summary.update)
-        self._consolidated_summary.update(summary_dict)
+
+        for item in summary.update:
+            key = (item.key,) + tuple(item.nested_key)
+
+            target = self._consolidated_summary
+
+            # recurse down the dictionary structure:
+            for prop in key[:-1]:
+                target = target[prop]
+
+            # use the last element of the key to write the leaf:
+            target[key[-1]] = json.loads(item.value_json)
+
+        for item in summary.remove:
+            key = (item.key,) + tuple(item.nested_key)
+
+            target = self._consolidated_summary
+
+            # recurse down the dictionary structure:
+            for prop in key[:-1]:
+                target = target[prop]
+
+            # use the last element of the key to erase the leaf:
+            del target[key[-1]]
+
         self._save_summary(self._consolidated_summary)
 
     def handle_stats(self, data):

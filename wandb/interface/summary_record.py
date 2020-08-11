@@ -14,6 +14,16 @@ class SummaryRecord(object):
         self.update = tuple()
         self.remove = tuple()
 
+    def __str__(self):
+        s = "SummaryRecord:\n  Update:\n    "
+        s += "\n    ".join([str(item) for item in self.update])
+        s += "\n  Remove:\n    "
+        s += "\n    ".join([str(item) for item in self.remove])
+        s += "\n"
+        return s
+
+    __repr__ = __str__
+
     def _add_next_parent(self, parent_key):
         with_next_parent = SummaryRecord()
         with_next_parent.update = [
@@ -35,6 +45,11 @@ class SummaryItem:
     def __init__(self):
         self.key = tuple()
         self.value = None
+
+    def __str__(self):
+        return "SummaryItem: key: " + str(self.key) + " value: " + str(self.value)
+
+    __repr__ = __str__
 
     def _add_next_parent(self, parent_key):
         with_next_parent = SummaryItem()
