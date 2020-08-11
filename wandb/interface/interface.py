@@ -216,7 +216,7 @@ class BackendSender(object):
 
             return json_value
 
-    def _make_summary(self, summary_record: summary_record.SummaryRecord):
+    def _make_summary(self, summary_record):
         pb_summary_record = wandb_internal_pb2.SummaryRecord()
 
         for item in summary_record.update:
