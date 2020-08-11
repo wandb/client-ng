@@ -19,15 +19,49 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='wandb_internal',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n wandb/proto/wandb_internal.proto\x12\x0ewandb_internal\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb7\x04\n\x06Record\x12\x0b\n\x03num\x18\x01 \x01(\x03\x12.\n\x07history\x18\x02 \x01(\x0b\x32\x1b.wandb_internal.HistoryDataH\x00\x12.\n\x07summary\x18\x03 \x01(\x0b\x32\x1b.wandb_internal.SummaryDataH\x00\x12,\n\x06output\x18\x04 \x01(\x0b\x32\x1a.wandb_internal.OutputDataH\x00\x12,\n\x06\x63onfig\x18\x05 \x01(\x0b\x32\x1a.wandb_internal.ConfigDataH\x00\x12*\n\x05\x66iles\x18\x06 \x01(\x0b\x32\x19.wandb_internal.FilesDataH\x00\x12*\n\x05stats\x18\x07 \x01(\x0b\x32\x19.wandb_internal.StatsDataH\x00\x12\x30\n\x08\x61rtifact\x18\x08 \x01(\x0b\x32\x1c.wandb_internal.ArtifactDataH\x00\x12&\n\x03run\x18\x11 \x01(\x0b\x32\x17.wandb_internal.RunDataH\x00\x12(\n\x04\x65xit\x18\x12 \x01(\x0b\x32\x18.wandb_internal.ExitDataH\x00\x12,\n\x06status\x18\x13 \x01(\x0b\x32\x1a.wandb_internal.StatusDataH\x00\x12(\n\x06tbdata\x18\x14 \x01(\x0b\x32\x16.wandb_internal.TBDataH\x00\x12(\n\x07\x63ontrol\x18\x10 \x01(\x0b\x32\x17.wandb_internal.ControlB\x06\n\x04\x64\x61ta\"8\n\x07\x43ontrol\x12\x10\n\x08req_resp\x18\x01 \x01(\x08\x12\r\n\x05local\x18\x02 \x01(\x08\x12\x0c\n\x04uuid\x18\x03 \x01(\t\"\x80\x03\n\x07RunData\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x02 \x01(\t\x12\x0f\n\x07project\x18\x03 \x01(\t\x12*\n\x06\x63onfig\x18\x04 \x01(\x0b\x32\x1a.wandb_internal.ConfigData\x12,\n\x07summary\x18\x05 \x01(\x0b\x32\x1b.wandb_internal.SummaryData\x12\x11\n\trun_group\x18\x06 \x01(\t\x12\x10\n\x08job_type\x18\x07 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x08 \x01(\t\x12\r\n\x05notes\x18\t \x01(\t\x12\x0c\n\x04tags\x18\n \x03(\t\x12.\n\x08settings\x18\x0b \x01(\x0b\x32\x1c.wandb_internal.SettingsData\x12\x10\n\x08sweep_id\x18\x0c \x01(\t\x12\x0c\n\x04host\x18\r \x01(\t\x12\x12\n\nstorage_id\x18\x10 \x01(\t\x12.\n\nstart_time\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\":\n\x0cSettingsData\x12*\n\x04item\x18\x01 \x03(\x0b\x32\x1c.wandb_internal.SettingsItem\"/\n\x0cSettingsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"8\n\x0bHistoryData\x12)\n\x04item\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.HistoryItem\"B\n\x0bHistoryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\xab\x01\n\nOutputData\x12:\n\x0boutput_type\x18\x01 \x01(\x0e\x32%.wandb_internal.OutputData.OutputType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04line\x18\x03 \x01(\t\"$\n\nOutputType\x12\n\n\x06STDERR\x10\x00\x12\n\n\x06STDOUT\x10\x01\"d\n\nConfigData\x12*\n\x06update\x18\x01 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\x12*\n\x06remove\x18\x02 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\"A\n\nConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"g\n\x0bSummaryData\x12+\n\x06update\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\x12+\n\x06remove\x18\x02 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\"B\n\x0bSummaryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"5\n\tFilesData\x12(\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x19.wandb_internal.FilesItem\"\x90\x01\n\tFilesItem\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x34\n\x06policy\x18\x02 \x01(\x0e\x32$.wandb_internal.FilesItem.PolicyType\x12\x15\n\rexternal_path\x18\x10 \x01(\t\"(\n\nPolicyType\x12\x07\n\x03NOW\x10\x00\x12\x07\n\x03\x45ND\x10\x01\x12\x08\n\x04LIVE\x10\x02\"\xb5\x01\n\tStatsData\x12\x37\n\nstats_type\x18\x01 \x01(\x0e\x32#.wandb_internal.StatsData.StatsType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\'\n\x04item\x18\x03 \x03(\x0b\x32\x19.wandb_internal.StatsItem\"\x17\n\tStatsType\x12\n\n\x06SYSTEM\x10\x00\",\n\tStatsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\x87\x02\n\x0c\x41rtifactData\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x0e\n\x06\x64igest\x18\x06 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t\x12\x10\n\x08metadata\x18\x08 \x01(\t\x12\x14\n\x0cuser_created\x18\t \x01(\x08\x12\x18\n\x10use_after_commit\x18\n \x01(\x08\x12\x0f\n\x07\x61liases\x18\x0b \x03(\t\x12\x32\n\x08manifest\x18\x0c \x01(\x0b\x32 .wandb_internal.ArtifactManifest\"\xbc\x01\n\x10\x41rtifactManifest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x16\n\x0estorage_policy\x18\x02 \x01(\t\x12\x46\n\x15storage_policy_config\x18\x03 \x03(\x0b\x32\'.wandb_internal.StoragePolicyConfigItem\x12\x37\n\x08\x63ontents\x18\x04 \x03(\x0b\x32%.wandb_internal.ArtifactManifestEntry\"\xa0\x01\n\x15\x41rtifactManifestEntry\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0e\n\x06\x64igest\x18\x02 \x01(\t\x12\x0b\n\x03ref\x18\x03 \x01(\t\x12\x0c\n\x04size\x18\x04 \x01(\x03\x12\x10\n\x08mimetype\x18\x05 \x01(\t\x12\x12\n\nlocal_path\x18\x06 \x01(\t\x12(\n\x05\x65xtra\x18\x10 \x03(\x0b\x32\x19.wandb_internal.ExtraItem\",\n\tExtraItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\":\n\x17StoragePolicyConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\"\x1d\n\x08\x45xitData\x12\x11\n\texit_code\x18\x01 \x01(\x05\"$\n\nStatusData\x12\x16\n\x0e\x63heck_stop_req\x18\x01 \x01(\x08\"\'\n\x06TBData\x12\x0f\n\x07log_dir\x18\x01 \x01(\t\x12\x0c\n\x04save\x18\x02 \x01(\x08\"7\n\x0fRunUpdateResult\x12$\n\x03run\x18\x01 \x01(\x0b\x32\x17.wandb_internal.RunData\"\x0f\n\rRunExitResult\"\x0b\n\tLogResult\"\'\n\x0cStatusResult\x12\x17\n\x0frun_should_stop\x18\x01 \x01(\x08\"\x0f\n\rSummaryResult\"\x0e\n\x0cOutputResult\"\x0e\n\x0c\x43onfigResult\"\xa0\x03\n\x0cResultRecord\x12\x35\n\nrun_result\x18\x11 \x01(\x0b\x32\x1f.wandb_internal.RunUpdateResultH\x00\x12\x34\n\x0b\x65xit_result\x18\x12 \x01(\x0b\x32\x1d.wandb_internal.RunExitResultH\x00\x12\x35\n\rstatus_result\x18\x13 \x01(\x0b\x32\x1c.wandb_internal.StatusResultH\x00\x12/\n\nlog_result\x18\x14 \x01(\x0b\x32\x19.wandb_internal.LogResultH\x00\x12\x37\n\x0esummary_result\x18\x15 \x01(\x0b\x32\x1d.wandb_internal.SummaryResultH\x00\x12\x35\n\routput_result\x18\x16 \x01(\x0b\x32\x1c.wandb_internal.OutputResultH\x00\x12\x35\n\rconfig_result\x18\x17 \x01(\x0b\x32\x1c.wandb_internal.ConfigResultH\x00\x12\x0c\n\x04uuid\x18\x18 \x01(\tB\x06\n\x04\x64\x61tab\x06proto3'
+  serialized_pb=b'\n wandb/proto/wandb_internal.proto\x12\x0ewandb_internal\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe3\x04\n\x06Record\x12\x0b\n\x03num\x18\x01 \x01(\x03\x12\x30\n\x07history\x18\x02 \x01(\x0b\x32\x1d.wandb_internal.HistoryRecordH\x00\x12\x30\n\x07summary\x18\x03 \x01(\x0b\x32\x1d.wandb_internal.SummaryRecordH\x00\x12.\n\x06output\x18\x04 \x01(\x0b\x32\x1c.wandb_internal.OutputRecordH\x00\x12.\n\x06\x63onfig\x18\x05 \x01(\x0b\x32\x1c.wandb_internal.ConfigRecordH\x00\x12,\n\x05\x66iles\x18\x06 \x01(\x0b\x32\x1b.wandb_internal.FilesRecordH\x00\x12,\n\x05stats\x18\x07 \x01(\x0b\x32\x1b.wandb_internal.StatsRecordH\x00\x12\x32\n\x08\x61rtifact\x18\x08 \x01(\x0b\x32\x1e.wandb_internal.ArtifactRecordH\x00\x12,\n\x08tbrecord\x18\t \x01(\x0b\x32\x18.wandb_internal.TBRecordH\x00\x12(\n\x03run\x18\x11 \x01(\x0b\x32\x19.wandb_internal.RunRecordH\x00\x12-\n\x04\x65xit\x18\x12 \x01(\x0b\x32\x1d.wandb_internal.RunExitRecordH\x00\x12*\n\x07request\x18\x64 \x01(\x0b\x32\x17.wandb_internal.RequestH\x00\x12(\n\x07\x63ontrol\x18\x10 \x01(\x0b\x32\x17.wandb_internal.Control\x12\x0c\n\x04uuid\x18\x13 \x01(\tB\r\n\x0brecord_type\"*\n\x07\x43ontrol\x12\x10\n\x08req_resp\x18\x01 \x01(\x08\x12\r\n\x05local\x18\x02 \x01(\x08\"\x9c\x03\n\x06Result\x12\x35\n\nrun_result\x18\x11 \x01(\x0b\x32\x1f.wandb_internal.RunUpdateResultH\x00\x12\x34\n\x0b\x65xit_result\x18\x12 \x01(\x0b\x32\x1d.wandb_internal.RunExitResultH\x00\x12\x33\n\nlog_result\x18\x14 \x01(\x0b\x32\x1d.wandb_internal.HistoryResultH\x00\x12\x37\n\x0esummary_result\x18\x15 \x01(\x0b\x32\x1d.wandb_internal.SummaryResultH\x00\x12\x35\n\routput_result\x18\x16 \x01(\x0b\x32\x1c.wandb_internal.OutputResultH\x00\x12\x35\n\rconfig_result\x18\x17 \x01(\x0b\x32\x1c.wandb_internal.ConfigResultH\x00\x12,\n\x08response\x18\x64 \x01(\x0b\x32\x18.wandb_internal.ResponseH\x00\x12\x0c\n\x04uuid\x18\x18 \x01(\tB\r\n\x0bresult_type\"\x9f\x03\n\tRunRecord\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x02 \x01(\t\x12\x0f\n\x07project\x18\x03 \x01(\t\x12,\n\x06\x63onfig\x18\x04 \x01(\x0b\x32\x1c.wandb_internal.ConfigRecord\x12.\n\x07summary\x18\x05 \x01(\x0b\x32\x1d.wandb_internal.SummaryRecord\x12\x11\n\trun_group\x18\x06 \x01(\t\x12\x10\n\x08job_type\x18\x07 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x08 \x01(\t\x12\r\n\x05notes\x18\t \x01(\t\x12\x0c\n\x04tags\x18\n \x03(\t\x12\x30\n\x08settings\x18\x0b \x01(\x0b\x32\x1e.wandb_internal.SettingsRecord\x12\x10\n\x08sweep_id\x18\x0c \x01(\t\x12\x0c\n\x04host\x18\r \x01(\t\x12\x15\n\rstarting_step\x18\x0e \x01(\x03\x12\x12\n\nstorage_id\x18\x10 \x01(\t\x12.\n\nstart_time\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"c\n\x0fRunUpdateResult\x12&\n\x03run\x18\x01 \x01(\x0b\x32\x19.wandb_internal.RunRecord\x12(\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x19.wandb_internal.ErrorInfo\"\xa1\x01\n\tErrorInfo\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x31\n\x04\x63ode\x18\x02 \x01(\x0e\x32#.wandb_internal.ErrorInfo.ErrorCode\"P\n\tErrorCode\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07INVALID\x10\x01\x12\x0e\n\nPERMISSION\x10\x02\x12\x0b\n\x07NETWORK\x10\x03\x12\x0c\n\x08INTERNAL\x10\x04\"\"\n\rRunExitRecord\x12\x11\n\texit_code\x18\x01 \x01(\x05\";\n\rRunExitResult\x12*\n\x05\x66iles\x18\x01 \x01(\x0b\x32\x1b.wandb_internal.FilesSynced\"d\n\x0b\x46ilesSynced\x12\x13\n\x0bwandb_count\x18\x01 \x01(\x05\x12\x13\n\x0bmedia_count\x18\x02 \x01(\x05\x12\x16\n\x0e\x61rtifact_count\x18\x03 \x01(\x05\x12\x13\n\x0bother_count\x18\x04 \x01(\x05\"<\n\x0eSettingsRecord\x12*\n\x04item\x18\x01 \x03(\x0b\x32\x1c.wandb_internal.SettingsItem\"/\n\x0cSettingsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\":\n\rHistoryRecord\x12)\n\x04item\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.HistoryItem\"B\n\x0bHistoryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\x0f\n\rHistoryResult\"\xaf\x01\n\x0cOutputRecord\x12<\n\x0boutput_type\x18\x01 \x01(\x0e\x32\'.wandb_internal.OutputRecord.OutputType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04line\x18\x03 \x01(\t\"$\n\nOutputType\x12\n\n\x06STDERR\x10\x00\x12\n\n\x06STDOUT\x10\x01\"\x0e\n\x0cOutputResult\"f\n\x0c\x43onfigRecord\x12*\n\x06update\x18\x01 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\x12*\n\x06remove\x18\x02 \x03(\x0b\x32\x1a.wandb_internal.ConfigItem\"A\n\nConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\x0e\n\x0c\x43onfigResult\"i\n\rSummaryRecord\x12+\n\x06update\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\x12+\n\x06remove\x18\x02 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\"B\n\x0bSummaryItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nnested_key\x18\x02 \x03(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\x0f\n\rSummaryResult\"7\n\x0b\x46ilesRecord\x12(\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x19.wandb_internal.FilesItem\"\x90\x01\n\tFilesItem\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x34\n\x06policy\x18\x02 \x01(\x0e\x32$.wandb_internal.FilesItem.PolicyType\x12\x15\n\rexternal_path\x18\x10 \x01(\t\"(\n\nPolicyType\x12\x07\n\x03NOW\x10\x00\x12\x07\n\x03\x45ND\x10\x01\x12\x08\n\x04LIVE\x10\x02\"\xb9\x01\n\x0bStatsRecord\x12\x39\n\nstats_type\x18\x01 \x01(\x0e\x32%.wandb_internal.StatsRecord.StatsType\x12-\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\'\n\x04item\x18\x03 \x03(\x0b\x32\x19.wandb_internal.StatsItem\"\x17\n\tStatsType\x12\n\n\x06SYSTEM\x10\x00\",\n\tStatsItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x10 \x01(\t\"\x89\x02\n\x0e\x41rtifactRecord\x12\x0e\n\x06run_id\x18\x01 \x01(\t\x12\x0f\n\x07project\x18\x02 \x01(\t\x12\x0e\n\x06\x65ntity\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x0e\n\x06\x64igest\x18\x06 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t\x12\x10\n\x08metadata\x18\x08 \x01(\t\x12\x14\n\x0cuser_created\x18\t \x01(\x08\x12\x18\n\x10use_after_commit\x18\n \x01(\x08\x12\x0f\n\x07\x61liases\x18\x0b \x03(\t\x12\x32\n\x08manifest\x18\x0c \x01(\x0b\x32 .wandb_internal.ArtifactManifest\"\xbc\x01\n\x10\x41rtifactManifest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x16\n\x0estorage_policy\x18\x02 \x01(\t\x12\x46\n\x15storage_policy_config\x18\x03 \x03(\x0b\x32\'.wandb_internal.StoragePolicyConfigItem\x12\x37\n\x08\x63ontents\x18\x04 \x03(\x0b\x32%.wandb_internal.ArtifactManifestEntry\"\xa0\x01\n\x15\x41rtifactManifestEntry\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0e\n\x06\x64igest\x18\x02 \x01(\t\x12\x0b\n\x03ref\x18\x03 \x01(\t\x12\x0c\n\x04size\x18\x04 \x01(\x03\x12\x10\n\x08mimetype\x18\x05 \x01(\t\x12\x12\n\nlocal_path\x18\x06 \x01(\t\x12(\n\x05\x65xtra\x18\x10 \x03(\x0b\x32\x19.wandb_internal.ExtraItem\",\n\tExtraItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\":\n\x17StoragePolicyConfigItem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x12\n\nvalue_json\x18\x02 \x01(\t\")\n\x08TBRecord\x12\x0f\n\x07log_dir\x18\x01 \x01(\t\x12\x0c\n\x04save\x18\x02 \x01(\x08\"\xe2\x01\n\x07Request\x12/\n\x06status\x18\x01 \x01(\x0b\x32\x1d.wandb_internal.StatusRequestH\x00\x12-\n\x05\x64\x65\x66\x65r\x18\x03 \x01(\x0b\x32\x1c.wandb_internal.DeferRequestH\x00\x12\x38\n\x0bget_summary\x18\x04 \x01(\x0b\x32!.wandb_internal.GetSummaryRequestH\x00\x12-\n\x05login\x18\x05 \x01(\x0b\x32\x1c.wandb_internal.LoginRequestH\x00\x42\x0e\n\x0crequest_type\"\xd3\x01\n\x08Response\x12\x39\n\x0fstatus_response\x18\x13 \x01(\x0b\x32\x1e.wandb_internal.StatusResponseH\x00\x12\x37\n\x0elogin_response\x18\x18 \x01(\x0b\x32\x1d.wandb_internal.LoginResponseH\x00\x12\x42\n\x14get_summary_response\x18\x19 \x01(\x0b\x32\".wandb_internal.GetSummaryResponseH\x00\x42\x0f\n\rresponse_type\"\x0e\n\x0c\x44\x65\x66\x65rRequest\"\x1f\n\x0cLoginRequest\x12\x0f\n\x07\x61pi_key\x18\x01 \x01(\t\"&\n\rLoginResponse\x12\x15\n\ractive_entity\x18\x01 \x01(\t\"\x13\n\x11GetSummaryRequest\"?\n\x12GetSummaryResponse\x12)\n\x04item\x18\x01 \x03(\x0b\x32\x1b.wandb_internal.SummaryItem\"\'\n\rStatusRequest\x12\x16\n\x0e\x63heck_stop_req\x18\x01 \x01(\x08\")\n\x0eStatusResponse\x12\x17\n\x0frun_should_stop\x18\x01 \x01(\x08\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
 
 
-_OUTPUTDATA_OUTPUTTYPE = _descriptor.EnumDescriptor(
+_ERRORINFO_ERRORCODE = _descriptor.EnumDescriptor(
+  name='ErrorCode',
+  full_name='wandb_internal.ErrorInfo.ErrorCode',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='UNKNOWN', index=0, number=0,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='INVALID', index=1, number=1,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='PERMISSION', index=2, number=2,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NETWORK', index=3, number=3,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='INTERNAL', index=4, number=4,
+      serialized_options=None,
+      type=None),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=1759,
+  serialized_end=1839,
+)
+_sym_db.RegisterEnumDescriptor(_ERRORINFO_ERRORCODE)
+
+_OUTPUTRECORD_OUTPUTTYPE = _descriptor.EnumDescriptor(
   name='OutputType',
-  full_name='wandb_internal.OutputData.OutputType',
+  full_name='wandb_internal.OutputRecord.OutputType',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -42,10 +76,10 @@ _OUTPUTDATA_OUTPUTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1471,
-  serialized_end=1507,
+  serialized_start=2436,
+  serialized_end=2472,
 )
-_sym_db.RegisterEnumDescriptor(_OUTPUTDATA_OUTPUTTYPE)
+_sym_db.RegisterEnumDescriptor(_OUTPUTRECORD_OUTPUTTYPE)
 
 _FILESITEM_POLICYTYPE = _descriptor.EnumDescriptor(
   name='PolicyType',
@@ -68,14 +102,14 @@ _FILESITEM_POLICYTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2011,
-  serialized_end=2051,
+  serialized_start=3031,
+  serialized_end=3071,
 )
 _sym_db.RegisterEnumDescriptor(_FILESITEM_POLICYTYPE)
 
-_STATSDATA_STATSTYPE = _descriptor.EnumDescriptor(
+_STATSRECORD_STATSTYPE = _descriptor.EnumDescriptor(
   name='StatsType',
-  full_name='wandb_internal.StatsData.StatsType',
+  full_name='wandb_internal.StatsRecord.StatsType',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -86,10 +120,10 @@ _STATSDATA_STATSTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2212,
-  serialized_end=2235,
+  serialized_start=3236,
+  serialized_end=3259,
 )
-_sym_db.RegisterEnumDescriptor(_STATSDATA_STATSTYPE)
+_sym_db.RegisterEnumDescriptor(_STATSRECORD_STATSTYPE)
 
 
 _RECORD = _descriptor.Descriptor(
@@ -156,29 +190,29 @@ _RECORD = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='run', full_name='wandb_internal.Record.run', index=8,
+      name='tbrecord', full_name='wandb_internal.Record.tbrecord', index=8,
+      number=9, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='run', full_name='wandb_internal.Record.run', index=9,
       number=17, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='exit', full_name='wandb_internal.Record.exit', index=9,
+      name='exit', full_name='wandb_internal.Record.exit', index=10,
       number=18, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='status', full_name='wandb_internal.Record.status', index=10,
-      number=19, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='tbdata', full_name='wandb_internal.Record.tbdata', index=11,
-      number=20, type=11, cpp_type=10, label=1,
+      name='request', full_name='wandb_internal.Record.request', index=11,
+      number=100, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -187,6 +221,13 @@ _RECORD = _descriptor.Descriptor(
       name='control', full_name='wandb_internal.Record.control', index=12,
       number=16, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='uuid', full_name='wandb_internal.Record.uuid', index=13,
+      number=19, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -202,11 +243,11 @@ _RECORD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='data', full_name='wandb_internal.Record.data',
+      name='record_type', full_name='wandb_internal.Record.record_type',
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=86,
-  serialized_end=653,
+  serialized_end=697,
 )
 
 
@@ -231,9 +272,82 @@ _CONTROL = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=699,
+  serialized_end=741,
+)
+
+
+_RESULT = _descriptor.Descriptor(
+  name='Result',
+  full_name='wandb_internal.Result',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
     _descriptor.FieldDescriptor(
-      name='uuid', full_name='wandb_internal.Control.uuid', index=2,
-      number=3, type=9, cpp_type=9, label=1,
+      name='run_result', full_name='wandb_internal.Result.run_result', index=0,
+      number=17, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='exit_result', full_name='wandb_internal.Result.exit_result', index=1,
+      number=18, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='log_result', full_name='wandb_internal.Result.log_result', index=2,
+      number=20, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='summary_result', full_name='wandb_internal.Result.summary_result', index=3,
+      number=21, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='output_result', full_name='wandb_internal.Result.output_result', index=4,
+      number=22, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='config_result', full_name='wandb_internal.Result.config_result', index=5,
+      number=23, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='wandb_internal.Result.response', index=6,
+      number=100, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='uuid', full_name='wandb_internal.Result.uuid', index=7,
+      number=24, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -249,119 +363,129 @@ _CONTROL = _descriptor.Descriptor(
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
+    _descriptor.OneofDescriptor(
+      name='result_type', full_name='wandb_internal.Result.result_type',
+      index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=655,
-  serialized_end=711,
+  serialized_start=744,
+  serialized_end=1156,
 )
 
 
-_RUNDATA = _descriptor.Descriptor(
-  name='RunData',
-  full_name='wandb_internal.RunData',
+_RUNRECORD = _descriptor.Descriptor(
+  name='RunRecord',
+  full_name='wandb_internal.RunRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='run_id', full_name='wandb_internal.RunData.run_id', index=0,
+      name='run_id', full_name='wandb_internal.RunRecord.run_id', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='entity', full_name='wandb_internal.RunData.entity', index=1,
+      name='entity', full_name='wandb_internal.RunRecord.entity', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='project', full_name='wandb_internal.RunData.project', index=2,
+      name='project', full_name='wandb_internal.RunRecord.project', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='config', full_name='wandb_internal.RunData.config', index=3,
+      name='config', full_name='wandb_internal.RunRecord.config', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='summary', full_name='wandb_internal.RunData.summary', index=4,
+      name='summary', full_name='wandb_internal.RunRecord.summary', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='run_group', full_name='wandb_internal.RunData.run_group', index=5,
+      name='run_group', full_name='wandb_internal.RunRecord.run_group', index=5,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='job_type', full_name='wandb_internal.RunData.job_type', index=6,
+      name='job_type', full_name='wandb_internal.RunRecord.job_type', index=6,
       number=7, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='display_name', full_name='wandb_internal.RunData.display_name', index=7,
+      name='display_name', full_name='wandb_internal.RunRecord.display_name', index=7,
       number=8, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='notes', full_name='wandb_internal.RunData.notes', index=8,
+      name='notes', full_name='wandb_internal.RunRecord.notes', index=8,
       number=9, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='tags', full_name='wandb_internal.RunData.tags', index=9,
+      name='tags', full_name='wandb_internal.RunRecord.tags', index=9,
       number=10, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='settings', full_name='wandb_internal.RunData.settings', index=10,
+      name='settings', full_name='wandb_internal.RunRecord.settings', index=10,
       number=11, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='sweep_id', full_name='wandb_internal.RunData.sweep_id', index=11,
+      name='sweep_id', full_name='wandb_internal.RunRecord.sweep_id', index=11,
       number=12, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='host', full_name='wandb_internal.RunData.host', index=12,
+      name='host', full_name='wandb_internal.RunRecord.host', index=12,
       number=13, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='storage_id', full_name='wandb_internal.RunData.storage_id', index=13,
+      name='starting_step', full_name='wandb_internal.RunRecord.starting_step', index=13,
+      number=14, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='storage_id', full_name='wandb_internal.RunRecord.storage_id', index=14,
       number=16, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='start_time', full_name='wandb_internal.RunData.start_time', index=14,
+      name='start_time', full_name='wandb_internal.RunRecord.start_time', index=15,
       number=17, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -379,20 +503,211 @@ _RUNDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=714,
-  serialized_end=1098,
+  serialized_start=1159,
+  serialized_end=1574,
 )
 
 
-_SETTINGSDATA = _descriptor.Descriptor(
-  name='SettingsData',
-  full_name='wandb_internal.SettingsData',
+_RUNUPDATERESULT = _descriptor.Descriptor(
+  name='RunUpdateResult',
+  full_name='wandb_internal.RunUpdateResult',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='item', full_name='wandb_internal.SettingsData.item', index=0,
+      name='run', full_name='wandb_internal.RunUpdateResult.run', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='error', full_name='wandb_internal.RunUpdateResult.error', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1576,
+  serialized_end=1675,
+)
+
+
+_ERRORINFO = _descriptor.Descriptor(
+  name='ErrorInfo',
+  full_name='wandb_internal.ErrorInfo',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='message', full_name='wandb_internal.ErrorInfo.message', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='code', full_name='wandb_internal.ErrorInfo.code', index=1,
+      number=2, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _ERRORINFO_ERRORCODE,
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1678,
+  serialized_end=1839,
+)
+
+
+_RUNEXITRECORD = _descriptor.Descriptor(
+  name='RunExitRecord',
+  full_name='wandb_internal.RunExitRecord',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='exit_code', full_name='wandb_internal.RunExitRecord.exit_code', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1841,
+  serialized_end=1875,
+)
+
+
+_RUNEXITRESULT = _descriptor.Descriptor(
+  name='RunExitResult',
+  full_name='wandb_internal.RunExitResult',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='files', full_name='wandb_internal.RunExitResult.files', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1877,
+  serialized_end=1936,
+)
+
+
+_FILESSYNCED = _descriptor.Descriptor(
+  name='FilesSynced',
+  full_name='wandb_internal.FilesSynced',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='wandb_count', full_name='wandb_internal.FilesSynced.wandb_count', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='media_count', full_name='wandb_internal.FilesSynced.media_count', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='artifact_count', full_name='wandb_internal.FilesSynced.artifact_count', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='other_count', full_name='wandb_internal.FilesSynced.other_count', index=3,
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1938,
+  serialized_end=2038,
+)
+
+
+_SETTINGSRECORD = _descriptor.Descriptor(
+  name='SettingsRecord',
+  full_name='wandb_internal.SettingsRecord',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='item', full_name='wandb_internal.SettingsRecord.item', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -410,8 +725,8 @@ _SETTINGSDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1100,
-  serialized_end=1158,
+  serialized_start=2040,
+  serialized_end=2100,
 )
 
 
@@ -448,20 +763,20 @@ _SETTINGSITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1160,
-  serialized_end=1207,
+  serialized_start=2102,
+  serialized_end=2149,
 )
 
 
-_HISTORYDATA = _descriptor.Descriptor(
-  name='HistoryData',
-  full_name='wandb_internal.HistoryData',
+_HISTORYRECORD = _descriptor.Descriptor(
+  name='HistoryRecord',
+  full_name='wandb_internal.HistoryRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='item', full_name='wandb_internal.HistoryData.item', index=0,
+      name='item', full_name='wandb_internal.HistoryRecord.item', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -479,8 +794,8 @@ _HISTORYDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1209,
-  serialized_end=1265,
+  serialized_start=2151,
+  serialized_end=2209,
 )
 
 
@@ -524,34 +839,58 @@ _HISTORYITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1267,
-  serialized_end=1333,
+  serialized_start=2211,
+  serialized_end=2277,
 )
 
 
-_OUTPUTDATA = _descriptor.Descriptor(
-  name='OutputData',
-  full_name='wandb_internal.OutputData',
+_HISTORYRESULT = _descriptor.Descriptor(
+  name='HistoryResult',
+  full_name='wandb_internal.HistoryResult',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2279,
+  serialized_end=2294,
+)
+
+
+_OUTPUTRECORD = _descriptor.Descriptor(
+  name='OutputRecord',
+  full_name='wandb_internal.OutputRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='output_type', full_name='wandb_internal.OutputData.output_type', index=0,
+      name='output_type', full_name='wandb_internal.OutputRecord.output_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='timestamp', full_name='wandb_internal.OutputData.timestamp', index=1,
+      name='timestamp', full_name='wandb_internal.OutputRecord.timestamp', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='line', full_name='wandb_internal.OutputData.line', index=2,
+      name='line', full_name='wandb_internal.OutputRecord.line', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -562,7 +901,7 @@ _OUTPUTDATA = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _OUTPUTDATA_OUTPUTTYPE,
+    _OUTPUTRECORD_OUTPUTTYPE,
   ],
   serialized_options=None,
   is_extendable=False,
@@ -570,27 +909,51 @@ _OUTPUTDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1336,
-  serialized_end=1507,
+  serialized_start=2297,
+  serialized_end=2472,
 )
 
 
-_CONFIGDATA = _descriptor.Descriptor(
-  name='ConfigData',
-  full_name='wandb_internal.ConfigData',
+_OUTPUTRESULT = _descriptor.Descriptor(
+  name='OutputResult',
+  full_name='wandb_internal.OutputResult',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2474,
+  serialized_end=2488,
+)
+
+
+_CONFIGRECORD = _descriptor.Descriptor(
+  name='ConfigRecord',
+  full_name='wandb_internal.ConfigRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='update', full_name='wandb_internal.ConfigData.update', index=0,
+      name='update', full_name='wandb_internal.ConfigRecord.update', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='remove', full_name='wandb_internal.ConfigData.remove', index=1,
+      name='remove', full_name='wandb_internal.ConfigRecord.remove', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -608,8 +971,8 @@ _CONFIGDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1509,
-  serialized_end=1609,
+  serialized_start=2490,
+  serialized_end=2592,
 )
 
 
@@ -653,27 +1016,51 @@ _CONFIGITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1611,
-  serialized_end=1676,
+  serialized_start=2594,
+  serialized_end=2659,
 )
 
 
-_SUMMARYDATA = _descriptor.Descriptor(
-  name='SummaryData',
-  full_name='wandb_internal.SummaryData',
+_CONFIGRESULT = _descriptor.Descriptor(
+  name='ConfigResult',
+  full_name='wandb_internal.ConfigResult',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2661,
+  serialized_end=2675,
+)
+
+
+_SUMMARYRECORD = _descriptor.Descriptor(
+  name='SummaryRecord',
+  full_name='wandb_internal.SummaryRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='update', full_name='wandb_internal.SummaryData.update', index=0,
+      name='update', full_name='wandb_internal.SummaryRecord.update', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='remove', full_name='wandb_internal.SummaryData.remove', index=1,
+      name='remove', full_name='wandb_internal.SummaryRecord.remove', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -691,8 +1078,8 @@ _SUMMARYDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1678,
-  serialized_end=1781,
+  serialized_start=2677,
+  serialized_end=2782,
 )
 
 
@@ -736,20 +1123,44 @@ _SUMMARYITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1783,
-  serialized_end=1849,
+  serialized_start=2784,
+  serialized_end=2850,
 )
 
 
-_FILESDATA = _descriptor.Descriptor(
-  name='FilesData',
-  full_name='wandb_internal.FilesData',
+_SUMMARYRESULT = _descriptor.Descriptor(
+  name='SummaryResult',
+  full_name='wandb_internal.SummaryResult',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2852,
+  serialized_end=2867,
+)
+
+
+_FILESRECORD = _descriptor.Descriptor(
+  name='FilesRecord',
+  full_name='wandb_internal.FilesRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='files', full_name='wandb_internal.FilesData.files', index=0,
+      name='files', full_name='wandb_internal.FilesRecord.files', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -767,8 +1178,8 @@ _FILESDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1851,
-  serialized_end=1904,
+  serialized_start=2869,
+  serialized_end=2924,
 )
 
 
@@ -813,34 +1224,34 @@ _FILESITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1907,
-  serialized_end=2051,
+  serialized_start=2927,
+  serialized_end=3071,
 )
 
 
-_STATSDATA = _descriptor.Descriptor(
-  name='StatsData',
-  full_name='wandb_internal.StatsData',
+_STATSRECORD = _descriptor.Descriptor(
+  name='StatsRecord',
+  full_name='wandb_internal.StatsRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='stats_type', full_name='wandb_internal.StatsData.stats_type', index=0,
+      name='stats_type', full_name='wandb_internal.StatsRecord.stats_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='timestamp', full_name='wandb_internal.StatsData.timestamp', index=1,
+      name='timestamp', full_name='wandb_internal.StatsRecord.timestamp', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='item', full_name='wandb_internal.StatsData.item', index=2,
+      name='item', full_name='wandb_internal.StatsRecord.item', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -851,7 +1262,7 @@ _STATSDATA = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _STATSDATA_STATSTYPE,
+    _STATSRECORD_STATSTYPE,
   ],
   serialized_options=None,
   is_extendable=False,
@@ -859,8 +1270,8 @@ _STATSDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2054,
-  serialized_end=2235,
+  serialized_start=3074,
+  serialized_end=3259,
 )
 
 
@@ -897,97 +1308,97 @@ _STATSITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2237,
-  serialized_end=2281,
+  serialized_start=3261,
+  serialized_end=3305,
 )
 
 
-_ARTIFACTDATA = _descriptor.Descriptor(
-  name='ArtifactData',
-  full_name='wandb_internal.ArtifactData',
+_ARTIFACTRECORD = _descriptor.Descriptor(
+  name='ArtifactRecord',
+  full_name='wandb_internal.ArtifactRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='run_id', full_name='wandb_internal.ArtifactData.run_id', index=0,
+      name='run_id', full_name='wandb_internal.ArtifactRecord.run_id', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='project', full_name='wandb_internal.ArtifactData.project', index=1,
+      name='project', full_name='wandb_internal.ArtifactRecord.project', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='entity', full_name='wandb_internal.ArtifactData.entity', index=2,
+      name='entity', full_name='wandb_internal.ArtifactRecord.entity', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='type', full_name='wandb_internal.ArtifactData.type', index=3,
+      name='type', full_name='wandb_internal.ArtifactRecord.type', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='name', full_name='wandb_internal.ArtifactData.name', index=4,
+      name='name', full_name='wandb_internal.ArtifactRecord.name', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='digest', full_name='wandb_internal.ArtifactData.digest', index=5,
+      name='digest', full_name='wandb_internal.ArtifactRecord.digest', index=5,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='description', full_name='wandb_internal.ArtifactData.description', index=6,
+      name='description', full_name='wandb_internal.ArtifactRecord.description', index=6,
       number=7, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='metadata', full_name='wandb_internal.ArtifactData.metadata', index=7,
+      name='metadata', full_name='wandb_internal.ArtifactRecord.metadata', index=7,
       number=8, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='user_created', full_name='wandb_internal.ArtifactData.user_created', index=8,
+      name='user_created', full_name='wandb_internal.ArtifactRecord.user_created', index=8,
       number=9, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='use_after_commit', full_name='wandb_internal.ArtifactData.use_after_commit', index=9,
+      name='use_after_commit', full_name='wandb_internal.ArtifactRecord.use_after_commit', index=9,
       number=10, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='aliases', full_name='wandb_internal.ArtifactData.aliases', index=10,
+      name='aliases', full_name='wandb_internal.ArtifactRecord.aliases', index=10,
       number=11, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='manifest', full_name='wandb_internal.ArtifactData.manifest', index=11,
+      name='manifest', full_name='wandb_internal.ArtifactRecord.manifest', index=11,
       number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -1005,8 +1416,8 @@ _ARTIFACTDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2284,
-  serialized_end=2547,
+  serialized_start=3308,
+  serialized_end=3573,
 )
 
 
@@ -1057,8 +1468,8 @@ _ARTIFACTMANIFEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2550,
-  serialized_end=2738,
+  serialized_start=3576,
+  serialized_end=3764,
 )
 
 
@@ -1130,8 +1541,8 @@ _ARTIFACTMANIFESTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2741,
-  serialized_end=2901,
+  serialized_start=3767,
+  serialized_end=3927,
 )
 
 
@@ -1168,8 +1579,8 @@ _EXTRAITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2903,
-  serialized_end=2947,
+  serialized_start=3929,
+  serialized_end=3973,
 )
 
 
@@ -1206,89 +1617,27 @@ _STORAGEPOLICYCONFIGITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2949,
-  serialized_end=3007,
+  serialized_start=3975,
+  serialized_end=4033,
 )
 
 
-_EXITDATA = _descriptor.Descriptor(
-  name='ExitData',
-  full_name='wandb_internal.ExitData',
+_TBRECORD = _descriptor.Descriptor(
+  name='TBRecord',
+  full_name='wandb_internal.TBRecord',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='exit_code', full_name='wandb_internal.ExitData.exit_code', index=0,
-      number=1, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3009,
-  serialized_end=3038,
-)
-
-
-_STATUSDATA = _descriptor.Descriptor(
-  name='StatusData',
-  full_name='wandb_internal.StatusData',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='check_stop_req', full_name='wandb_internal.StatusData.check_stop_req', index=0,
-      number=1, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3040,
-  serialized_end=3076,
-)
-
-
-_TBDATA = _descriptor.Descriptor(
-  name='TBData',
-  full_name='wandb_internal.TBData',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='log_dir', full_name='wandb_internal.TBData.log_dir', index=0,
+      name='log_dir', full_name='wandb_internal.TBRecord.log_dir', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='save', full_name='wandb_internal.TBData.save', index=1,
+      name='save', full_name='wandb_internal.TBRecord.save', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -1306,21 +1655,42 @@ _TBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3078,
-  serialized_end=3117,
+  serialized_start=4035,
+  serialized_end=4076,
 )
 
 
-_RUNUPDATERESULT = _descriptor.Descriptor(
-  name='RunUpdateResult',
-  full_name='wandb_internal.RunUpdateResult',
+_REQUEST = _descriptor.Descriptor(
+  name='Request',
+  full_name='wandb_internal.Request',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='run', full_name='wandb_internal.RunUpdateResult.run', index=0,
+      name='status', full_name='wandb_internal.Request.status', index=0,
       number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='defer', full_name='wandb_internal.Request.defer', index=1,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='get_summary', full_name='wandb_internal.Request.get_summary', index=2,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='login', full_name='wandb_internal.Request.login', index=3,
+      number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1336,69 +1706,213 @@ _RUNUPDATERESULT = _descriptor.Descriptor(
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
+    _descriptor.OneofDescriptor(
+      name='request_type', full_name='wandb_internal.Request.request_type',
+      index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=3119,
-  serialized_end=3174,
+  serialized_start=4079,
+  serialized_end=4305,
 )
 
 
-_RUNEXITRESULT = _descriptor.Descriptor(
-  name='RunExitResult',
-  full_name='wandb_internal.RunExitResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3176,
-  serialized_end=3191,
-)
-
-
-_LOGRESULT = _descriptor.Descriptor(
-  name='LogResult',
-  full_name='wandb_internal.LogResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3193,
-  serialized_end=3204,
-)
-
-
-_STATUSRESULT = _descriptor.Descriptor(
-  name='StatusResult',
-  full_name='wandb_internal.StatusResult',
+_RESPONSE = _descriptor.Descriptor(
+  name='Response',
+  full_name='wandb_internal.Response',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='run_should_stop', full_name='wandb_internal.StatusResult.run_should_stop', index=0,
+      name='status_response', full_name='wandb_internal.Response.status_response', index=0,
+      number=19, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='login_response', full_name='wandb_internal.Response.login_response', index=1,
+      number=24, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='get_summary_response', full_name='wandb_internal.Response.get_summary_response', index=2,
+      number=25, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='response_type', full_name='wandb_internal.Response.response_type',
+      index=0, containing_type=None, fields=[]),
+  ],
+  serialized_start=4308,
+  serialized_end=4519,
+)
+
+
+_DEFERREQUEST = _descriptor.Descriptor(
+  name='DeferRequest',
+  full_name='wandb_internal.DeferRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4521,
+  serialized_end=4535,
+)
+
+
+_LOGINREQUEST = _descriptor.Descriptor(
+  name='LoginRequest',
+  full_name='wandb_internal.LoginRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='api_key', full_name='wandb_internal.LoginRequest.api_key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4537,
+  serialized_end=4568,
+)
+
+
+_LOGINRESPONSE = _descriptor.Descriptor(
+  name='LoginResponse',
+  full_name='wandb_internal.LoginResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='active_entity', full_name='wandb_internal.LoginResponse.active_entity', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4570,
+  serialized_end=4608,
+)
+
+
+_GETSUMMARYREQUEST = _descriptor.Descriptor(
+  name='GetSummaryRequest',
+  full_name='wandb_internal.GetSummaryRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4610,
+  serialized_end=4629,
+)
+
+
+_GETSUMMARYRESPONSE = _descriptor.Descriptor(
+  name='GetSummaryResponse',
+  full_name='wandb_internal.GetSummaryResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='item', full_name='wandb_internal.GetSummaryResponse.item', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4631,
+  serialized_end=4694,
+)
+
+
+_STATUSREQUEST = _descriptor.Descriptor(
+  name='StatusRequest',
+  full_name='wandb_internal.StatusRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='check_stop_req', full_name='wandb_internal.StatusRequest.check_stop_req', index=0,
       number=1, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -1416,143 +1930,22 @@ _STATUSRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3206,
-  serialized_end=3245,
+  serialized_start=4696,
+  serialized_end=4735,
 )
 
 
-_SUMMARYRESULT = _descriptor.Descriptor(
-  name='SummaryResult',
-  full_name='wandb_internal.SummaryResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3247,
-  serialized_end=3262,
-)
-
-
-_OUTPUTRESULT = _descriptor.Descriptor(
-  name='OutputResult',
-  full_name='wandb_internal.OutputResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3264,
-  serialized_end=3278,
-)
-
-
-_CONFIGRESULT = _descriptor.Descriptor(
-  name='ConfigResult',
-  full_name='wandb_internal.ConfigResult',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=3280,
-  serialized_end=3294,
-)
-
-
-_RESULTRECORD = _descriptor.Descriptor(
-  name='ResultRecord',
-  full_name='wandb_internal.ResultRecord',
+_STATUSRESPONSE = _descriptor.Descriptor(
+  name='StatusResponse',
+  full_name='wandb_internal.StatusResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='run_result', full_name='wandb_internal.ResultRecord.run_result', index=0,
-      number=17, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='exit_result', full_name='wandb_internal.ResultRecord.exit_result', index=1,
-      number=18, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='status_result', full_name='wandb_internal.ResultRecord.status_result', index=2,
-      number=19, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='log_result', full_name='wandb_internal.ResultRecord.log_result', index=3,
-      number=20, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='summary_result', full_name='wandb_internal.ResultRecord.summary_result', index=4,
-      number=21, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='output_result', full_name='wandb_internal.ResultRecord.output_result', index=5,
-      number=22, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='config_result', full_name='wandb_internal.ResultRecord.config_result', index=6,
-      number=23, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='uuid', full_name='wandb_internal.ResultRecord.uuid', index=7,
-      number=24, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='run_should_stop', full_name='wandb_internal.StatusResponse.run_should_stop', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -1567,144 +1960,183 @@ _RESULTRECORD = _descriptor.Descriptor(
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
-    _descriptor.OneofDescriptor(
-      name='data', full_name='wandb_internal.ResultRecord.data',
-      index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=3297,
-  serialized_end=3713,
+  serialized_start=4737,
+  serialized_end=4778,
 )
 
-_RECORD.fields_by_name['history'].message_type = _HISTORYDATA
-_RECORD.fields_by_name['summary'].message_type = _SUMMARYDATA
-_RECORD.fields_by_name['output'].message_type = _OUTPUTDATA
-_RECORD.fields_by_name['config'].message_type = _CONFIGDATA
-_RECORD.fields_by_name['files'].message_type = _FILESDATA
-_RECORD.fields_by_name['stats'].message_type = _STATSDATA
-_RECORD.fields_by_name['artifact'].message_type = _ARTIFACTDATA
-_RECORD.fields_by_name['run'].message_type = _RUNDATA
-_RECORD.fields_by_name['exit'].message_type = _EXITDATA
-_RECORD.fields_by_name['status'].message_type = _STATUSDATA
-_RECORD.fields_by_name['tbdata'].message_type = _TBDATA
+_RECORD.fields_by_name['history'].message_type = _HISTORYRECORD
+_RECORD.fields_by_name['summary'].message_type = _SUMMARYRECORD
+_RECORD.fields_by_name['output'].message_type = _OUTPUTRECORD
+_RECORD.fields_by_name['config'].message_type = _CONFIGRECORD
+_RECORD.fields_by_name['files'].message_type = _FILESRECORD
+_RECORD.fields_by_name['stats'].message_type = _STATSRECORD
+_RECORD.fields_by_name['artifact'].message_type = _ARTIFACTRECORD
+_RECORD.fields_by_name['tbrecord'].message_type = _TBRECORD
+_RECORD.fields_by_name['run'].message_type = _RUNRECORD
+_RECORD.fields_by_name['exit'].message_type = _RUNEXITRECORD
+_RECORD.fields_by_name['request'].message_type = _REQUEST
 _RECORD.fields_by_name['control'].message_type = _CONTROL
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['history'])
-_RECORD.fields_by_name['history'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['history'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['summary'])
-_RECORD.fields_by_name['summary'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['summary'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['output'])
-_RECORD.fields_by_name['output'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['output'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['config'])
-_RECORD.fields_by_name['config'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['config'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['files'])
-_RECORD.fields_by_name['files'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['files'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['stats'])
-_RECORD.fields_by_name['stats'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['stats'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['artifact'])
-_RECORD.fields_by_name['artifact'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['artifact'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
+  _RECORD.fields_by_name['tbrecord'])
+_RECORD.fields_by_name['tbrecord'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['run'])
-_RECORD.fields_by_name['run'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
+_RECORD.fields_by_name['run'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
   _RECORD.fields_by_name['exit'])
-_RECORD.fields_by_name['exit'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
-  _RECORD.fields_by_name['status'])
-_RECORD.fields_by_name['status'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RECORD.oneofs_by_name['data'].fields.append(
-  _RECORD.fields_by_name['tbdata'])
-_RECORD.fields_by_name['tbdata'].containing_oneof = _RECORD.oneofs_by_name['data']
-_RUNDATA.fields_by_name['config'].message_type = _CONFIGDATA
-_RUNDATA.fields_by_name['summary'].message_type = _SUMMARYDATA
-_RUNDATA.fields_by_name['settings'].message_type = _SETTINGSDATA
-_RUNDATA.fields_by_name['start_time'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_SETTINGSDATA.fields_by_name['item'].message_type = _SETTINGSITEM
-_HISTORYDATA.fields_by_name['item'].message_type = _HISTORYITEM
-_OUTPUTDATA.fields_by_name['output_type'].enum_type = _OUTPUTDATA_OUTPUTTYPE
-_OUTPUTDATA.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_OUTPUTDATA_OUTPUTTYPE.containing_type = _OUTPUTDATA
-_CONFIGDATA.fields_by_name['update'].message_type = _CONFIGITEM
-_CONFIGDATA.fields_by_name['remove'].message_type = _CONFIGITEM
-_SUMMARYDATA.fields_by_name['update'].message_type = _SUMMARYITEM
-_SUMMARYDATA.fields_by_name['remove'].message_type = _SUMMARYITEM
-_FILESDATA.fields_by_name['files'].message_type = _FILESITEM
+_RECORD.fields_by_name['exit'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RECORD.oneofs_by_name['record_type'].fields.append(
+  _RECORD.fields_by_name['request'])
+_RECORD.fields_by_name['request'].containing_oneof = _RECORD.oneofs_by_name['record_type']
+_RESULT.fields_by_name['run_result'].message_type = _RUNUPDATERESULT
+_RESULT.fields_by_name['exit_result'].message_type = _RUNEXITRESULT
+_RESULT.fields_by_name['log_result'].message_type = _HISTORYRESULT
+_RESULT.fields_by_name['summary_result'].message_type = _SUMMARYRESULT
+_RESULT.fields_by_name['output_result'].message_type = _OUTPUTRESULT
+_RESULT.fields_by_name['config_result'].message_type = _CONFIGRESULT
+_RESULT.fields_by_name['response'].message_type = _RESPONSE
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['run_result'])
+_RESULT.fields_by_name['run_result'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['exit_result'])
+_RESULT.fields_by_name['exit_result'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['log_result'])
+_RESULT.fields_by_name['log_result'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['summary_result'])
+_RESULT.fields_by_name['summary_result'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['output_result'])
+_RESULT.fields_by_name['output_result'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['config_result'])
+_RESULT.fields_by_name['config_result'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RESULT.oneofs_by_name['result_type'].fields.append(
+  _RESULT.fields_by_name['response'])
+_RESULT.fields_by_name['response'].containing_oneof = _RESULT.oneofs_by_name['result_type']
+_RUNRECORD.fields_by_name['config'].message_type = _CONFIGRECORD
+_RUNRECORD.fields_by_name['summary'].message_type = _SUMMARYRECORD
+_RUNRECORD.fields_by_name['settings'].message_type = _SETTINGSRECORD
+_RUNRECORD.fields_by_name['start_time'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_RUNUPDATERESULT.fields_by_name['run'].message_type = _RUNRECORD
+_RUNUPDATERESULT.fields_by_name['error'].message_type = _ERRORINFO
+_ERRORINFO.fields_by_name['code'].enum_type = _ERRORINFO_ERRORCODE
+_ERRORINFO_ERRORCODE.containing_type = _ERRORINFO
+_RUNEXITRESULT.fields_by_name['files'].message_type = _FILESSYNCED
+_SETTINGSRECORD.fields_by_name['item'].message_type = _SETTINGSITEM
+_HISTORYRECORD.fields_by_name['item'].message_type = _HISTORYITEM
+_OUTPUTRECORD.fields_by_name['output_type'].enum_type = _OUTPUTRECORD_OUTPUTTYPE
+_OUTPUTRECORD.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_OUTPUTRECORD_OUTPUTTYPE.containing_type = _OUTPUTRECORD
+_CONFIGRECORD.fields_by_name['update'].message_type = _CONFIGITEM
+_CONFIGRECORD.fields_by_name['remove'].message_type = _CONFIGITEM
+_SUMMARYRECORD.fields_by_name['update'].message_type = _SUMMARYITEM
+_SUMMARYRECORD.fields_by_name['remove'].message_type = _SUMMARYITEM
+_FILESRECORD.fields_by_name['files'].message_type = _FILESITEM
 _FILESITEM.fields_by_name['policy'].enum_type = _FILESITEM_POLICYTYPE
 _FILESITEM_POLICYTYPE.containing_type = _FILESITEM
-_STATSDATA.fields_by_name['stats_type'].enum_type = _STATSDATA_STATSTYPE
-_STATSDATA.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_STATSDATA.fields_by_name['item'].message_type = _STATSITEM
-_STATSDATA_STATSTYPE.containing_type = _STATSDATA
-_ARTIFACTDATA.fields_by_name['manifest'].message_type = _ARTIFACTMANIFEST
+_STATSRECORD.fields_by_name['stats_type'].enum_type = _STATSRECORD_STATSTYPE
+_STATSRECORD.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_STATSRECORD.fields_by_name['item'].message_type = _STATSITEM
+_STATSRECORD_STATSTYPE.containing_type = _STATSRECORD
+_ARTIFACTRECORD.fields_by_name['manifest'].message_type = _ARTIFACTMANIFEST
 _ARTIFACTMANIFEST.fields_by_name['storage_policy_config'].message_type = _STORAGEPOLICYCONFIGITEM
 _ARTIFACTMANIFEST.fields_by_name['contents'].message_type = _ARTIFACTMANIFESTENTRY
 _ARTIFACTMANIFESTENTRY.fields_by_name['extra'].message_type = _EXTRAITEM
-_RUNUPDATERESULT.fields_by_name['run'].message_type = _RUNDATA
-_RESULTRECORD.fields_by_name['run_result'].message_type = _RUNUPDATERESULT
-_RESULTRECORD.fields_by_name['exit_result'].message_type = _RUNEXITRESULT
-_RESULTRECORD.fields_by_name['status_result'].message_type = _STATUSRESULT
-_RESULTRECORD.fields_by_name['log_result'].message_type = _LOGRESULT
-_RESULTRECORD.fields_by_name['summary_result'].message_type = _SUMMARYRESULT
-_RESULTRECORD.fields_by_name['output_result'].message_type = _OUTPUTRESULT
-_RESULTRECORD.fields_by_name['config_result'].message_type = _CONFIGRESULT
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['run_result'])
-_RESULTRECORD.fields_by_name['run_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['exit_result'])
-_RESULTRECORD.fields_by_name['exit_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['status_result'])
-_RESULTRECORD.fields_by_name['status_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['log_result'])
-_RESULTRECORD.fields_by_name['log_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['summary_result'])
-_RESULTRECORD.fields_by_name['summary_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['output_result'])
-_RESULTRECORD.fields_by_name['output_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
-_RESULTRECORD.oneofs_by_name['data'].fields.append(
-  _RESULTRECORD.fields_by_name['config_result'])
-_RESULTRECORD.fields_by_name['config_result'].containing_oneof = _RESULTRECORD.oneofs_by_name['data']
+_REQUEST.fields_by_name['status'].message_type = _STATUSREQUEST
+_REQUEST.fields_by_name['defer'].message_type = _DEFERREQUEST
+_REQUEST.fields_by_name['get_summary'].message_type = _GETSUMMARYREQUEST
+_REQUEST.fields_by_name['login'].message_type = _LOGINREQUEST
+_REQUEST.oneofs_by_name['request_type'].fields.append(
+  _REQUEST.fields_by_name['status'])
+_REQUEST.fields_by_name['status'].containing_oneof = _REQUEST.oneofs_by_name['request_type']
+_REQUEST.oneofs_by_name['request_type'].fields.append(
+  _REQUEST.fields_by_name['defer'])
+_REQUEST.fields_by_name['defer'].containing_oneof = _REQUEST.oneofs_by_name['request_type']
+_REQUEST.oneofs_by_name['request_type'].fields.append(
+  _REQUEST.fields_by_name['get_summary'])
+_REQUEST.fields_by_name['get_summary'].containing_oneof = _REQUEST.oneofs_by_name['request_type']
+_REQUEST.oneofs_by_name['request_type'].fields.append(
+  _REQUEST.fields_by_name['login'])
+_REQUEST.fields_by_name['login'].containing_oneof = _REQUEST.oneofs_by_name['request_type']
+_RESPONSE.fields_by_name['status_response'].message_type = _STATUSRESPONSE
+_RESPONSE.fields_by_name['login_response'].message_type = _LOGINRESPONSE
+_RESPONSE.fields_by_name['get_summary_response'].message_type = _GETSUMMARYRESPONSE
+_RESPONSE.oneofs_by_name['response_type'].fields.append(
+  _RESPONSE.fields_by_name['status_response'])
+_RESPONSE.fields_by_name['status_response'].containing_oneof = _RESPONSE.oneofs_by_name['response_type']
+_RESPONSE.oneofs_by_name['response_type'].fields.append(
+  _RESPONSE.fields_by_name['login_response'])
+_RESPONSE.fields_by_name['login_response'].containing_oneof = _RESPONSE.oneofs_by_name['response_type']
+_RESPONSE.oneofs_by_name['response_type'].fields.append(
+  _RESPONSE.fields_by_name['get_summary_response'])
+_RESPONSE.fields_by_name['get_summary_response'].containing_oneof = _RESPONSE.oneofs_by_name['response_type']
+_GETSUMMARYRESPONSE.fields_by_name['item'].message_type = _SUMMARYITEM
 DESCRIPTOR.message_types_by_name['Record'] = _RECORD
 DESCRIPTOR.message_types_by_name['Control'] = _CONTROL
-DESCRIPTOR.message_types_by_name['RunData'] = _RUNDATA
-DESCRIPTOR.message_types_by_name['SettingsData'] = _SETTINGSDATA
+DESCRIPTOR.message_types_by_name['Result'] = _RESULT
+DESCRIPTOR.message_types_by_name['RunRecord'] = _RUNRECORD
+DESCRIPTOR.message_types_by_name['RunUpdateResult'] = _RUNUPDATERESULT
+DESCRIPTOR.message_types_by_name['ErrorInfo'] = _ERRORINFO
+DESCRIPTOR.message_types_by_name['RunExitRecord'] = _RUNEXITRECORD
+DESCRIPTOR.message_types_by_name['RunExitResult'] = _RUNEXITRESULT
+DESCRIPTOR.message_types_by_name['FilesSynced'] = _FILESSYNCED
+DESCRIPTOR.message_types_by_name['SettingsRecord'] = _SETTINGSRECORD
 DESCRIPTOR.message_types_by_name['SettingsItem'] = _SETTINGSITEM
-DESCRIPTOR.message_types_by_name['HistoryData'] = _HISTORYDATA
+DESCRIPTOR.message_types_by_name['HistoryRecord'] = _HISTORYRECORD
 DESCRIPTOR.message_types_by_name['HistoryItem'] = _HISTORYITEM
-DESCRIPTOR.message_types_by_name['OutputData'] = _OUTPUTDATA
-DESCRIPTOR.message_types_by_name['ConfigData'] = _CONFIGDATA
+DESCRIPTOR.message_types_by_name['HistoryResult'] = _HISTORYRESULT
+DESCRIPTOR.message_types_by_name['OutputRecord'] = _OUTPUTRECORD
+DESCRIPTOR.message_types_by_name['OutputResult'] = _OUTPUTRESULT
+DESCRIPTOR.message_types_by_name['ConfigRecord'] = _CONFIGRECORD
 DESCRIPTOR.message_types_by_name['ConfigItem'] = _CONFIGITEM
-DESCRIPTOR.message_types_by_name['SummaryData'] = _SUMMARYDATA
+DESCRIPTOR.message_types_by_name['ConfigResult'] = _CONFIGRESULT
+DESCRIPTOR.message_types_by_name['SummaryRecord'] = _SUMMARYRECORD
 DESCRIPTOR.message_types_by_name['SummaryItem'] = _SUMMARYITEM
-DESCRIPTOR.message_types_by_name['FilesData'] = _FILESDATA
+DESCRIPTOR.message_types_by_name['SummaryResult'] = _SUMMARYRESULT
+DESCRIPTOR.message_types_by_name['FilesRecord'] = _FILESRECORD
 DESCRIPTOR.message_types_by_name['FilesItem'] = _FILESITEM
-DESCRIPTOR.message_types_by_name['StatsData'] = _STATSDATA
+DESCRIPTOR.message_types_by_name['StatsRecord'] = _STATSRECORD
 DESCRIPTOR.message_types_by_name['StatsItem'] = _STATSITEM
-DESCRIPTOR.message_types_by_name['ArtifactData'] = _ARTIFACTDATA
+DESCRIPTOR.message_types_by_name['ArtifactRecord'] = _ARTIFACTRECORD
 DESCRIPTOR.message_types_by_name['ArtifactManifest'] = _ARTIFACTMANIFEST
 DESCRIPTOR.message_types_by_name['ArtifactManifestEntry'] = _ARTIFACTMANIFESTENTRY
 DESCRIPTOR.message_types_by_name['ExtraItem'] = _EXTRAITEM
 DESCRIPTOR.message_types_by_name['StoragePolicyConfigItem'] = _STORAGEPOLICYCONFIGITEM
-DESCRIPTOR.message_types_by_name['ExitData'] = _EXITDATA
-DESCRIPTOR.message_types_by_name['StatusData'] = _STATUSDATA
-DESCRIPTOR.message_types_by_name['TBData'] = _TBDATA
-DESCRIPTOR.message_types_by_name['RunUpdateResult'] = _RUNUPDATERESULT
-DESCRIPTOR.message_types_by_name['RunExitResult'] = _RUNEXITRESULT
-DESCRIPTOR.message_types_by_name['LogResult'] = _LOGRESULT
-DESCRIPTOR.message_types_by_name['StatusResult'] = _STATUSRESULT
-DESCRIPTOR.message_types_by_name['SummaryResult'] = _SUMMARYRESULT
-DESCRIPTOR.message_types_by_name['OutputResult'] = _OUTPUTRESULT
-DESCRIPTOR.message_types_by_name['ConfigResult'] = _CONFIGRESULT
-DESCRIPTOR.message_types_by_name['ResultRecord'] = _RESULTRECORD
+DESCRIPTOR.message_types_by_name['TBRecord'] = _TBRECORD
+DESCRIPTOR.message_types_by_name['Request'] = _REQUEST
+DESCRIPTOR.message_types_by_name['Response'] = _RESPONSE
+DESCRIPTOR.message_types_by_name['DeferRequest'] = _DEFERREQUEST
+DESCRIPTOR.message_types_by_name['LoginRequest'] = _LOGINREQUEST
+DESCRIPTOR.message_types_by_name['LoginResponse'] = _LOGINRESPONSE
+DESCRIPTOR.message_types_by_name['GetSummaryRequest'] = _GETSUMMARYREQUEST
+DESCRIPTOR.message_types_by_name['GetSummaryResponse'] = _GETSUMMARYRESPONSE
+DESCRIPTOR.message_types_by_name['StatusRequest'] = _STATUSREQUEST
+DESCRIPTOR.message_types_by_name['StatusResponse'] = _STATUSRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Record = _reflection.GeneratedProtocolMessageType('Record', (_message.Message,), {
@@ -1721,19 +2153,61 @@ Control = _reflection.GeneratedProtocolMessageType('Control', (_message.Message,
   })
 _sym_db.RegisterMessage(Control)
 
-RunData = _reflection.GeneratedProtocolMessageType('RunData', (_message.Message,), {
-  'DESCRIPTOR' : _RUNDATA,
+Result = _reflection.GeneratedProtocolMessageType('Result', (_message.Message,), {
+  'DESCRIPTOR' : _RESULT,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.RunData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.Result)
   })
-_sym_db.RegisterMessage(RunData)
+_sym_db.RegisterMessage(Result)
 
-SettingsData = _reflection.GeneratedProtocolMessageType('SettingsData', (_message.Message,), {
-  'DESCRIPTOR' : _SETTINGSDATA,
+RunRecord = _reflection.GeneratedProtocolMessageType('RunRecord', (_message.Message,), {
+  'DESCRIPTOR' : _RUNRECORD,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.SettingsData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.RunRecord)
   })
-_sym_db.RegisterMessage(SettingsData)
+_sym_db.RegisterMessage(RunRecord)
+
+RunUpdateResult = _reflection.GeneratedProtocolMessageType('RunUpdateResult', (_message.Message,), {
+  'DESCRIPTOR' : _RUNUPDATERESULT,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.RunUpdateResult)
+  })
+_sym_db.RegisterMessage(RunUpdateResult)
+
+ErrorInfo = _reflection.GeneratedProtocolMessageType('ErrorInfo', (_message.Message,), {
+  'DESCRIPTOR' : _ERRORINFO,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.ErrorInfo)
+  })
+_sym_db.RegisterMessage(ErrorInfo)
+
+RunExitRecord = _reflection.GeneratedProtocolMessageType('RunExitRecord', (_message.Message,), {
+  'DESCRIPTOR' : _RUNEXITRECORD,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.RunExitRecord)
+  })
+_sym_db.RegisterMessage(RunExitRecord)
+
+RunExitResult = _reflection.GeneratedProtocolMessageType('RunExitResult', (_message.Message,), {
+  'DESCRIPTOR' : _RUNEXITRESULT,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.RunExitResult)
+  })
+_sym_db.RegisterMessage(RunExitResult)
+
+FilesSynced = _reflection.GeneratedProtocolMessageType('FilesSynced', (_message.Message,), {
+  'DESCRIPTOR' : _FILESSYNCED,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.FilesSynced)
+  })
+_sym_db.RegisterMessage(FilesSynced)
+
+SettingsRecord = _reflection.GeneratedProtocolMessageType('SettingsRecord', (_message.Message,), {
+  'DESCRIPTOR' : _SETTINGSRECORD,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.SettingsRecord)
+  })
+_sym_db.RegisterMessage(SettingsRecord)
 
 SettingsItem = _reflection.GeneratedProtocolMessageType('SettingsItem', (_message.Message,), {
   'DESCRIPTOR' : _SETTINGSITEM,
@@ -1742,12 +2216,12 @@ SettingsItem = _reflection.GeneratedProtocolMessageType('SettingsItem', (_messag
   })
 _sym_db.RegisterMessage(SettingsItem)
 
-HistoryData = _reflection.GeneratedProtocolMessageType('HistoryData', (_message.Message,), {
-  'DESCRIPTOR' : _HISTORYDATA,
+HistoryRecord = _reflection.GeneratedProtocolMessageType('HistoryRecord', (_message.Message,), {
+  'DESCRIPTOR' : _HISTORYRECORD,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.HistoryData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.HistoryRecord)
   })
-_sym_db.RegisterMessage(HistoryData)
+_sym_db.RegisterMessage(HistoryRecord)
 
 HistoryItem = _reflection.GeneratedProtocolMessageType('HistoryItem', (_message.Message,), {
   'DESCRIPTOR' : _HISTORYITEM,
@@ -1756,19 +2230,33 @@ HistoryItem = _reflection.GeneratedProtocolMessageType('HistoryItem', (_message.
   })
 _sym_db.RegisterMessage(HistoryItem)
 
-OutputData = _reflection.GeneratedProtocolMessageType('OutputData', (_message.Message,), {
-  'DESCRIPTOR' : _OUTPUTDATA,
+HistoryResult = _reflection.GeneratedProtocolMessageType('HistoryResult', (_message.Message,), {
+  'DESCRIPTOR' : _HISTORYRESULT,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.OutputData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.HistoryResult)
   })
-_sym_db.RegisterMessage(OutputData)
+_sym_db.RegisterMessage(HistoryResult)
 
-ConfigData = _reflection.GeneratedProtocolMessageType('ConfigData', (_message.Message,), {
-  'DESCRIPTOR' : _CONFIGDATA,
+OutputRecord = _reflection.GeneratedProtocolMessageType('OutputRecord', (_message.Message,), {
+  'DESCRIPTOR' : _OUTPUTRECORD,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.ConfigData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.OutputRecord)
   })
-_sym_db.RegisterMessage(ConfigData)
+_sym_db.RegisterMessage(OutputRecord)
+
+OutputResult = _reflection.GeneratedProtocolMessageType('OutputResult', (_message.Message,), {
+  'DESCRIPTOR' : _OUTPUTRESULT,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.OutputResult)
+  })
+_sym_db.RegisterMessage(OutputResult)
+
+ConfigRecord = _reflection.GeneratedProtocolMessageType('ConfigRecord', (_message.Message,), {
+  'DESCRIPTOR' : _CONFIGRECORD,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.ConfigRecord)
+  })
+_sym_db.RegisterMessage(ConfigRecord)
 
 ConfigItem = _reflection.GeneratedProtocolMessageType('ConfigItem', (_message.Message,), {
   'DESCRIPTOR' : _CONFIGITEM,
@@ -1777,12 +2265,19 @@ ConfigItem = _reflection.GeneratedProtocolMessageType('ConfigItem', (_message.Me
   })
 _sym_db.RegisterMessage(ConfigItem)
 
-SummaryData = _reflection.GeneratedProtocolMessageType('SummaryData', (_message.Message,), {
-  'DESCRIPTOR' : _SUMMARYDATA,
+ConfigResult = _reflection.GeneratedProtocolMessageType('ConfigResult', (_message.Message,), {
+  'DESCRIPTOR' : _CONFIGRESULT,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.SummaryData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.ConfigResult)
   })
-_sym_db.RegisterMessage(SummaryData)
+_sym_db.RegisterMessage(ConfigResult)
+
+SummaryRecord = _reflection.GeneratedProtocolMessageType('SummaryRecord', (_message.Message,), {
+  'DESCRIPTOR' : _SUMMARYRECORD,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.SummaryRecord)
+  })
+_sym_db.RegisterMessage(SummaryRecord)
 
 SummaryItem = _reflection.GeneratedProtocolMessageType('SummaryItem', (_message.Message,), {
   'DESCRIPTOR' : _SUMMARYITEM,
@@ -1791,12 +2286,19 @@ SummaryItem = _reflection.GeneratedProtocolMessageType('SummaryItem', (_message.
   })
 _sym_db.RegisterMessage(SummaryItem)
 
-FilesData = _reflection.GeneratedProtocolMessageType('FilesData', (_message.Message,), {
-  'DESCRIPTOR' : _FILESDATA,
+SummaryResult = _reflection.GeneratedProtocolMessageType('SummaryResult', (_message.Message,), {
+  'DESCRIPTOR' : _SUMMARYRESULT,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.FilesData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.SummaryResult)
   })
-_sym_db.RegisterMessage(FilesData)
+_sym_db.RegisterMessage(SummaryResult)
+
+FilesRecord = _reflection.GeneratedProtocolMessageType('FilesRecord', (_message.Message,), {
+  'DESCRIPTOR' : _FILESRECORD,
+  '__module__' : 'wandb.proto.wandb_internal_pb2'
+  # @@protoc_insertion_point(class_scope:wandb_internal.FilesRecord)
+  })
+_sym_db.RegisterMessage(FilesRecord)
 
 FilesItem = _reflection.GeneratedProtocolMessageType('FilesItem', (_message.Message,), {
   'DESCRIPTOR' : _FILESITEM,
@@ -1805,12 +2307,12 @@ FilesItem = _reflection.GeneratedProtocolMessageType('FilesItem', (_message.Mess
   })
 _sym_db.RegisterMessage(FilesItem)
 
-StatsData = _reflection.GeneratedProtocolMessageType('StatsData', (_message.Message,), {
-  'DESCRIPTOR' : _STATSDATA,
+StatsRecord = _reflection.GeneratedProtocolMessageType('StatsRecord', (_message.Message,), {
+  'DESCRIPTOR' : _STATSRECORD,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.StatsData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.StatsRecord)
   })
-_sym_db.RegisterMessage(StatsData)
+_sym_db.RegisterMessage(StatsRecord)
 
 StatsItem = _reflection.GeneratedProtocolMessageType('StatsItem', (_message.Message,), {
   'DESCRIPTOR' : _STATSITEM,
@@ -1819,12 +2321,12 @@ StatsItem = _reflection.GeneratedProtocolMessageType('StatsItem', (_message.Mess
   })
 _sym_db.RegisterMessage(StatsItem)
 
-ArtifactData = _reflection.GeneratedProtocolMessageType('ArtifactData', (_message.Message,), {
-  'DESCRIPTOR' : _ARTIFACTDATA,
+ArtifactRecord = _reflection.GeneratedProtocolMessageType('ArtifactRecord', (_message.Message,), {
+  'DESCRIPTOR' : _ARTIFACTRECORD,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.ArtifactData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.ArtifactRecord)
   })
-_sym_db.RegisterMessage(ArtifactData)
+_sym_db.RegisterMessage(ArtifactRecord)
 
 ArtifactManifest = _reflection.GeneratedProtocolMessageType('ArtifactManifest', (_message.Message,), {
   'DESCRIPTOR' : _ARTIFACTMANIFEST,
@@ -1854,82 +2356,75 @@ StoragePolicyConfigItem = _reflection.GeneratedProtocolMessageType('StoragePolic
   })
 _sym_db.RegisterMessage(StoragePolicyConfigItem)
 
-ExitData = _reflection.GeneratedProtocolMessageType('ExitData', (_message.Message,), {
-  'DESCRIPTOR' : _EXITDATA,
+TBRecord = _reflection.GeneratedProtocolMessageType('TBRecord', (_message.Message,), {
+  'DESCRIPTOR' : _TBRECORD,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.ExitData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.TBRecord)
   })
-_sym_db.RegisterMessage(ExitData)
+_sym_db.RegisterMessage(TBRecord)
 
-StatusData = _reflection.GeneratedProtocolMessageType('StatusData', (_message.Message,), {
-  'DESCRIPTOR' : _STATUSDATA,
+Request = _reflection.GeneratedProtocolMessageType('Request', (_message.Message,), {
+  'DESCRIPTOR' : _REQUEST,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.StatusData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.Request)
   })
-_sym_db.RegisterMessage(StatusData)
+_sym_db.RegisterMessage(Request)
 
-TBData = _reflection.GeneratedProtocolMessageType('TBData', (_message.Message,), {
-  'DESCRIPTOR' : _TBDATA,
+Response = _reflection.GeneratedProtocolMessageType('Response', (_message.Message,), {
+  'DESCRIPTOR' : _RESPONSE,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.TBData)
+  # @@protoc_insertion_point(class_scope:wandb_internal.Response)
   })
-_sym_db.RegisterMessage(TBData)
+_sym_db.RegisterMessage(Response)
 
-RunUpdateResult = _reflection.GeneratedProtocolMessageType('RunUpdateResult', (_message.Message,), {
-  'DESCRIPTOR' : _RUNUPDATERESULT,
+DeferRequest = _reflection.GeneratedProtocolMessageType('DeferRequest', (_message.Message,), {
+  'DESCRIPTOR' : _DEFERREQUEST,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.RunUpdateResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.DeferRequest)
   })
-_sym_db.RegisterMessage(RunUpdateResult)
+_sym_db.RegisterMessage(DeferRequest)
 
-RunExitResult = _reflection.GeneratedProtocolMessageType('RunExitResult', (_message.Message,), {
-  'DESCRIPTOR' : _RUNEXITRESULT,
+LoginRequest = _reflection.GeneratedProtocolMessageType('LoginRequest', (_message.Message,), {
+  'DESCRIPTOR' : _LOGINREQUEST,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.RunExitResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.LoginRequest)
   })
-_sym_db.RegisterMessage(RunExitResult)
+_sym_db.RegisterMessage(LoginRequest)
 
-LogResult = _reflection.GeneratedProtocolMessageType('LogResult', (_message.Message,), {
-  'DESCRIPTOR' : _LOGRESULT,
+LoginResponse = _reflection.GeneratedProtocolMessageType('LoginResponse', (_message.Message,), {
+  'DESCRIPTOR' : _LOGINRESPONSE,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.LogResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.LoginResponse)
   })
-_sym_db.RegisterMessage(LogResult)
+_sym_db.RegisterMessage(LoginResponse)
 
-StatusResult = _reflection.GeneratedProtocolMessageType('StatusResult', (_message.Message,), {
-  'DESCRIPTOR' : _STATUSRESULT,
+GetSummaryRequest = _reflection.GeneratedProtocolMessageType('GetSummaryRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETSUMMARYREQUEST,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.StatusResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.GetSummaryRequest)
   })
-_sym_db.RegisterMessage(StatusResult)
+_sym_db.RegisterMessage(GetSummaryRequest)
 
-SummaryResult = _reflection.GeneratedProtocolMessageType('SummaryResult', (_message.Message,), {
-  'DESCRIPTOR' : _SUMMARYRESULT,
+GetSummaryResponse = _reflection.GeneratedProtocolMessageType('GetSummaryResponse', (_message.Message,), {
+  'DESCRIPTOR' : _GETSUMMARYRESPONSE,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.SummaryResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.GetSummaryResponse)
   })
-_sym_db.RegisterMessage(SummaryResult)
+_sym_db.RegisterMessage(GetSummaryResponse)
 
-OutputResult = _reflection.GeneratedProtocolMessageType('OutputResult', (_message.Message,), {
-  'DESCRIPTOR' : _OUTPUTRESULT,
+StatusRequest = _reflection.GeneratedProtocolMessageType('StatusRequest', (_message.Message,), {
+  'DESCRIPTOR' : _STATUSREQUEST,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.OutputResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.StatusRequest)
   })
-_sym_db.RegisterMessage(OutputResult)
+_sym_db.RegisterMessage(StatusRequest)
 
-ConfigResult = _reflection.GeneratedProtocolMessageType('ConfigResult', (_message.Message,), {
-  'DESCRIPTOR' : _CONFIGRESULT,
+StatusResponse = _reflection.GeneratedProtocolMessageType('StatusResponse', (_message.Message,), {
+  'DESCRIPTOR' : _STATUSRESPONSE,
   '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.ConfigResult)
+  # @@protoc_insertion_point(class_scope:wandb_internal.StatusResponse)
   })
-_sym_db.RegisterMessage(ConfigResult)
-
-ResultRecord = _reflection.GeneratedProtocolMessageType('ResultRecord', (_message.Message,), {
-  'DESCRIPTOR' : _RESULTRECORD,
-  '__module__' : 'wandb.proto.wandb_internal_pb2'
-  # @@protoc_insertion_point(class_scope:wandb_internal.ResultRecord)
-  })
-_sym_db.RegisterMessage(ResultRecord)
+_sym_db.RegisterMessage(StatusResponse)
 
 
 # @@protoc_insertion_point(module_scope)
