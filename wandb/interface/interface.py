@@ -135,7 +135,7 @@ class BackendSender(object):
         proto_manifest.version = artifact_manifest.version()
         proto_manifest.storage_policy = artifact_manifest.storage_policy.name()
 
-        for k, v in artifact_manifest.storage_policy.config().items() or {}:
+        for k, v in artifact_manifest.storage_policy.config().items() or {}.items():
             cfg = proto_manifest.storage_policy_config.add()
             cfg.key = k
             cfg.value_json = json.dumps(v)

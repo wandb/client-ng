@@ -65,18 +65,16 @@ class Artifact(object):
             storage_layout = StorageLayout.V1
 
         self._storage_policy = WandbStoragePolicy(
-            config={"storageLayout": storage_layout,}
+            config={
+                "storageLayout": storage_layout,
+                #  TODO: storage region
+            }
         )
         self._api = InternalApi()
         self._final = False
         self._digest = None
         self._file_entries = None
-        if storage_layout == StorageLayout.V1:
-            self._manifest = ArtifactManifestV1(self, self._storage_policy)
-        elif storage_layout == StorageLayout.V2:
-            self._manifest = ArtifactManifestV2(self, self._storage_policy)
-        else:
-            raise ValueError('invalid')
+        self._manifest = ArtifactManifestV1(self, self._storage_policy)
         self._cache = get_artifacts_cache()
         self._added_new = False
         # You can write into this directory when creating artifact files
@@ -263,6 +261,7 @@ class ArtifactManifestV1(ArtifactManifest):
             name: ArtifactManifestEntry(
                 path=name,
                 digest=val["digest"],
+                birth_artifact_id=val.get("birthArtifactID"),
                 ref=val.get("ref"),
                 size=val.get("size"),
                 extra=val.get("extra"),
@@ -293,6 +292,8 @@ class ArtifactManifestV1(ArtifactManifest):
             json_entry = {
                 "digest": entry.digest,
             }
+            if entry.birth_artifact_id:
+                json_entry["birthArtifactID"] = entry.birth_artifact_id
             if entry.ref:
                 json_entry["ref"] = entry.ref
             if entry.extra:
@@ -310,80 +311,6 @@ class ArtifactManifestV1(ArtifactManifest):
     def digest(self):
         hasher = hashlib.md5()
         hasher.update("wandb-artifact-manifest-v1\n".encode())
-        for (name, entry) in sorted(self.entries.items(), key=lambda kv: kv[0]):
-            hasher.update("{}:{}\n".format(name, entry.digest).encode())
-        return hasher.hexdigest()
-
-
-class ArtifactManifestV2(ArtifactManifest):
-    @classmethod
-    def version(cls):
-        return 2
-
-    @classmethod
-    def from_manifest_json(cls, artifact, manifest_json):
-        if manifest_json["version"] != cls.version():
-            raise ValueError(
-                "Expected manifest version 2, got %s" % manifest_json["version"]
-            )
-
-        storage_policy_name = manifest_json["storagePolicy"]
-        storage_policy_config = manifest_json.get("storagePolicyConfig", {})
-        storage_policy_cls = StoragePolicy.lookup_by_name(storage_policy_name)
-        if storage_policy_cls is None:
-            raise ValueError('Failed to find storage policy "%s"' % storage_policy_name)
-
-        entries_json = manifest_json["contents"]["entries"]
-        entries = {
-            name: ArtifactManifestEntry(
-                path=name,
-                digest=digest,
-                birth_artifact_id=entries_json[digest]["birthArtifactID"],
-                ref=entries_json[digest].get("ref"),
-                size=entries_json[digest]["size"],
-                local_path=entries_json[digest].get("local_path"),
-                extra=entries_json[digest].get("extra"),
-            )
-            for name, digest in manifest_json["contents"]["names"].items()
-        }
-
-        return cls(
-            artifact, storage_policy_cls.from_config(storage_policy_config), entries
-        )
-
-    def __init__(self, artifact, storage_policy, entries=None):
-        super(ArtifactManifestV2, self).__init__(
-            artifact, storage_policy, entries=entries
-        )
-
-    def to_manifest_json(self):
-        names = {}
-        for entry in sorted(self.entries.values(), key=lambda k: k.path):
-            names[entry.path] = entry.digest
-
-        entries = {}
-        for entry in sorted(self.entries.values(), key=lambda k: k.digest):
-            json_entry = {
-                "birthArtifactID": entry.birth_artifact_id,
-            }
-            if entry.ref:
-                json_entry["ref"] = entry.ref
-            if entry.size:
-                json_entry["size"] = entry.size
-            if entry.extra:
-                json_entry["extra"] = entry.extra
-            entries[entry.digest] = json_entry
-
-        return {
-            "version": self.__class__.version(),
-            "storagePolicy": self.storage_policy.name(),
-            "storagePolicyConfig": self.storage_policy.config() or {},
-            "contents": {"names": names, "entries": entries,},
-        }
-
-    def digest(self):
-        hasher = hashlib.md5()
-        hasher.update("wandb-artifact-manifest-v2\n".encode())
         for (name, entry) in sorted(self.entries.items(), key=lambda kv: kv[0]):
             hasher.update("{}:{}\n".format(name, entry.digest).encode())
         return hasher.hexdigest()
@@ -426,7 +353,7 @@ class WandbStoragePolicy(StoragePolicy):
 
     @classmethod
     def from_config(cls, config):
-        return cls()
+        return cls(config=config)
 
     def __init__(self, config=None):
         s3 = S3Handler()
@@ -495,7 +422,7 @@ class WandbStoragePolicy(StoragePolicy):
                 api.settings("base_url"), entity_name, md5_hex
             )
         elif storage_layout == StorageLayout.V2:
-            return  # TODO
+            return  # TODO need to pull region info
         else:
             raise Exception("unrecognized storage layout: {}".format(storage_layout))
 
