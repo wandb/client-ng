@@ -123,9 +123,12 @@ class SendManager(object):
                         dictionary[k + "." + k2] = v2
 
     def handle_request_status(self, data):
-        if data.control.req_resp and data.request.status.check_stop_req:
-            result = wandb_internal_pb2.Result(uuid=data.uuid)
-            status_resp = result.response.status_response
+        if not data.control.req_resp:
+            return
+
+        result = wandb_internal_pb2.Result(uuid=data.uuid)
+        status_resp = result.response.status_response
+        if data.request.status.check_stop_req:
             status_resp.run_should_stop = False
             if self._entity and self._project and self._run.run_id:
                 try:
@@ -134,7 +137,7 @@ class SendManager(object):
                     )
                 except Exception as e:
                     logger.warning("Failed to check stop requested status: %s", e)
-            self._resp_q.put(result)
+        self._resp_q.put(result)
 
     def handle_tbdata(self, data):
         if self._tb_watcher:
