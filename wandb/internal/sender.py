@@ -387,7 +387,14 @@ class SendManager(object):
         summary = data.summary
 
         for item in summary.update:
-            key = (item.key,) + tuple(item.nested_key)
+            if len(item.nested_key) > 0:
+                # we use either key or nested_key -- not both
+                assert item.key == ""
+                key = tuple(item.nested_key)
+            else:
+                # no counter-assertion here, because technically
+                # summary[""] is valid
+                key = (item.key,)
 
             target = self._consolidated_summary
 
@@ -399,7 +406,14 @@ class SendManager(object):
             target[key[-1]] = json.loads(item.value_json)
 
         for item in summary.remove:
-            key = (item.key,) + tuple(item.nested_key)
+            if len(item.nested_key) > 0:
+                # we use either key or nested_key -- not both
+                assert item.key == ""
+                key = tuple(item.nested_key)
+            else:
+                # no counter-assertion here, because technically
+                # summary[""] is valid
+                key = (item.key,)
 
             target = self._consolidated_summary
 

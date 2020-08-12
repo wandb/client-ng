@@ -225,10 +225,10 @@ class BackendSender(object):
 
             assert key_length > 0
 
-            pb_summary_item.key = item.key[0]
-
             if key_length > 1:
-                pb_summary_item.nested_key.extend(item.key[1:])
+                pb_summary_item.nested_key.extend(item.key)
+            else:
+                pb_summary_item.key = item.key[0]
 
             path_from_root = ".".join(item.key)
             json_value = self._summary_encode(item.value, path_from_root)
@@ -244,10 +244,10 @@ class BackendSender(object):
 
             assert key_length > 0
 
-            pb_summary_item.key = item.key[0]
-
             if key_length > 1:
-                pb_summary_item.nested_key.extend(item.key[1:])
+                pb_summary_item.nested_key.extend(item.key)
+            else:
+                pb_summary_item.key = item.key[0]
 
         return pb_summary_record
 
