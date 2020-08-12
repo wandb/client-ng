@@ -7,8 +7,8 @@ if wandb.TYPE_CHECKING: #type: ignore
 class SummaryRecord(object):
     """Encodes a diff -- analogous to the SummaryRecord protobuf message"""
 
-    update: t.Tuple["SummaryItem"]
-    remove: t.Tuple["SummaryItem"]
+    # update: t.Tuple["SummaryItem"]
+    # remove: t.Tuple["SummaryItem"]
 
     def __init__(self):
         self.update = tuple()
@@ -39,8 +39,8 @@ class SummaryRecord(object):
 class SummaryItem:
     """Analogous to the SummaryItem protobuf message."""
 
-    key: t.Tuple[str]
-    value: t.Any
+    # key: t.Tuple[str]
+    # value: t.Any
 
     def __init__(self):
         self.key = tuple()
