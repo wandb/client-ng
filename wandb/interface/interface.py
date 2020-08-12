@@ -12,7 +12,7 @@ import six
 from six.moves import queue
 import wandb
 from wandb import data_types
-from wandb.interface import constants, summary_record
+from wandb.interface import constants
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import (
     get_h5_typename,
@@ -373,7 +373,8 @@ class BackendSender(object):
         rec = self._make_record(config=cfg)
         self._queue_process(rec)
 
-    def send_summary(self, summary_record: summary_record.SummaryRecord):
+    # def send_summary(self, summary_record: summary_record.SummaryRecord):
+    def send_summary(self, summary_record):
         pb_summary_record = self._make_summary(summary_record)
         self._send_summary(pb_summary_record)
 
