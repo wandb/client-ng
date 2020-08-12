@@ -1,6 +1,6 @@
 import wandb
 
-if wandb.TYPE_CHECKING: #type: ignore
+if wandb.TYPE_CHECKING:  # type: ignore
     import typing as t
 
 
