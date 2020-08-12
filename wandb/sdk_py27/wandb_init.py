@@ -185,6 +185,14 @@ class _WandbInit(object):
         os.rename(tmp_name, name)
         os.chdir(owd)
 
+    def _pause_backend(self):
+        if self.backend is not None:
+            self.backend.interface.send_pause()
+
+    def _resume_backend(self):
+        if self.backend is not None:
+            self.backend.interface.send_resume()
+
     def _jupyter_setup(self):
         self.notebook = wandb.jupyter.Notebook()
         ipython = self.notebook.shell
@@ -193,6 +201,9 @@ class _WandbInit(object):
         # Monkey patch ipython publish to capture displayed outputs
         if not hasattr(ipython.display_pub, "_orig_publish"):
             ipython.display_pub._orig_publish = ipython.display_pub.publish
+            # Registering resume and pause hooks
+            ipython.events.register("pre_run_cell", self._resume_backend)
+            ipython.events.register("post_run_cell", self._pause_backend)
 
         def publish(data, metadata=None, **kwargs):
             ipython.display_pub._orig_publish(data, metadata=metadata, **kwargs)
@@ -201,8 +212,6 @@ class _WandbInit(object):
             )
 
         ipython.display_pub.publish = publish
-        # TODO: should we reset start or any other fancy pre or post run cell magic?
-        # ipython.events.register("pre_run_cell", reset_start)
 
     def _log_setup(self, settings):
         """Setup logging from settings."""

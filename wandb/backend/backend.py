@@ -31,7 +31,7 @@ class Backend(object):
         self.notify_queue = None  # notify activity on ...
 
         self._done = False
-        self._wl = wandb.setup()
+        self._wl = wandb.setup(_warn=False)
         self.interface = None
 
     def _hack_set_run(self, run):

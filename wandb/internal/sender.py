@@ -48,10 +48,13 @@ def _config_dict_from_proto_list(obj_list):
 
 
 class SendManager(object):
-    def __init__(self, settings, process_q, notify_q, resp_q, run_meta=None):
+    def __init__(
+        self, settings, process_q, notify_q, resp_q, run_meta=None, system_stats=None
+    ):
         self._settings = settings
         self._resp_q = resp_q
         self._run_meta = run_meta
+        self._system_stats = system_stats
 
         self._fs = None
         self._pusher = None
@@ -480,6 +483,14 @@ class SendManager(object):
             item.value_json = json.dumps(value)
             result.response.get_summary_response.item.append(item)
         self._resp_q.put(result)
+
+    def handle_request_resume(self, data):
+        if self._system_stats is not None:
+            self._system_stats.start()
+
+    def handle_request_pause(self, data):
+        if self._system_stats is not None:
+            self._system_stats.shutdown()
 
     def finish(self):
         logger.info("shutting down sender")

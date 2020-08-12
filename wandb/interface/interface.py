@@ -240,7 +240,7 @@ class BackendSender(object):
         return login
 
     def _make_request(
-        self, login=None, defer=None, get_summary=None,
+        self, login=None, defer=None, get_summary=None, pause=None, resume=None
     ):
         request = wandb_internal_pb2.Request()
         if login:
@@ -249,6 +249,10 @@ class BackendSender(object):
             request.defer.CopyFrom(defer)
         elif get_summary:
             request.get_summary.CopyFrom(get_summary)
+        elif pause:
+            request.pause.CopyFrom(pause)
+        elif resume:
+            request.resume.CopyFrom(resume)
         else:
             raise Exception("problem")
         record = self._make_record(request=request)
@@ -331,6 +335,16 @@ class BackendSender(object):
         login_response = result.response.login_response
         assert login_response
         return login_response
+
+    def send_pause(self):
+        pause = wandb_internal_pb2.PauseRequest()
+        rec = self._make_request(pause=pause)
+        self._queue_process(rec)
+
+    def send_resume(self):
+        resume = wandb_internal_pb2.ResumeRequest()
+        rec = self._make_request(resume=resume)
+        self._queue_process(rec)
 
     def send_run(self, run_obj):
         run = self._make_run(run_obj)
