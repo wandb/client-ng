@@ -116,6 +116,17 @@ fragment ArtifactFragment on Artifact {
         artifactCollectionName
         alias
     }
+    artifactType {
+        id
+        name
+    }
+    currentManifest {
+        id
+        file {
+            id
+            url
+        }
+    }
 }
 '''
 
@@ -2289,17 +2300,6 @@ class Artifact(object):
             project(name: $projectName, entityName: $entityName) {
                 artifact(name: $name) {
                     ...ArtifactFragment
-                    artifactType {
-                       id
-                       name
-                    }
-                    currentManifest {
-                        id
-                        file {
-                            id
-                            url
-                        }
-                    }
                 }
             }
         }
