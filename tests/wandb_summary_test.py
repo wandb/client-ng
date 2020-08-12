@@ -4,31 +4,35 @@ summary test.
 
 import pytest  # type: ignore
 
-from wandb import wandb_sdk, TYPE_CHECKING
+from wandb import wandb_sdk
 from wandb.interface.summary_record import SummaryRecord
 
-if TYPE_CHECKING:
-    import typing as t
+# if TYPE_CHECKING:
+#     import typing as t
 
 
 class MockCallback(object):
-    current_dict: t.Dict
-    summary_record: t.Optional[SummaryRecord]
+    # current_dict: t.Dict
+    # summary_record: t.Optional[SummaryRecord]
 
-    def __init__(self, current_dict: t.Dict):
+    # def __init__(self, current_dict: t.Dict):
+    def __init__(self, current_dict):
         self.reset(current_dict)
 
-    def reset(self, current_dict: t.Dict):
+    # def reset(self, current_dict: t.Dict):
+    def reset(self, current_dict):
         self.summary_record = None
         self.current_dict = current_dict
 
-    def update_callback(self, summary_record: SummaryRecord):
+    # def update_callback(self, summary_record: SummaryRecord):
+    def update_callback(self, summary_record):
         self.summary_record = summary_record
 
     def get_current_summary_callback(self):
         return self.current_dict
 
-    def check_updates(self, key: t.Tuple[str], value: t.Any):
+    # def check_updates(self, key: t.Tuple[str], value: t.Any):
+    def check_updates(self, key, value):
         assert self.summary_record is not None
 
         for item in self.summary_record.update:
@@ -38,7 +42,8 @@ class MockCallback(object):
 
         assert False
 
-    def check_removes(self, key: t.Tuple[str]):
+    # def check_removes(self, key: t.Tuple[str]):
+    def check_removes(self, key):
         assert self.summary_record is not None
 
         for item in self.summary_record.remove:
@@ -48,7 +53,8 @@ class MockCallback(object):
         assert False
 
 
-def create_summary_and_mock(current_dict: t.Dict):
+# def create_summary_and_mock(current_dict: t.Dict):
+def create_summary_and_mock(current_dict):
     m = MockCallback(current_dict)
     s = wandb_sdk.Summary(m.get_current_summary_callback,)
     s._set_update_callback(m.update_callback,)
