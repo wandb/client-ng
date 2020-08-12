@@ -16,8 +16,8 @@ import numbers
 import os
 import platform
 import sys
-import time
 import threading
+import time
 import traceback
 
 import click
