@@ -73,16 +73,18 @@ def get_message(notify_q, process_q, req_q):
 def start_rcv_thread(get_message):
     stop_event = threading.Event()
 
-    def make_rcv(send_manager):
+    def start_rcv(send_manager):
         def rcv():
             while not stop_event.is_set():
                 payload = get_message(timeout=0.1)
                 if payload:
                     send_manager.send(payload)
 
-        threading.Thread(target=rcv, daemon=True).start()
+        t = threading.Thread(target=rcv)
+        t.daemon = True
+        t.start()
 
-    yield make_rcv
+    yield start_rcv
     stop_event.set()
 
 
@@ -118,7 +120,9 @@ def test_parallel_requests(mock_server, sm, sender, start_rcv_thread):
 
     for i in range(10):
         work_queue.put(None)
-        threading.Thread(target=send_sync_request, args=(i,), daemon=True).start()
+        t = threading.Thread(target=send_sync_request, args=(i,))
+        t.daemon = True
+        t.start()
 
     work_queue.join()
 
