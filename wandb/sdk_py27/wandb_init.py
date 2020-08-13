@@ -268,10 +268,6 @@ class _WandbInit(object):
                     )
                 self._wl._global_run_stack[-1].join()
 
-        if s.mode == "noop":
-            # TODO(jhr): return dummy object
-            return None
-
         console = s.console
         use_redirect = True
         stdout_master_fd, stderr_master_fd = None, None
@@ -311,7 +307,9 @@ class _WandbInit(object):
 
         backend._hack_set_run(run)
 
-        if s.mode == "online":
+        if s.offline:
+            backend.interface.send_run(run)
+        else:
             ret = backend.interface.send_run_sync(run, timeout=30)
             # TODO: fail on more errors, check return type
             # TODO: make the backend log stacktraces on catostrophic failure
@@ -322,12 +320,6 @@ class _WandbInit(object):
                 self._wl.on_finish()
                 raise UsageError(ret.error.message)
             run._set_run_obj(ret.run)
-        elif s.mode in ("offline", "dryrun"):
-            backend.interface.send_run(run)
-        elif s.mode in ("async", "run"):
-            ret = backend.interface.send_run_sync(run, timeout=10)
-            # TODO: on network error, do async run save
-            backend.interface.send_run(run)
 
         self._wl._global_run_stack.append(run)
         self.run = run
@@ -364,7 +356,6 @@ def init(
     entity = None,
     reinit = None,
     tags = None,
-    team = None,
     group = None,
     name = None,
     notes = None,
@@ -372,7 +363,7 @@ def init(
     config_exclude_keys=None,
     config_include_keys=None,
     anonymous = None,
-    disable = None,
+    disabled = None,
     offline = None,
     allow_val_change = None,
     resume = None,

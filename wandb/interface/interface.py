@@ -90,10 +90,10 @@ class BackendSender(object):
         self._queue_process(rec)
 
     def send_tbdata(self, log_dir, save):
-        tbdata = wandb_internal_pb2.TBRecord()
-        tbdata.log_dir = log_dir
-        tbdata.save = save
-        rec = wandb_internal_pb2.Record(tbdata=tbdata)
+        tbrecord = wandb_internal_pb2.TBRecord()
+        tbrecord.log_dir = log_dir
+        tbrecord.save = save
+        rec = self._make_record(tbrecord=tbrecord)
         self._queue_process(rec)
 
     def _send_history(self, history):
@@ -240,7 +240,7 @@ class BackendSender(object):
         return login
 
     def _make_request(
-        self, login=None, defer=None, get_summary=None,
+        self, login=None, defer=None, get_summary=None, poll_exit=None,
     ):
         request = wandb_internal_pb2.Request()
         if login:
@@ -249,6 +249,8 @@ class BackendSender(object):
             request.defer.CopyFrom(defer)
         elif get_summary:
             request.get_summary.CopyFrom(get_summary)
+        elif poll_exit:
+            request.poll_exit.CopyFrom(poll_exit)
         else:
             raise Exception("problem")
         record = self._make_record(request=request)
@@ -264,6 +266,7 @@ class BackendSender(object):
         stats=None,
         exit=None,
         artifact=None,
+        tbrecord=None,
         request=None,
     ):
         record = wandb_internal_pb2.Record()
@@ -283,6 +286,8 @@ class BackendSender(object):
             record.exit.CopyFrom(exit)
         elif artifact:
             record.artifact.CopyFrom(artifact)
+        elif tbrecord:
+            record.tbrecord.CopyFrom(tbrecord)
         elif request:
             record.request.CopyFrom(request)
         else:
@@ -404,7 +409,9 @@ class BackendSender(object):
         self._queue_process(rec)
 
     def send_exit(self, exit_code):
-        pass
+        exit_data = self._make_exit(exit_code)
+        rec = self._make_record(exit=exit_data)
+        self._queue_process(rec)
 
     def _send_exit_sync(self, exit_data, timeout=None):
         req = self._make_record(exit=exit_data)
@@ -417,6 +424,13 @@ class BackendSender(object):
             )
         assert result.exit_result
         return result.exit_result
+
+    def send_poll_exit_sync(self, timeout=None):
+        poll_request = wandb_internal_pb2.PollExitRequest()
+        rec = self._make_request(poll_exit=poll_request)
+        rec.control.local = True
+        result = self._request_response(rec, timeout=timeout)
+        return result
 
     def send_defer(self):
         defer_request = wandb_internal_pb2.DeferRequest()

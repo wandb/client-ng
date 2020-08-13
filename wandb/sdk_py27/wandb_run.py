@@ -799,29 +799,34 @@ class RunManaged(Run):
         print("")
         self._console_start()
 
+    def _on_finish_progress(self, progress):
+        print("PROGRESS", progress)
+
     def _on_finish(self):
         # make sure all uncommitted history is flushed
         self.history._flush()
 
         # TODO: we need to handle catastrophic failure better
         # some tests were timing out on sending exit for reasons not clear to me
-        try:
-            ret = self._backend.interface.send_exit_sync(
-                self._exit_code, timeout=EXIT_TIMEOUT
-            )
+        self._backend.interface.send_exit(self._exit_code)
+
+        # Wait for data to be synced
+        while True:
+            ret = self._backend.interface.send_poll_exit_sync()
             logger.info("got exit ret: %s", ret)
-            if ret is None:
-                # TODO: do we really want to exit here?
-                print("Problem syncing data")
-                os._exit(1)
+            if ret.response.poll_exit_response.done:
+                break
+            pusher_stats = ret.response.poll_exit_response.pusher_stats
+            if pusher_stats:
+                self._on_finish_progress(pusher_stats)
+            time.sleep(2)
 
-            self._exit_result = ret
+        self._poll_exit_response = ret.response.poll_exit_response
+        ret = self._backend.interface.send_get_summary_sync()
+        self._final_summary = dict_from_proto_list(ret.item)
 
-            ret = self._backend.interface.send_get_summary_sync()
-            self._final_summary = dict_from_proto_list(ret.item)
-        finally:
-            self._console_stop()
-            self._backend.cleanup()
+        self._console_stop()
+        self._backend.cleanup()
 
     def _on_final(self):
         # check for warnings and errors, show log file locations
@@ -857,14 +862,14 @@ class RunManaged(Run):
 
         self._print_summary()
 
-        if self._exit_result.files:
+        if self._poll_exit_response.file_counts:
             logger.info("logging synced files")
             wandb.termlog(
                 "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
-                    self._exit_result.files.wandb_count,
-                    self._exit_result.files.media_count,
-                    self._exit_result.files.artifact_count,
-                    self._exit_result.files.other_count,
+                    self._poll_exit_response.file_counts.wandb_count,
+                    self._poll_exit_response.file_counts.media_count,
+                    self._poll_exit_response.file_counts.artifact_count,
+                    self._poll_exit_response.file_counts.other_count,
                 )
             )
 
