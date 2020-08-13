@@ -41,11 +41,9 @@ from .git_repo import GitRepo
 logger = logging.getLogger(__name__)
 
 
-DeferState = collections.namedtuple(
+DeferState = collections.namedtuple(  # type: ignore[attr-defined]
     "DeferState", "begin flush_tb flush_dir flush_fp flush_fs end"
-)._make(  # type: ignore[attr-defined]
-    range(6)
-)
+)._make(range(6))
 
 
 def _config_dict_from_proto_list(obj_list):
