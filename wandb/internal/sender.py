@@ -43,7 +43,9 @@ logger = logging.getLogger(__name__)
 
 DeferState = collections.namedtuple(
     "DeferState", "begin flush_tb flush_dir flush_fp flush_fs end"
-)._make(range(6))
+)._make(  # type: ignore
+    range(6)
+)
 
 
 def _config_dict_from_proto_list(obj_list):
@@ -135,6 +137,23 @@ class SendManager(object):
                     for k2, v2 in v.items():
                         dictionary[k + "." + k2] = v2
 
+    def handle_request_status(self, data):
+        if not data.control.req_resp:
+            return
+
+        result = wandb_internal_pb2.Result(uuid=data.uuid)
+        status_resp = result.response.status_response
+        if data.request.status.check_stop_req:
+            status_resp.run_should_stop = False
+            if self._entity and self._project and self._run.run_id:
+                try:
+                    status_resp.run_should_stop = self._api.check_stop_requested(
+                        self._project, self._entity, self._run.run_id
+                    )
+                except Exception as e:
+                    logger.warning("Failed to check stop requested status: %s", e)
+        self._resp_q.put(result)
+
     def handle_tbrecord(self, data):
         logger.info("handling tbrecord: %s", data)
         if self._tb_watcher:
@@ -151,7 +170,7 @@ class SendManager(object):
         self._flags = json.loads(viewer.get("flags", "{}"))
         self._entity = viewer.get("entity")
         if data.control.req_resp:
-            result = wandb_internal_pb2.Result()
+            result = wandb_internal_pb2.Result(uuid=data.uuid)
             result.response.login_response.active_entity = self._entity
             self._resp_q.put(result)
 
@@ -226,7 +245,7 @@ class SendManager(object):
         if not data.control.req_resp:
             return
 
-        result = wandb_internal_pb2.Result()
+        result = wandb_internal_pb2.Result(uuid=data.uuid)
 
         alive = False
         if self._pusher:
@@ -319,7 +338,7 @@ class SendManager(object):
 
         if error is not None:
             if data.control.req_resp:
-                resp = wandb_internal_pb2.Result()
+                resp = wandb_internal_pb2.Result(uuid=data.uuid)
                 resp.run_result.run.CopyFrom(run)
                 resp.run_result.error.CopyFrom(error)
                 self._resp_q.put(resp)
@@ -371,7 +390,7 @@ class SendManager(object):
                     self._entity = entity_name
 
         if data.control.req_resp:
-            resp = wandb_internal_pb2.Result()
+            resp = wandb_internal_pb2.Result(uuid=data.uuid)
             resp.run_result.run.CopyFrom(self._run)
             self._resp_q.put(resp)
 
@@ -439,8 +458,45 @@ class SendManager(object):
 
     def handle_summary(self, data):
         summary = data.summary
-        summary_dict = dict_from_proto_list(summary.update)
-        self._consolidated_summary.update(summary_dict)
+
+        for item in summary.update:
+            if len(item.nested_key) > 0:
+                # we use either key or nested_key -- not both
+                assert item.key == ""
+                key = tuple(item.nested_key)
+            else:
+                # no counter-assertion here, because technically
+                # summary[""] is valid
+                key = (item.key,)
+
+            target = self._consolidated_summary
+
+            # recurse down the dictionary structure:
+            for prop in key[:-1]:
+                target = target[prop]
+
+            # use the last element of the key to write the leaf:
+            target[key[-1]] = json.loads(item.value_json)
+
+        for item in summary.remove:
+            if len(item.nested_key) > 0:
+                # we use either key or nested_key -- not both
+                assert item.key == ""
+                key = tuple(item.nested_key)
+            else:
+                # no counter-assertion here, because technically
+                # summary[""] is valid
+                key = (item.key,)
+
+            target = self._consolidated_summary
+
+            # recurse down the dictionary structure:
+            for prop in key[:-1]:
+                target = target[prop]
+
+            # use the last element of the key to erase the leaf:
+            del target[key[-1]]
+
         self._save_summary(self._consolidated_summary)
 
     def handle_stats(self, data):
@@ -527,7 +583,7 @@ class SendManager(object):
         )
 
     def handle_request_get_summary(self, data):
-        result = wandb_internal_pb2.Result()
+        result = wandb_internal_pb2.Result(uuid=data.uuid)
         for key, value in six.iteritems(self._consolidated_summary):
             item = wandb_internal_pb2.SummaryItem()
             item.key = key
