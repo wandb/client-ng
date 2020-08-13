@@ -68,7 +68,7 @@ defaults = dict(
     # old mode field (deprecated in favor of WANDB_OFFLINE=true)
     _mode=Field(str, ("dryrun", "run",)),
     # problem: TODO(jhr): Not implemented yet, needs new name?
-    # _problem=Field(str, ("fatal", "warn", "silent",)),
+    _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
     git_remote="origin",
@@ -89,7 +89,7 @@ env_settings = dict(
     mode=None,
     run_group=None,
     job_type=None,
-    # problem=None,
+    problem=None,
     console=None,
     offline=None,
     disabled=None,
@@ -214,7 +214,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         # compatibility / error handling
         # compat_version=None,  # set to "0.8" for safer defaults for older users
         # strict=None,  # set to "on" to enforce current best practices (also "warn")
-        # problem="fatal",
+        problem="fatal",
         # dynamic settings
         system_sample_seconds=2,
         system_samples=15,

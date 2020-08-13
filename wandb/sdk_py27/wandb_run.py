@@ -180,6 +180,8 @@ class RunManaged(Run):
         # Created when the run "starts".
         self._run_status_checker = None
 
+        self._poll_exit_response = None
+
         config = config or dict()
         wandb_key = "_wandb"
         config.setdefault(wandb_key, dict())
@@ -880,15 +882,8 @@ class RunManaged(Run):
             self._run_status_checker.join()
             self._run_status_checker = None
 
-    def _on_finish(self):
-        # make sure all uncommitted history is flushed
-        self.history._flush()
-
-        # TODO: we need to handle catastrophic failure better
-        # some tests were timing out on sending exit for reasons not clear to me
-        self._backend.interface.send_exit(self._exit_code)
-
-        # Wait for data to be synced
+    def _wait_for_finish(self):
+        ret = None
         while True:
             ret = self._backend.interface.send_poll_exit_sync()
             logger.info("got exit ret: %s", ret)
@@ -900,10 +895,25 @@ class RunManaged(Run):
             if done:
                 break
             time.sleep(2)
+        return ret
 
-        self._poll_exit_response = ret.response.poll_exit_response
-        ret = self._backend.interface.send_get_summary_sync()
-        self._final_summary = dict_from_proto_list(ret.item)
+    def _on_finish(self):
+        # make sure all uncommitted history is flushed
+        self.history._flush()
+
+        if self._settings.offline:
+            self._backend.interface.send_exit_sync(self._exit_code)
+        else:
+            # TODO: we need to handle catastrophic failure better
+            # some tests were timing out on sending exit for reasons not clear to me
+            self._backend.interface.send_exit(self._exit_code)
+
+            # Wait for data to be synced
+            ret = self._wait_for_finish()
+
+            self._poll_exit_response = ret.response.poll_exit_response
+            ret = self._backend.interface.send_get_summary_sync()
+            self._final_summary = dict_from_proto_list(ret.item)
 
         self._console_stop()
         self._backend.cleanup()
@@ -942,7 +952,7 @@ class RunManaged(Run):
 
         self._print_summary()
 
-        if self._poll_exit_response.file_counts:
+        if self._poll_exit_response and self._poll_exit_response.file_counts:
             logger.info("logging synced files")
             wandb.termlog(
                 "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
@@ -963,7 +973,7 @@ class RunManaged(Run):
             )
 
     def _print_summary(self):
-        if len(self._final_summary):
+        if self._final_summary:
             logger.info("rendering summary")
             wandb.termlog("Run summary:")
             max_len = max([len(k) for k in self._final_summary.keys()])
