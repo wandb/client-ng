@@ -25,6 +25,7 @@ TODO:
 """
 
 import argparse
+from datetime import datetime
 import random
 import multiprocessing
 import os
@@ -38,6 +39,9 @@ import wandb
 from wandb.compat import tempfile
 
 parser = argparse.ArgumentParser(description='artifacts load test')
+
+# if unspecified, we create a new project
+parser.add_argument('--project', type=str, default=None)
 
 # gen file args
 parser.add_argument('--gen_n_files', type=int, required=True,
@@ -83,7 +87,7 @@ def gen_files(n_files, max_small_size, max_large_size):
 
     return fnames
 
-def proc_version_writer(stop_queue, fnames, artifact_name, files_per_version_min, files_per_version_max):
+def proc_version_writer(stop_queue, project_name, fnames, artifact_name, files_per_version_min, files_per_version_max):
     while True:
         try:
             stop_queue.get_nowait()
@@ -92,7 +96,7 @@ def proc_version_writer(stop_queue, fnames, artifact_name, files_per_version_min
         except queue.Empty:
             pass
         print('Writer initing run')
-        with wandb.init(reinit=True, job_type='writer') as run:
+        with wandb.init(reinit=True, project=project_name, job_type='writer') as run:
             files_in_version = random.randrange(files_per_version_min, files_per_version_max)
             version_fnames = random.sample(fnames, files_in_version)
             art = wandb.Artifact(artifact_name, type='dataset')
@@ -100,7 +104,7 @@ def proc_version_writer(stop_queue, fnames, artifact_name, files_per_version_min
                 art.add_file(version_fname)
             run.log_artifact(art)
 
-def proc_version_reader(stop_queue, artifact_name, reader_id):
+def proc_version_reader(stop_queue, project_name, artifact_name, reader_id):
     api = wandb.Api()
     # initial sleep to ensure we've created the sequence. Public API fails
     # with a nasty error if not.
@@ -119,7 +123,7 @@ def proc_version_reader(stop_queue, artifact_name, reader_id):
             continue
         version = random.choice(versions)
         print('Reader initing run to read: ', version)
-        with wandb.init(reinit=True, job_type='reader') as run:
+        with wandb.init(reinit=True, project=project_name, job_type='reader') as run:
             run.use_artifact(version)
             print('Reader downloading: ', version)
             version.download('read-%s' % reader_id)
@@ -160,11 +164,16 @@ def main(argv):
     print('Load test starting')
     args = parser.parse_args()
 
+    project_name = args.project
+    if project_name is None:
+        project_name = 'artifacts-load-test-%s' % str(
+            datetime.now()).replace(' ', '-').replace(':', '-').replace('.', '-')
+
     # set global entity and project before chdir'ing
     from wandb.apis import InternalApi
     api = InternalApi()
     os.environ['WANDB_ENTITY'] = api.settings('entity')
-    os.environ['WANDB_PROJECT'] = api.settings('project')
+    os.environ['WANDB_PROJECT'] = project_name
     os.environ['WANDB_BASE_URL'] = api.settings('base_url')
 
     # Change dir to avoid litering code directory
@@ -190,6 +199,7 @@ def main(argv):
             target=proc_version_writer,
             args=(
                 stop_queue,
+                project_name,
                 source_file_names,
                 artifact_name,
                 args.files_per_version_min,
@@ -203,6 +213,7 @@ def main(argv):
             target=proc_version_reader,
             args=(
                 stop_queue,
+                project_name,
                 artifact_name,
                 i))
         p.start()
@@ -239,13 +250,15 @@ def main(argv):
 
     print('Starting verification phase')
     
-    api = wandb.Api()
-    versions = api.artifact_versions('dataset', artifact_name)
-    for v in versions:
-        # TODO: allow deleted once we build deletion support
-        if v.state != 'COMMITTED':
-            print('FAIL! Artifact version not committed: %s' % v)
-            sys.exit(1)
+    data_api = wandb.Api()
+    # we need list artifacts by walking runs, accessing via
+    # project.artifactType.artifacts only returns committed artifacts
+    for run in data_api.runs('%s/%s' % (api.settings('entity'), project_name)):
+        for v in run.logged_artifacts():
+            # TODO: allow deleted once we build deletion support
+            if v.state != 'COMMITTED':
+                print('FAIL! Artifact version not committed: %s' % v)
+                sys.exit(1)
     
     print('Verification succeeded')
 
