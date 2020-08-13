@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 DeferState = collections.namedtuple(
     "DeferState", "begin flush_tb flush_dir flush_fp flush_fs end"
-)._make(  # type: ignore
+)._make(  # type: ignore[attr-defined]
     range(6)
 )
 

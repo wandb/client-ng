@@ -231,13 +231,13 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         settings_workspace_spec="{wandb_dir}/settings",
         settings_system=None,  # computed
         settings_workspace=None,  # computed
-        sync_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}",
+        sync_dir_spec="{wandb_dir}/runs/{run_mode}-{timespec}-{run_id}",
         sync_file_spec="{run_mode}-{timespec}-{run_id}.wandb",
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
         sync_symlink_latest_spec="{wandb_dir}/latest-run",
         sync_file=None,  # computed
-        log_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/logs",
+        log_dir_spec="{wandb_dir}/runs/{run_mode}-{timespec}-{run_id}/logs",
         log_user_spec="debug-{timespec}-{run_id}.log",
         log_internal_spec="debug-internal-{timespec}-{run_id}.log",
         log_symlink_user_spec="{wandb_dir}/debug.log",
@@ -246,7 +246,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         log_internal=None,  # computed
         resume_fname_spec="{wandb_dir}/wandb-resume.json",
         resume_fname=None,  # computed
-        files_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/files",
+        files_dir_spec="{wandb_dir}/runs/{run_mode}-{timespec}-{run_id}/files",
         files_dir=None,  # computed
         symlink=None,  # probed
         # where files are temporary stored when saving
