@@ -13,7 +13,7 @@ def _manifest_json_from_proto(manifest):
                 "digest": content.digest,
                 "birthArtifactID": content.birth_artifact_id if content.birth_artifact_id else None,
                 "ref": content.ref if content.ref else None,
-                "size": content.size if content.size else None,
+                "size": content.size if content.size is not None else None,
                 "local_path": content.local_path if content.local_path else None,
                 "extra": {
                     extra.key: json.loads(extra.value_json) for extra in content.extra

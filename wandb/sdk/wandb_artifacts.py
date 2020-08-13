@@ -327,6 +327,8 @@ class ArtifactManifestEntry(object):
         extra=None,
         local_path=None,
     ):
+        if local_path is not None and size is None:
+            raise AssertionError('programming error, size required when local_path specified')
         self.path = path
         self.ref = ref  # This is None for files stored in the artifact.
         self.digest = digest
