@@ -3,8 +3,11 @@ from test_scripts.media.all_media_types import run_tests, all_tests
 import setup
 import os
 
+
 def test_all_media():
+    setup.set_user_envs()
     import pprint;pprint.pprint(os.environ)
+
     run_path = run_tests()
     api = wandb.Api()
     # run_path = "all-media-test/runs/lbabj5x4"
