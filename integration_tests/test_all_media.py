@@ -1,11 +1,12 @@
 import wandb
 from test_scripts.media.all_media_types import run_tests, all_tests
+import setup
 
 def test_all_media():
     api = wandb.Api()
     run_path = run_tests()
     # run_path = "all-media-test/runs/lbabj5x4"
-    run = api.run("local/" + run_path)
+    run = api.run(setup.test_user["username"] + "/" + run_path)
 
     # Test history Data
     history = run.history()

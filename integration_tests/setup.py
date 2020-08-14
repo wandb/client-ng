@@ -2,7 +2,7 @@ import MySQLdb
 
 import os
 
-default_user = {
+test_user = {
     'email': 'local-integration-tests@wandb.com',
     'username': 'local-integrations',
     'name': 'Ada Lovelace',
@@ -152,12 +152,12 @@ def get_user_envs():
     db = db_connection()
     uid = get_user_id(db)
     if uid == None:
-        new_user(db, default_user)
+        new_user(db, test_user)
         uid = get_user_id(db)
     api_key = get_api_key(db, uid)
     return {"WANDB_API_KEY": api_key,
             "WANDB_BASE_URL": "http://localhost:8080",
-            "WANDB_USERNAME": default_user['username']}
+            "WANDB_USERNAME": test_user['username']}
 
 
 def set_user_envs():
