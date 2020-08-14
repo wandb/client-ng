@@ -156,7 +156,7 @@ def get_user_envs():
         uid = get_user_id(db)
     api_key = get_api_key(db, uid)
     return {"WANDB_API_KEY": api_key,
-            "WANDB_BASE_URL": "http://localhost:8080",
+            "WANDB_BASE_URL": "http://localhost:9000",
             "WANDB_USERNAME": test_user['username']}
 
 
