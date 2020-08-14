@@ -113,6 +113,8 @@ def get_user_id(db):
 
     cursor.execute("SELECT id FROM users u WHERE u.email='local-integration-tests@wandb.com'")
     row = cursor.fetchone()
+    if row == None:
+        return None
     return row[0]
 
 def get_user_name(db):
