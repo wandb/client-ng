@@ -136,6 +136,7 @@ class SendManager(object):
     def handle_request_login(self, data):
         # TODO: do something with api_key or anonymous?
         # TODO: return an error if we aren't logged in?
+        self._api.reauth()
         viewer = self._api.viewer()
         self._flags = json.loads(viewer.get("flags", "{}"))
         self._entity = viewer.get("entity")
@@ -486,10 +487,12 @@ class SendManager(object):
 
     def handle_request_resume(self, data):
         if self._system_stats is not None:
+            logger.info("starting system metrics thread")
             self._system_stats.start()
 
     def handle_request_pause(self, data):
         if self._system_stats is not None:
+            logger.info("stopping system metrics thread")
             self._system_stats.shutdown()
 
     def finish(self):

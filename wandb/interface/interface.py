@@ -254,7 +254,7 @@ class BackendSender(object):
         elif resume:
             request.resume.CopyFrom(resume)
         else:
-            raise Exception("problem")
+            raise Exception("Invalid request")
         record = self._make_record(request=request)
         return record
 
@@ -290,12 +290,12 @@ class BackendSender(object):
         elif request:
             record.request.CopyFrom(request)
         else:
-            raise Exception("problem")
+            raise Exception("Invalid record")
         return record
 
     def _queue_process(self, rec):
         if self._process and not self._process.is_alive():
-            raise Exception("problem")
+            raise Exception("The wandb backend process has shutdown")
         self.process_queue.put(rec)
         self.notify_queue.put(constants.NOTIFY_PROCESS)
 
@@ -335,6 +335,11 @@ class BackendSender(object):
         login_response = result.response.login_response
         assert login_response
         return login_response
+
+    def send_login(self, api_key=None, anonymous=None):
+        login = self._make_login(api_key, anonymous)
+        rec = self._make_request(login=login)
+        self._queue_process(rec)
 
     def send_pause(self):
         pause = wandb_internal_pb2.PauseRequest()
