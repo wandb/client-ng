@@ -25,6 +25,7 @@ TODO:
 """
 
 import argparse
+from collections import defaultdict
 from datetime import datetime
 import random
 import multiprocessing
@@ -40,7 +41,7 @@ from wandb.compat import tempfile
 
 parser = argparse.ArgumentParser(description='artifacts load test')
 
-# if unspecified, we create a new project
+# if unspecified, we create a new project for testdata
 parser.add_argument('--project', type=str, default=None)
 
 # gen file args
@@ -92,7 +93,7 @@ def gen_files(n_files, max_small_size, max_large_size):
 
     return fnames
 
-def proc_version_writer(stop_queue, project_name, fnames, artifact_name, files_per_version_min, files_per_version_max):
+def proc_version_writer(stop_queue, stats_queue, project_name, fnames, artifact_name, files_per_version_min, files_per_version_max):
     while True:
         try:
             stop_queue.get_nowait()
@@ -108,8 +109,9 @@ def proc_version_writer(stop_queue, project_name, fnames, artifact_name, files_p
             for version_fname in version_fnames:
                 art.add_file(version_fname)
             run.log_artifact(art)
+            stats_queue.put({'write_artifact_count': 1, 'write_total_files': files_in_version})
 
-def proc_version_reader(stop_queue, project_name, artifact_name, reader_id):
+def proc_version_reader(stop_queue, stats_queue, project_name, artifact_name, reader_id):
     api = wandb.Api()
     # initial sleep to ensure we've created the sequence. Public API fails
     # with a nasty error if not.
@@ -128,15 +130,32 @@ def proc_version_reader(stop_queue, project_name, artifact_name, reader_id):
             continue
         version = random.choice(versions)
         print('Reader initing run to read: ', version)
+        stats_queue.put({'read_artifact_count': 1})
         with wandb.init(reinit=True, project=project_name, job_type='reader') as run:
-            run.use_artifact(version)
+            try:
+                run.use_artifact(version)
+            except:
+                stats_queue.put({'read_use_error': 1})
+                print('Reader caught error on use_artifact')
+                updated_version = api.artifact(version.name)
+                if updated_version.state != 'DELETED':
+                    raise Exception('Artifact exception caught but artifact not DELETED')
+                continue
             print('Reader downloading: ', version)
-            version.download('read-%s' % reader_id)
+            try:
+                version.download('read-%s' % reader_id)
+            except:
+                stats_queue.put({'read_download_error': 1})
+                print('Reader caught error on version.download')
+                updated_version = api.artifact(version.name)
+                if updated_version.state != 'DELETED':
+                    raise Exception('Artifact exception caught but artifact not DELETED')
+                continue
             print('Reader verifying: ', version)
             version.verify('read-%s' % reader_id)
             print('Reader verified: ', version)
 
-def proc_version_deleter(stop_queue, artifact_name, min_versions, delete_period_max):
+def proc_version_deleter(stop_queue, stats_queue, artifact_name, min_versions, delete_period_max):
     api = wandb.Api()
     # initial sleep to ensure we've created the sequence. Public API fails
     # with a nasty error if not.
@@ -154,7 +173,10 @@ def proc_version_deleter(stop_queue, artifact_name, min_versions, delete_period_
         if len(versions) > min_versions:
             version = random.choice(versions)
             print('Delete version', version)
+            stats_queue.put({'delete_count': 1})
+            start_time = time.time()
             version.delete()
+            stats_queue.put({'delete_total_time': time.time() - start_time})
             print('Delete version complete', version)
         time.sleep(random.randrange(delete_period_max))
 
@@ -185,6 +207,8 @@ def main(argv):
         project_name = 'artifacts-load-test-%s' % str(
             datetime.now()).replace(' ', '-').replace(':', '-').replace('.', '-')
 
+    env_project = os.environ.get('WANDB_PROJECT')
+
     # set global entity and project before chdir'ing
     from wandb.apis import InternalApi
     api = InternalApi()
@@ -193,6 +217,7 @@ def main(argv):
     os.environ['WANDB_BASE_URL'] = api.settings('base_url')
 
     # Change dir to avoid litering code directory
+    pwd = os.getcwd()
     tempdir = tempfile.TemporaryDirectory()
     os.chdir(tempdir.name)
 
@@ -206,6 +231,7 @@ def main(argv):
 
     procs = []
     stop_queue = multiprocessing.Queue()
+    stats_queue = multiprocessing.Queue()
 
     # start all processes
 
@@ -215,6 +241,7 @@ def main(argv):
             target=proc_version_writer,
             args=(
                 stop_queue,
+                stats_queue,
                 project_name,
                 source_file_names,
                 artifact_name,
@@ -229,6 +256,7 @@ def main(argv):
             target=proc_version_reader,
             args=(
                 stop_queue,
+                stats_queue,
                 project_name,
                 artifact_name,
                 i))
@@ -241,6 +269,7 @@ def main(argv):
             target=proc_version_deleter,
             args=(
                 stop_queue,
+                stats_queue,
                 artifact_name,
                 args.min_versions_before_delete,
                 args.delete_period_max))
@@ -258,12 +287,33 @@ def main(argv):
                 args.cache_gc_period_max))
         p.start()
         procs.append(p)
+    
+    # reset to whatever's in settings or env
+    if env_project is None:
+        del os.environ['WANDB_PROJECT']
+    else:
+        os.environ['WANDB_PROJECT'] = env_project
+    # go back to original dir
+    os.chdir(pwd)
 
     # test phase
-    time.sleep(args.test_phase_seconds)
+    start_time = time.time()
+    stats = defaultdict(int)
+    with wandb.init(job_type='main-test-phase') as run:
+        run.config.update(args)
+        while time.time() - start_time < args.test_phase_seconds:
+            stat_update = None
+            try:
+                stat_update = stats_queue.get(True, 5000)
+            except queue.Empty:
+                pass
+            print('** Test time: %s' % (time.time() - start_time))
+            if stat_update:
+                for k, v in stat_update.items():
+                    stats[k] += v
+            wandb.log(stats)
 
     print('Test phase time expired')
-
     # stop all processes and wait til all are done
     for i in range(len(procs)):
         stop_queue.put(True)
@@ -275,6 +325,19 @@ def main(argv):
             sys.exit(1)
 
     print('Test phase successfully completed')
+
+    # drain remaining stats
+    while True:
+        try:
+            stat_update = stats_queue.get_nowait()
+        except queue.Empty:
+            break
+        for k, v in stat_update.items():
+            stats[k] += v
+
+    print('Stats')
+    import pprint
+    pprint.pprint(dict(stats))
 
     print('Starting verification phase')
     
