@@ -6,7 +6,7 @@ python artifact_load.py \
   --num_writers 2 \
   --files_per_version_min 1 \
   --files_per_version_max 10 \
-  --num_readers 0 \
+  --num_readers 10 \
   --num_deleters 1 \
   --min_versions_before_delete 2 \
   --delete_period_max 5
