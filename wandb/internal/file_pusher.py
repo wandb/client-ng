@@ -1,4 +1,5 @@
 import os
+import logging
 import tempfile as builtin_tempfile
 import time
 from six.moves import queue
@@ -30,6 +31,9 @@ warnings.filterwarnings('ignore', 'Implicitly cleaning up', RuntimeWarning, 'wan
 # reduce the probability that the file gets changed while we're
 # uploading it.
 TMP_DIR = tempfile.TemporaryDirectory('wandb')
+
+
+logger = logging.getLogger(__file__)
 
 
 class FilePusher(object):
@@ -64,6 +68,11 @@ class FilePusher(object):
         # stays around long enough for file pusher to sync
         # TODO(artifacts): maybe don't do this
         self._temp_file_refs = []
+
+    def get_status(self):
+        running = self.is_alive()
+        summary = self._stats.summary()
+        return running, summary
 
     def print_status(self, prefix=True):
         step = 0
@@ -127,7 +136,14 @@ class FilePusher(object):
         self._incoming_queue.put(event)
 
     def finish(self):
+        logger.info("shutting down file pusher")
         self._incoming_queue.put(step_checksum.RequestFinish())
+
+    def join(self):
+        # NOTE: must have called finish before join
+        logger.info("waiting for file pusher")
+        while self.is_alive():
+            time.sleep(0.5)
 
     def is_alive(self):
         return (self._step_checksum.is_alive()

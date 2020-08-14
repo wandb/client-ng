@@ -281,7 +281,7 @@ class ArtifactManifestV1(ArtifactManifest):
 
     def to_manifest_json(self):
         """This is the JSON that's stored in wandb_manifest.json
-        
+
         If include_local is True we also include the local paths to files. This is
         used to represent an artifact that's waiting to be saved on the current
         system. We don't need to include the local paths in the artifact manifest
@@ -375,7 +375,7 @@ class WandbStoragePolicy(StoragePolicy):
         retry_strategy = requests.packages.urllib3.util.retry.Retry(
             backoff_factor=1,
             total=16,
-            status_forcelist=(308, 409, 429, 500, 502, 503, 504),
+            status_forcelist=(308, 408, 409, 429, 500, 502, 503, 504),
         )
         self._session = requests.Session()
         adapter = requests.adapters.HTTPAdapter(
@@ -770,7 +770,7 @@ class S3Handler(StorageHandler):
         self.init_boto()
         bucket, key = self._parse_uri(path)
         max_objects = max_objects or DEFAULT_MAX_OBJECTS
-        if checksum == False:
+        if not checksum:
             return [ArtifactManifestEntry(name or key, path, digest=path)]
 
         objs = [self._s3.Object(bucket, key)]

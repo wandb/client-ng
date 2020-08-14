@@ -146,6 +146,7 @@ class DirWatcher(object):
             self._per_file_event_handler(), self._dir, recursive=True
         )
         self._file_observer.start()
+        logger.info("watching files in: %s", settings.files_dir)
 
     @property
     def emitter(self):
@@ -173,6 +174,7 @@ class DirWatcher(object):
         file_event_handler._ignore_patterns = [
             "*.tmp",
             "*.wandb",
+            "wandb-summary.json",
             os.path.join(self._dir, ".*"),
             os.path.join(self._dir, "*/.*"),
         ]
@@ -248,6 +250,7 @@ class DirWatcher(object):
         return self._file_event_handlers[save_name]
 
     def finish(self):
+        logger.info("shutting down directory watcher")
         try:
             # avoid hanging if we crashed before the observer was started
             if self._file_observer.is_alive():
@@ -273,5 +276,14 @@ class DirWatcher(object):
         # TODO: py3 SystemError: <built-in function stop> returned an error
         except SystemError:
             pass
-        for handler in list(self._file_event_handlers.values()):
-            handler.finish()
+
+        # Ensure we've at least noticed every file in the run directory. Sometimes
+        # we miss things because asynchronously watching filesystems isn't reliable.
+        logger.info("scan: %s", self._dir)
+
+        for dirpath, _, filenames in os.walk(self._dir):
+            for fname in filenames:
+                file_path = os.path.join(dirpath, fname)
+                save_name = os.path.relpath(file_path, self._dir)
+                logger.info("scan save: %s %s", file_path, save_name)
+                self._get_file_event_handler(file_path, save_name).finish()

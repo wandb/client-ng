@@ -108,6 +108,7 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         # TODO: Do a more formal merge of user settings from the backend.
         flags = self._get_user_flags()
         if "code_saving_enabled" in flags:
+            logger.info("enabling code saving by default")
             kwargs["save_code"] = flags["code_saving_enabled"]
 
         s = wandb_settings.Settings(**kwargs)
@@ -194,17 +195,14 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
             # TODO(jhr): handle load errors, handle list of files
             self._config = dict_from_config_file(self._settings.config_paths)
 
-    def on_finish(self):
-        logger.info("done")
-
 
 class _WandbSetup(object):
     """Wandb singleton class."""
 
     _instance = None
 
-    def __init__(self, settings=None):
-        if _WandbSetup._instance is not None:
+    def __init__(self, settings=None, _warn=True):
+        if _WandbSetup._instance is not None and _warn:
             logger.warning(
                 "Ignoring settings passed to wandb.setup() "
                 "which has already been configured."
@@ -216,7 +214,7 @@ class _WandbSetup(object):
         return getattr(self._instance, name)
 
 
-def setup(settings=None):
+def setup(settings=None, _warn=True):
     """Setup library context."""
-    wl = _WandbSetup(settings=settings)
+    wl = _WandbSetup(settings=settings, _warn=_warn)
     return wl
