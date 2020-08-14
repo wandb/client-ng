@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=0.9.12
+VERSION=latest
 docker run --rm\
     -e CI=1\
     -e DISABLE_TELEMETRY=true\

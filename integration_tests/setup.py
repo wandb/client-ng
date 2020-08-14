@@ -3,15 +3,115 @@ import MySQLdb
 
 import os
 
-def ensure_user():
-    # Add default local user
-    data = {'email': 'local@wandb.com', 'password': 'perceptron'}
-    requests.put('http://localhost:8080/api/users', data=data)
+default_user = {
+    'email': 'local-integration-tests@wandb.com',
+    'username': 'local',
+    'password': 'perceptron',
+    'auth_id': 'FAKE_AUTH_ID',
+    'api_key': 'FAKE_API_KEY'
+}
+
+def new_user(db, user_info):
+    username = user_info['username']
+    email = user_info['email']
+    name = user_info['name']
+    auth_id = user_info['auth_id']
+    api_key = user_info['api_key']
+
+    cursor = db.cursor()
+
+    cursor.execute('''INSERT INTO subscriptions
+        (created_at,
+         updated_at,
+         name,
+         `limits`,
+         `usage`,
+         start_date,
+         end_date
+        )
+        VALUES
+        (NOW(),
+         NOW(),
+         "subscription",
+         "{}",
+         "{}",
+         NOW(),
+         NOW()
+        )
+    ''')
+    db.commit()
+    subscription_id = cursor.lastrowid
+
+    cursor.execute('''INSERT INTO entities
+        (created_at,
+         updated_at,
+         name,
+         photo_url,
+         subscription_id
+        )
+        VALUES
+        (NOW(),
+         NOW(),
+         "%s",
+         '',
+         %d
+        )
+    ''' % (username, subscription_id))
+    db.commit()
+    entity_id = cursor.lastrowid
+
+    cursor.execute('''INSERT INTO users
+        (created_at,
+         updated_at,
+         auth_id,
+         username,
+         name,
+         email,
+         photo_url,
+         default_entity_id,
+         admin
+        )
+        VALUES
+        (NOW(),
+         NOW(),
+         "%s",
+         "%s",
+         "%s",
+         "%s",
+         "",
+         %d,
+         0
+        )
+    ''' % (auth_id, username, name, email, entity_id))
+    db.commit()
+    user_id = cursor.lastrowid
+
+    cursor.execute('''INSERT INTO users_auth0
+        (user_id,
+         auth_id
+        )
+        VALUES
+        (%d,
+         "%s"
+        )
+    ''' % (user_id, auth_id))
+    db.commit()
+
+    cursor.execute('''INSERT INTO api_keys
+        (`key`,
+         user_id
+        )
+        VALUES
+        ("%s",
+         %d
+        )
+    ''' % (api_key, user_id))
+    db.commit()
 
 def get_user_id(db):
     cursor = db.cursor()
 
-    cursor.execute("SELECT id FROM users u WHERE u.email='local@wandb.com'")
+    cursor.execute("SELECT id FROM users u WHERE u.email='local-integration-tests@wandb.com'")
     row = cursor.fetchone()
     return row[0]
 
@@ -39,7 +139,7 @@ def get_api_key(db, uid):
 
 def get_user_envs():
     db = db_connection()
-    ensure_user()
+    new_user(db, default_user)
     uid = get_user_id(db)
     api_key = get_api_key(db, uid)
     return {"WANDB_API_KEY": api_key,
