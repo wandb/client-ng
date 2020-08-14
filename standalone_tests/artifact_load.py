@@ -59,6 +59,11 @@ parser.add_argument('--files_per_version_max', type=int, required=True)
 # reader args
 parser.add_argument('--num_readers', type=int, required=True)
 
+# deleter args
+parser.add_argument('--num_deleters', type=int, default=0)
+parser.add_argument('--min_versions_before_delete', type=int, required=True)
+parser.add_argument('--delete_period_max', type=int, required=True)
+
 # cache garbage collector args
 parser.add_argument('--cache_gc_period_max', type=int)
 
@@ -131,6 +136,26 @@ def proc_version_reader(stop_queue, project_name, artifact_name, reader_id):
             version.verify('read-%s' % reader_id)
             print('Reader verified: ', version)
 
+def proc_version_deleter(stop_queue, artifact_name, min_versions, delete_period_max):
+    api = wandb.Api()
+    # initial sleep to ensure we've created the sequence. Public API fails
+    # with a nasty error if not.
+    time.sleep(10)
+    while True:
+        try:
+            stop_queue.get_nowait()
+            print('Deleter stopping')
+            return
+        except queue.Empty:
+            pass
+        versions = api.artifact_versions('dataset', artifact_name)
+        versions = [v for v in versions if v.state == 'COMMITTED']
+        if len(versions) > min_versions:
+            version = random.choice(versions[:-1])
+            print('Delete version', version)
+            version.delete()
+        time.sleep(random.randrange(delete_period_max))
+
 def proc_cache_garbage_collector(stop_queue, cache_gc_period_max):
     while True:
         try:
@@ -142,17 +167,6 @@ def proc_cache_garbage_collector(stop_queue, cache_gc_period_max):
         time.sleep(random.randrange(cache_gc_period_max))
         print('Cache GC')
         os.system('rm -rf ~/.cache/wandb/artifacts')
-
-def proc_version_deleter(stop_queue, artifact_name, min_versions, delete_period_max):
-    api = wandb.Api()
-    while True:
-        versions = api.artifact_versions('dataset', artifact_name)
-        versions = [v for v in versions if v.state == 'COMMITTED']
-        if len(versions) > min_versions:
-            version = random.choice(versions)
-            print('Delete version', version)
-            # TODO: implement delete
-        time.sleep(random.randrange(delete_period_max))
 
 def proc_bucket_garbage_collector(stop_queue, bucket_gc_period_max):
     while True:
@@ -216,6 +230,18 @@ def main(argv):
                 project_name,
                 artifact_name,
                 i))
+        p.start()
+        procs.append(p)
+
+    # deleters
+    for i in range(args.num_deleters):
+        p = multiprocessing.Process(
+            target=proc_version_deleter,
+            args=(
+                stop_queue,
+                artifact_name,
+                args.min_versions_before_delete,
+                args.delete_period_max))
         p.start()
         procs.append(p)
 

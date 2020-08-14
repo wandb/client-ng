@@ -2109,6 +2109,22 @@ class Artifact(object):
         
         raise ValueError('Unexpected API result.')
 
+    def delete(self):
+        """Delete artifact and it's files."""
+        mutation = gql('''
+        mutation deleteArtifact($id: ID!) {
+            deleteArtifact(input: {artifactID: $id}) {
+                artifact {
+                    id
+                }
+            }
+        }
+        ''')
+        self.client.execute(mutation, variable_values={
+            "id": self.id,
+        })
+        return True
+
     def new_file(self, name):
         raise ValueError('Cannot add files to an artifact once it has been saved')
 
