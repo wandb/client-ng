@@ -1,12 +1,11 @@
 # Description
 
-This directory contains integration tests. They are running in production by being hosted on circleCI.
+This directory contains integration tests for testing the client libraries various integrated systems.
 
-# Requirements
+## Requirements
 
 Python 3.7
 Docker
-
 
 # Development 
 
