@@ -844,7 +844,7 @@ class RunManaged(Run):
             )
             self._display_run()
         print("")
-        if self._backend:
+        if self._backend and not self._settings.offline:
             self._run_status_checker = RunStatusChecker(self._backend.interface)
         self._console_start()
 
@@ -902,7 +902,7 @@ class RunManaged(Run):
         self.history._flush()
 
         if self._settings.offline:
-            self._backend.interface.send_exit_sync(self._exit_code)
+            self._backend.interface.send_exit(self._exit_code)
         else:
             # TODO: we need to handle catastrophic failure better
             # some tests were timing out on sending exit for reasons not clear to me

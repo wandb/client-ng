@@ -57,6 +57,9 @@ def login(backend=None, relogin=None, key=None, anonymous=None):
     wl = wandb.setup(settings=settings, _warn=False)
     settings = wl.settings()
 
+    if settings.offline:
+        return
+
     active_entity = None
     if is_logged_in():
         # TODO: do we want to move all login logic to the backend?
