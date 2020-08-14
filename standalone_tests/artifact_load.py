@@ -112,6 +112,7 @@ def proc_version_writer(stop_queue, stats_queue, project_name, fnames, artifact_
             stats_queue.put({'write_artifact_count': 1, 'write_total_files': files_in_version})
 
 def proc_version_reader(stop_queue, stats_queue, project_name, artifact_name, reader_id):
+    print('ENVIRON', os.environ)
     api = wandb.Api()
     # initial sleep to ensure we've created the sequence. Public API fails
     # with a nasty error if not.
@@ -209,6 +210,16 @@ def main(argv):
 
     env_project = os.environ.get('WANDB_PROJECT')
 
+    sweep_id = os.environ.get('WANDB_SWEEP_ID')
+    if sweep_id:
+        del os.environ['WANDB_SWEEP_ID']
+    wandb_config_paths = os.environ.get('WANDB_CONFIG_PATHS')
+    if wandb_config_paths:
+        del os.environ['WANDB_CONFIG_PATHS']
+    wandb_run_id = os.environ.get('WANDB_RUN_ID')
+    if wandb_run_id:
+        del os.environ['WANDB_RUN_ID']
+
     # set global entity and project before chdir'ing
     from wandb.apis import InternalApi
     api = InternalApi()
@@ -288,11 +299,17 @@ def main(argv):
         p.start()
         procs.append(p)
     
-    # reset to whatever's in settings or env
+    # reset environment
     if env_project is None:
         del os.environ['WANDB_PROJECT']
     else:
         os.environ['WANDB_PROJECT'] = env_project
+    if sweep_id:
+        os.environ['WANDB_SWEEP_ID'] = sweep_id
+    if wandb_config_paths:
+        os.environ['WANDB_CONFIG_PATHS'] = wandb_config_paths
+    if wandb_run_id:
+        os.environ['WANDB_RUN_ID'] = wandb_run_id
     # go back to original dir
     os.chdir(pwd)
 
