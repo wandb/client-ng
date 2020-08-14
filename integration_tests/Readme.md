@@ -2,6 +2,11 @@
 
 This directory contains integration tests for testing the client libraries various integrated systems.
 
+The tests in this repository are also useful for logging. 
+
+## Run image test separately
+python integration_tests/test_scripts/media/image.py
+
 ## Requirements
 
 Python 3.7
@@ -11,13 +16,15 @@ Docker
 
 There are two ways to run theses tests locally:
 
-1.  Serve local yourself and run the python files against it for development
+1.  Serve local yourself and run the python files against it for development. 
 
 ```bash
 scripts/serve-local.sh
 
 # Run file
-(cd integration-tests; python setup.py)
+
+## Test setup
+cd integration-tests/setup.py
 
 # REPL driven development
 (cd integration-tests; python3)
