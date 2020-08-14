@@ -82,7 +82,7 @@ class SendManager(object):
         }
 
         # State added when run_exit needs results
-        self._exit_sync = None
+        self._exit_sync_uuid = None
 
         # State added when run_exit is complete
         self._exit_result = None
@@ -180,7 +180,7 @@ class SendManager(object):
 
         # Pass the responsibility to respond to handle_request_defer()
         if data.control.req_resp:
-            self._exit_sync = True
+            self._exit_sync_uuid = data.uuid
 
         # We need to give the request queue a chance to empty between states
         # so use handle_request_defer as a state machine.
@@ -227,13 +227,15 @@ class SendManager(object):
 
         # This path is not the prefered method to return exit results
         # as it could take a long time to flush the file pusher buffers
-        if self._exit_sync:
+        if self._exit_sync_uuid:
             if self._pusher:
                 # NOTE: This will block until finished
                 self._pusher.print_status()
                 self._pusher.join()
                 self._pusher = None
-            resp = wandb_internal_pb2.Result(exit_result=exit_result)
+            resp = wandb_internal_pb2.Result(
+                exit_result=exit_result, uuid=self._exit_sync_uuid
+            )
             self._resp_q.put(resp)
 
         # mark exit done in case we are polling on exit
