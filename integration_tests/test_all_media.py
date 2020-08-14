@@ -6,7 +6,7 @@ import os
 
 def test_all_media():
     setup.set_user_envs()
-    import pprint;pprint.pprint(os.environ)
+    print(os.environ)
 
     run_path = run_tests()
     api = wandb.Api()
