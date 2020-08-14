@@ -187,11 +187,11 @@ class Backend(object):
         self.notify_queue.close()
         self.wandb_process.join()
 
-        # TODO: I don't know if this is correct -Shawn
+        self.interface.join()
+
         self.process_queue.close()
         self.req_queue.close()
         self.resp_queue.close()
         self.cancel_queue.close()
         self.fd_pipe_parent.close()
-        self.interface.join()
         # No printing allowed from here until redirect restore!!!
