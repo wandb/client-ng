@@ -1,11 +1,11 @@
-import requests
 import MySQLdb
 
 import os
 
 default_user = {
     'email': 'local-integration-tests@wandb.com',
-    'username': 'local',
+    'username': 'local-integrations',
+    'name': 'Ada Lovelace',
     'password': 'perceptron',
     'auth_id': 'FAKE_AUTH_ID',
     'api_key': 'FAKE_API_KEY'
@@ -115,6 +115,13 @@ def get_user_id(db):
     row = cursor.fetchone()
     return row[0]
 
+def get_user_name(db):
+    cursor = db.cursor()
+
+    cursor.execute("SELECT id FROM users u WHERE u.name='local-integration-tests@wandb.com'")
+    row = cursor.fetchone()
+    return row[0]
+
 def db_connection():
     # mysql_uri = "mysql://wandb_local:wandb_local@127.0.0.1:3306/wandb_local"
     # db = MySQLdb.connect(host="127.0.0.1",port=3306,user="wandb_local",passwd="wandb_local",db="wandb_local")
@@ -139,12 +146,14 @@ def get_api_key(db, uid):
 
 def get_user_envs():
     db = db_connection()
-    new_user(db, default_user)
     uid = get_user_id(db)
+    if uid == None:
+        new_user(db, default_user)
+        uid = get_user_id(db)
     api_key = get_api_key(db, uid)
     return {"WANDB_API_KEY": api_key,
             "WANDB_BASE_URL": "http://localhost:8080",
-            "WANDB_USERNAME": "local"}
+            "WANDB_USERNAME": default_user['username']}
 
 
 def set_user_envs():
