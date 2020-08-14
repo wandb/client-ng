@@ -315,32 +315,33 @@ def main(argv):
     # test phase
     start_time = time.time()
     stats = defaultdict(int)
-    with wandb.init(job_type='main-test-phase') as run:
-        run.config.update(args)
-        while time.time() - start_time < args.test_phase_seconds:
-            stat_update = None
-            try:
-                stat_update = stats_queue.get(True, 5000)
-            except queue.Empty:
-                pass
-            print('** Test time: %s' % (time.time() - start_time))
-            if stat_update:
-                for k, v in stat_update.items():
-                    stats[k] += v
-            wandb.log(stats)
+
+    run = wandb.init(job_type='main-test-phase')
+    run.config.update(args)
+    while time.time() - start_time < args.test_phase_seconds:
+        stat_update = None
+        try:
+            stat_update = stats_queue.get(True, 5000)
+        except queue.Empty:
+            pass
+        print('** Test time: %s' % (time.time() - start_time))
+        if stat_update:
+            for k, v in stat_update.items():
+                stats[k] += v
+        wandb.log(stats)
 
     print('Test phase time expired')
     # stop all processes and wait til all are done
     for i in range(len(procs)):
         stop_queue.put(True)
     print('Waiting for processes to stop')
+    fail = False
     for proc in procs:
         proc.join()
         if proc.exitcode != 0:
             print('FAIL! Test phase failed')
+            fail = True
             sys.exit(1)
-
-    print('Test phase successfully completed')
 
     # drain remaining stats
     while True:
@@ -354,6 +355,12 @@ def main(argv):
     print('Stats')
     import pprint
     pprint.pprint(dict(stats))
+
+    if fail:
+        print('FAIL! Test phase failed')
+        sys.exit(1)
+    else:
+        print('Test phase successfully completed')
 
     print('Starting verification phase')
     
