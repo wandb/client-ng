@@ -25,6 +25,15 @@ scripts/serve-local.sh
 
 2. Run the full test suite using. This requires install CircleCI's local test runner.
 
+NOTE: The circeci tests checkout the github. So you will not get updates unless you commit. This is a little frustrating as you get a long tail of commit messages, but is faster than waiting on CI.
+
 ```bash
-scripts/test-integration-local.sh
+
+### Reccomend one liner
+git add -p; git commit -m "BUMP"; sh integration_tests/scripts/test-integration-local.sh
+
+
+# Base command
+sh integration_tests/scripts/test-integration-local.sh
+
 ```
