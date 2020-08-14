@@ -196,7 +196,6 @@ class Notebook(object):
             return
         cells = []
         hist = list(self.shell.history_manager.get_range(output=True))
-        # TODO: get code_saving turned on from settings
         if len(hist) <= 1 or not self.settings.save_code:
             logger.info("not saving jupyter history")
             return

@@ -696,7 +696,7 @@ class RunManaged(Run):
         run_url = self._get_run_url()
         sweep_url = self._get_sweep_url()
         if self._settings.jupyter:
-            from IPython.core.display import display, HTML
+            from IPython.core.display import display, HTML  # type: ignore
 
             sweep_line = (
                 'Sweep page: <a href="{}" target="_blank">{}</a><br/>\n'.format(
