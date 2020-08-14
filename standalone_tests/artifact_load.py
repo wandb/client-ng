@@ -149,11 +149,13 @@ def proc_version_deleter(stop_queue, artifact_name, min_versions, delete_period_
         except queue.Empty:
             pass
         versions = api.artifact_versions('dataset', artifact_name)
-        versions = [v for v in versions if v.state == 'COMMITTED']
+        # Don't try to delete versions that have aliases, the backend wont' allow it
+        versions = [v for v in versions if v.state == 'COMMITTED' and len(v.aliases) == 0]
         if len(versions) > min_versions:
-            version = random.choice(versions[:-1])
+            version = random.choice(versions)
             print('Delete version', version)
             version.delete()
+            print('Delete version complete', version)
         time.sleep(random.randrange(delete_period_max))
 
 def proc_cache_garbage_collector(stop_queue, cache_gc_period_max):
@@ -282,8 +284,8 @@ def main(argv):
     for run in data_api.runs('%s/%s' % (api.settings('entity'), project_name)):
         for v in run.logged_artifacts():
             # TODO: allow deleted once we build deletion support
-            if v.state != 'COMMITTED':
-                print('FAIL! Artifact version not committed: %s' % v)
+            if v.state != 'COMMITTED' and v.state != 'DELETED':
+                print('FAIL! Artifact version not committed or deleted: %s' % v)
                 sys.exit(1)
     
     print('Verification succeeded')
