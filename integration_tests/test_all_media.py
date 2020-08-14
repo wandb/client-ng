@@ -5,7 +5,7 @@ import os
 
 
 def test_all_media():
-    setup.set_user_envs()
+    # setup.set_user_envs()
     print(os.environ)
 
     run_path = run_tests()

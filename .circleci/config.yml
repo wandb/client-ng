@@ -144,10 +144,10 @@ jobs:
             - run:
                   name: Install local wandb as package
                   command: pip install .
-            # - run:
-            #       name: Set environment variables
-            #       command: source <(python integration_tests/setup.py)
             - run:
-                  name: Run all the test scripts for setup
+                  name: Set environment variables
+                  command: python integration_tests/setup.py >> $BASH_ENV
+            - run:
+                  name: Run all test script for setup
                   command: python -m pytest integration_tests/
 
