@@ -25,6 +25,7 @@ from six import iteritems, string_types
 from six.moves import _thread as thread
 from six.moves.urllib.parse import quote as url_quote
 import wandb
+from wandb import util
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
@@ -167,6 +168,9 @@ class RunManaged(Run):
         self._exit_code = None
         self._exit_result = None
         self._final_summary = None
+
+        self._sugar_progress = None
+        self._sugar_task = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -915,7 +919,16 @@ class RunManaged(Run):
         )
         line = spinner_states[self._progress_step % 4] + line
         self._progress_step += 1
-        wandb.termlog(line, newline=False, prefix=prefix)
+        if self._sugar_progress:
+            self._sugar_progress.update(
+                self._sugar_task,
+                total=progress.total_bytes,
+                completed=progress.uploaded_bytes,
+                visible=True,
+            )
+            self._sugar_progress.refresh()
+        else:
+            wandb.termlog(line, newline=False, prefix=prefix)
 
         if done:
             dedupe_fraction = (
@@ -940,8 +953,7 @@ class RunManaged(Run):
             self._run_status_checker.join()
             self._run_status_checker = None
 
-    def _wait_for_finish(self):
-        ret = None
+    def _wait_for_finish_internal(self):
         while True:
             ret = self._backend.interface.send_poll_exit_sync()
             logger.info("got exit ret: %s", ret)
@@ -953,6 +965,51 @@ class RunManaged(Run):
             if done:
                 break
             time.sleep(2)
+        return ret
+
+    def _wait_for_finish(self):
+        ret = None
+        if not self._settings.sugar:
+            ret = self._wait_for_finish_internal()
+            return ret
+
+        rich = util.get_module("rich")
+        rich_progress = util.get_module("rich.progress")
+        rich_console = util.get_module("rich.console")
+        rich_panel = util.get_module("rich.panel")
+        if rich:
+
+            class MyProgress(rich_progress.Progress):
+                def get_renderables(self):
+                    yield "\n"
+                    yield rich_panel.Panel(self.make_tasks_table(self.tasks))
+
+            my_console = rich_console.Console(record=True, markup=False)
+            with MyProgress(
+                rich_progress.TextColumn(
+                    "[bold blue]{task.fields[filename]}", justify="right"
+                ),
+                rich_progress.BarColumn(bar_width=None),
+                "{task.percentage:>3.1f}%",
+                "•",
+                rich_progress.DownloadColumn(),
+                "•",
+                rich_progress.TransferSpeedColumn(),
+                "•",
+                rich_progress.TimeRemainingColumn(),
+                console=my_console,
+                auto_refresh=False,
+            ) as progress:
+                self._sugar_progress = progress
+                filename = "Data"
+                task1 = progress.add_task(
+                    "[red] Uploading...", filename=filename, total=0, visible=False
+                )
+                self._sugar_task = task1
+                ret = self._wait_for_finish_internal()
+            progress.update(task1, visible=False)
+        else:
+            ret = self._wait_for_finish_internal()
         return ret
 
     def _on_finish(self):

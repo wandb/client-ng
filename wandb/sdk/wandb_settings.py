@@ -102,6 +102,7 @@ env_settings = dict(
     anonymous=None,
     ignore_globs=None,
     resume=None,
+    sugar=None,
     root_dir="WANDB_DIR",
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
@@ -301,6 +302,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _args=None,
         _os=None,
         _python=None,
+        sugar=None,
     ):
         kwargs = locals()
         object.__setattr__(self, "_masked_keys", set(["self", "_frozen"]))
