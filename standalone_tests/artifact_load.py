@@ -112,7 +112,6 @@ def proc_version_writer(stop_queue, stats_queue, project_name, fnames, artifact_
             stats_queue.put({'write_artifact_count': 1, 'write_total_files': files_in_version})
 
 def proc_version_reader(stop_queue, stats_queue, project_name, artifact_name, reader_id):
-    print('ENVIRON', os.environ)
     api = wandb.Api()
     # initial sleep to ensure we've created the sequence. Public API fails
     # with a nasty error if not.
