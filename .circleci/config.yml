@@ -148,6 +148,6 @@ jobs:
                   name: Set environment variables
                   command: source <(python integration_tests/setup.py)
             - run:
-                  name: Run all media test script for setup
+                  name: Run all the test scripts for setup
                   command: python -m pytest integration_tests/
 
