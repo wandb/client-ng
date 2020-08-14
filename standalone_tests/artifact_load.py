@@ -62,8 +62,8 @@ parser.add_argument('--num_readers', type=int, required=True)
 
 # deleter args
 parser.add_argument('--num_deleters', type=int, default=0)
-parser.add_argument('--min_versions_before_delete', type=int, required=True)
-parser.add_argument('--delete_period_max', type=int, required=True)
+parser.add_argument('--min_versions_before_delete', type=int, default=2)
+parser.add_argument('--delete_period_max', type=int, default=10)
 
 # cache garbage collector args
 parser.add_argument('--cache_gc_period_max', type=int)
