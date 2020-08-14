@@ -120,6 +120,8 @@ def get_user_name(db):
 
     cursor.execute("SELECT id FROM users u WHERE u.name='local-integration-tests@wandb.com'")
     row = cursor.fetchone()
+    if row == None;
+        return None
     return row[0]
 
 def db_connection():
