@@ -16,16 +16,19 @@ import numbers
 import os
 import platform
 import sys
+import threading
 import time
 import traceback
 
 import click
 from six import iteritems, string_types
+from six.moves import _thread as thread
 from six.moves.urllib.parse import quote as url_quote
 import wandb
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
+from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import module, redirect
 from wandb.lib.dict import dict_from_proto_list
 from wandb.lib.filenames import JOBSPEC_FNAME
@@ -38,7 +41,6 @@ from . import wandb_summary
 
 if wandb.TYPE_CHECKING:  # type: ignore
     from typing import Optional
-
 
 logger = logging.getLogger("wandb")
 EXIT_TIMEOUT = 60
@@ -88,12 +90,48 @@ class ExitHooks(object):
         traceback.print_exception(exc_type, exc, *tb)
 
 
+class RunStatusChecker(object):
+    """Periodically polls the background process for relevant updates.
+
+    For now, we just use this to figure out if the user has requested a stop.
+    """
+
+    def __init__(self, interface, polling_interval=15):
+        self._interface = interface
+        self._polling_interval = polling_interval
+
+        self._join_event = threading.Event()
+        self._thread = threading.Thread(target=self.check_status)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def check_status(self):
+        join_requested = False
+        while not join_requested:
+            status_response = (
+                # 'or False' because this could return None.
+                self._interface.send_status_request(check_stop_req=True)
+                or False
+            )
+            if status_response.run_should_stop:
+                thread.interrupt_main()
+                return
+            join_requested = self._join_event.wait(self._polling_interval)
+
+    def join(self):
+        self._join_event.set()
+        self._thread.join()
+
+
 class RunManaged(Run):
     def __init__(self, config=None, settings=None):
         self._config = wandb_config.Config()
         self._config._set_callback(self._config_callback)
-        self.summary = wandb_summary.Summary()
-        self.summary._set_callback(self._summary_callback)
+        self._backend = None
+        self.summary = wandb_summary.Summary(
+            self._summary_get_current_summary_callback,
+        )
+        self.summary._set_update_callback(self._summary_update_callback)
         self.history = wandb_history.History(self)
         self.history._set_callback(self._history_callback)
 
@@ -101,7 +139,6 @@ class RunManaged(Run):
 
         self._settings = settings
         self._wl = None
-        self._backend = None
         self._reporter = None
         self._data = dict()
 
@@ -117,6 +154,7 @@ class RunManaged(Run):
         self._tags = None
 
         self._hooks = None
+        self._teardown_hooks = []
         self._redirect_cb = None
         self._out_redir = None
         self._err_redir = None
@@ -140,6 +178,11 @@ class RunManaged(Run):
         # Returned from backend send_run_sync, set from wandb_init?
         self._run_obj = None
 
+        # Created when the run "starts".
+        self._run_status_checker = None
+
+        self._poll_exit_response = None
+
         config = config or dict()
         wandb_key = "_wandb"
         config.setdefault(wandb_key, dict())
@@ -151,6 +194,7 @@ class RunManaged(Run):
         self._config._update(config)
         self._atexit_cleanup_called = None
         self._use_redirect = True
+        self._progress_step = 0
 
     def _init_from_settings(self, settings):
         if settings.entity is not None:
@@ -296,8 +340,12 @@ class RunManaged(Run):
         logger.info("config_cb %s %s %s", key, val, data)
         self._backend.interface.send_config(data)
 
-    def _summary_callback(self, key=None, val=None, data=None):
-        self._backend.interface.send_summary(data)
+    def _summary_update_callback(self, summary_record: SummaryRecord):
+        self._backend.interface.send_summary(summary_record)
+
+    def _summary_get_current_summary_callback(self):
+        ret = self._backend.interface.send_get_summary_sync()
+        return dict_from_proto_list(ret.item)
 
     def _datatypes_callback(self, fname):
         files = dict(files=[(fname, "now")])
@@ -339,6 +387,9 @@ class RunManaged(Run):
 
     def _set_reporter(self, reporter):
         self._reporter = reporter
+
+    def _set_teardown_hooks(self, hooks):
+        self._teardown_hooks = hooks
 
     def _set_run_obj(self, run_obj):
         self._run_obj = run_obj
@@ -637,7 +688,9 @@ class RunManaged(Run):
         call this method when your script exits.
         """
         # detach logger, other setup cleanup
-        self._wl.on_finish()
+        logger.info("joining run %s", self.path)
+        for hook in self._teardown_hooks:
+            hook()
         self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
@@ -659,28 +712,80 @@ class RunManaged(Run):
         )
         return url
 
+    def _get_sweep_url(self):
+        """Generate a url for a sweep.
+
+        Returns:
+            string - url if the run is part of a sweep
+            None - if the run is not part of the sweep
+        """
+
+        r = self._run_obj
+        sweep_id = r.sweep_id
+        if sweep_id is None:
+            return
+
+        app_url = self._settings.base_url.replace("//api.", "//app.")
+
+        return "{base}/{entity}/{project}/sweeps/{sweepid}".format(
+            base=app_url,
+            entity=url_quote(r.entity),
+            project=url_quote(r.project),
+            sweepid=url_quote(sweep_id),
+        )
+
     def _get_run_name(self):
         r = self._run_obj
         return r.display_name
 
     def _display_run(self):
-        emojis = dict(star="", broom="", rocket="")
-        if platform.system() != "Windows":
-            emojis = dict(star="⭐️", broom="🧹", rocket="🚀")
         project_url = self._get_project_url()
         run_url = self._get_run_url()
-        wandb.termlog(
-            "{} View project at {}".format(
-                emojis.get("star", ""),
-                click.style(project_url, underline=True, fg="blue"),
+        sweep_url = self._get_sweep_url()
+        if self._settings.jupyter:
+            from IPython.core.display import display, HTML  # type: ignore
+
+            sweep_line = (
+                'Sweep page: <a href="{}" target="_blank">{}</a><br/>\n'.format(
+                    sweep_url, sweep_url
+                )
+                if sweep_url
+                else ""
             )
-        )
-        wandb.termlog(
-            "{} View run at {}".format(
-                emojis.get("rocket", ""),
-                click.style(run_url, underline=True, fg="blue"),
+            docs_html = '<a href="https://docs.wandb.com/integrations/jupyter.html" target="_blank">(Documentation)</a>'  # noqa: E501
+            display(
+                HTML(
+                    """
+                Logging results to <a href="https://wandb.com" target="_blank">Weights & Biases</a> {}.<br/>
+                Project page: <a href="{}" target="_blank">{}</a><br/>
+                {}Run page: <a href="{}" target="_blank">{}</a><br/>
+            """.format(  # noqa: E501
+                        docs_html,
+                        project_url,
+                        project_url,
+                        sweep_line,
+                        run_url,
+                        run_url,
+                    )
+                )
             )
-        )
+        else:
+            emojis = dict(star="", broom="", rocket="")
+            if platform.system() != "Windows":
+                emojis = dict(star="⭐️", broom="🧹", rocket="🚀")
+
+            wandb.termlog(
+                "{} View project at {}".format(
+                    emojis.get("star", ""),
+                    click.style(project_url, underline=True, fg="blue"),
+                )
+            )
+            wandb.termlog(
+                "{} View run at {}".format(
+                    emojis.get("rocket", ""),
+                    click.style(run_url, underline=True, fg="blue"),
+                )
+            )
 
     def _redirect(self, stdout_slave_fd, stderr_slave_fd):
         console = self._settings.console
@@ -765,7 +870,12 @@ class RunManaged(Run):
                 os.remove(self._settings.resume_fname)
 
         self._exit_code = exit_code
-        self._on_finish()
+        self._halt_bg_threads()
+        try:
+            self._on_finish()
+        except KeyboardInterrupt:
+            wandb.termerror("Control-C detected -- Run data was not synced")
+            os._exit(-1)
         self._on_final()
 
     def _console_start(self):
@@ -779,7 +889,6 @@ class RunManaged(Run):
             self._redirect_cb = self._console_callback
 
         self._redirect(self._stdout_slave_fd, self._stderr_slave_fd)
-        pass
 
     def _console_stop(self):
         self._restore()
@@ -797,31 +906,79 @@ class RunManaged(Run):
             )
             self._display_run()
         print("")
+        if self._backend and not self._settings.offline:
+            self._run_status_checker = RunStatusChecker(self._backend.interface)
         self._console_start()
+
+    def _pusher_print_status(self, progress, prefix=True, done=False):
+        spinner_states = ["-", "\\", "|", "/"]
+        line = " %.2fMB of %.2fMB uploaded (%.2fMB deduped)\r" % (
+            progress.uploaded_bytes / 1048576.0,
+            progress.total_bytes / 1048576.0,
+            progress.deduped_bytes / 1048576.0,
+        )
+        line = spinner_states[self._progress_step % 4] + line
+        self._progress_step += 1
+        wandb.termlog(line, newline=False, prefix=prefix)
+
+        if done:
+            dedupe_fraction = (
+                progress.deduped_bytes / float(progress.total_bytes)
+                if progress.total_bytes > 0
+                else 0
+            )
+            if dedupe_fraction > 0.01:
+                wandb.termlog(
+                    "W&B sync reduced upload amount by %.1f%%             "
+                    % (dedupe_fraction * 100),
+                    prefix=prefix,
+                )
+            # clear progress line.
+            wandb.termlog(" " * 79, prefix=prefix)
+
+    def _on_finish_progress(self, progress, done=None):
+        self._pusher_print_status(progress, done=done)
+
+    def _halt_bg_threads(self):
+        if self._run_status_checker:
+            self._run_status_checker.join()
+            self._run_status_checker = None
+
+    def _wait_for_finish(self):
+        ret = None
+        while True:
+            ret = self._backend.interface.send_poll_exit_sync()
+            logger.info("got exit ret: %s", ret)
+
+            done = ret.response.poll_exit_response.done
+            pusher_stats = ret.response.poll_exit_response.pusher_stats
+            if pusher_stats:
+                self._on_finish_progress(pusher_stats, done)
+            if done:
+                break
+            time.sleep(2)
+        return ret
 
     def _on_finish(self):
         # make sure all uncommitted history is flushed
         self.history._flush()
 
-        # TODO: we need to handle catastrophic failure better
-        # some tests were timing out on sending exit for reasons not clear to me
-        try:
-            ret = self._backend.interface.send_exit_sync(
-                self._exit_code, timeout=EXIT_TIMEOUT
-            )
-            logger.info("got exit ret: %s", ret)
-            if ret is None:
-                # TODO: do we really want to exit here?
-                print("Problem syncing data")
-                os._exit(1)
+        if self._settings.offline:
+            self._backend.interface.send_exit(self._exit_code)
+        else:
+            # TODO: we need to handle catastrophic failure better
+            # some tests were timing out on sending exit for reasons not clear to me
+            self._backend.interface.send_exit(self._exit_code)
 
-            self._exit_result = ret
+            # Wait for data to be synced
+            ret = self._wait_for_finish()
 
+            self._poll_exit_response = ret.response.poll_exit_response
             ret = self._backend.interface.send_get_summary_sync()
             self._final_summary = dict_from_proto_list(ret.item)
-        finally:
-            self._console_stop()
-            self._backend.cleanup()
+
+        self._console_stop()
+        self._backend.cleanup()
 
     def _on_final(self):
         # check for warnings and errors, show log file locations
@@ -857,14 +1014,14 @@ class RunManaged(Run):
 
         self._print_summary()
 
-        if self._exit_result.files:
+        if self._poll_exit_response and self._poll_exit_response.file_counts:
             logger.info("logging synced files")
             wandb.termlog(
                 "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
-                    self._exit_result.files.wandb_count,
-                    self._exit_result.files.media_count,
-                    self._exit_result.files.artifact_count,
-                    self._exit_result.files.other_count,
+                    self._poll_exit_response.file_counts.wandb_count,
+                    self._poll_exit_response.file_counts.media_count,
+                    self._poll_exit_response.file_counts.artifact_count,
+                    self._poll_exit_response.file_counts.other_count,
                 )
             )
 
@@ -878,7 +1035,7 @@ class RunManaged(Run):
             )
 
     def _print_summary(self):
-        if len(self._final_summary):
+        if self._final_summary:
             logger.info("rendering summary")
             wandb.termlog("Run summary:")
             max_len = max([len(k) for k in self._final_summary.keys()])
@@ -950,8 +1107,6 @@ class RunManaged(Run):
 
         if isinstance(artifact_or_name, str):
             name = artifact_or_name
-            if type is None:
-                raise ValueError("type required")
             public_api = public.Api(
                 {"entity": r.entity, "project": r.project, "run": self.id}
             )
@@ -966,9 +1121,9 @@ class RunManaged(Run):
             return artifact
         else:
             artifact = artifact_or_name
-            if type is not None:
-                raise ValueError("cannot specify type when passing Artifact object")
-            if isinstance(aliases, str):
+            if aliases is None:
+                aliases = []
+            elif isinstance(aliases, str):
                 aliases = [aliases]
             if isinstance(artifact_or_name, wandb.Artifact):
                 artifact.finalize()
