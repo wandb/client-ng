@@ -99,6 +99,9 @@ class Config(object):
     def __getattr__(self, key):
         return self.__getitem__(key)
 
+    def __contains__(self, key):
+        return key in self._items
+
     def _update(self, d, allow_val_change=False):
         parsed_dict = parse_config(d)
         sanitized = self._sanitize_dict(parsed_dict)

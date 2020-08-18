@@ -11,7 +11,7 @@ import os
 import time
 import traceback
 
-from six import raise_from
+from six import raise_from, iteritems
 import wandb
 from wandb.backend.backend import Backend
 from wandb.errors.error import UsageError
@@ -79,8 +79,26 @@ class _WandbInit(object):
 
         # Remove parameters that are not part of settings
         init_config = kwargs.pop("config", None) or dict()
-        if not isinstance(init_config, dict):
-            init_config = parse_config(init_config)
+        config_include_keys = kwargs.pop("config_include_keys", None)
+        config_exclude_keys = kwargs.pop("config_exclude_keys", None)
+
+        if config_include_keys and config_exclude_keys:
+            raise UsageError(
+                "Expected at most only one of config_include_keys or config_exclude_keys"
+            )
+        init_config = parse_config(init_config)
+        if config_include_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key in config_include_keys
+            }
+        if config_exclude_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key not in config_exclude_keys
+            }
 
         # merge config with sweep (or config file)
         self.config = self._wl._config or dict()
@@ -90,8 +108,6 @@ class _WandbInit(object):
         # Temporarily unsupported parameters
         unsupported = (
             "magic",
-            "config_exclude_keys",
-            "config_include_keys",
             "allow_val_change",
             "force",
         )
