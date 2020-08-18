@@ -14,7 +14,6 @@ import traceback
 
 import click
 from click.exceptions import ClickException
-
 # pycreds has a find_executable that works in windows
 from dockerpycreds.utils import find_executable
 import six
@@ -24,8 +23,8 @@ from wandb import Error
 from wandb import wandb_agent
 from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
-from wandb.sdk import Config
 from wandb.old.settings import Settings
+from wandb.sdk import Config
 from wandb.sync import SyncManager
 import yaml
 
@@ -1092,7 +1091,7 @@ def restore(ctx, run, no_git, branch, project, entity):
     )
     repo = metadata.get("git", {}).get("repo")
     image = metadata.get("docker")
-    RESTORE_MESSAGE = (
+    restore_message = (
         """`wandb restore` needs to be run from the same git repository as the original run.
 Run `git clone %s` and restore from there or pass the --no-git flag."""
         % repo
@@ -1101,7 +1100,7 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
         commit = None
     elif not api.git.enabled:
         if repo:
-            raise ClickException(RESTORE_MESSAGE)
+            raise ClickException(restore_message)
         elif image:
             wandb.termlog(
                 "Original run has no git history.  Just restoring config and docker"
@@ -1119,7 +1118,7 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
                 if filename.startswith("upstream_diff_") and filename.endswith(
                     ".patch"
                 ):
-                    commit = filename[len("upstream_diff_") : -len(".patch")]
+                    commit = filename[len("upstream_diff_"): -len(".patch")]
                     try:
                         api.git.repo.commit(commit)
                     except ValueError:
@@ -1131,7 +1130,7 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
                 wandb.termlog("Falling back to upstream commit: {}".format(commit))
                 patch_path, _ = api.download_write_file(files[filename])
             else:
-                raise ClickException(RESTORE_MESSAGE)
+                raise ClickException(restore_message)
         else:
             if patch_content:
                 patch_path = os.path.join(wandb.wandb_dir(), "diff.patch")
