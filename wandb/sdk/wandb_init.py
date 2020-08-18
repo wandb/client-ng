@@ -446,7 +446,6 @@ def init(
                 pass
             run = RunDummy()
     except UsageError:
-        error_seen = True
         raise
     except KeyboardInterrupt as e:
         assert logger
