@@ -14,6 +14,7 @@ import traceback
 
 import click
 from click.exceptions import ClickException
+
 # pycreds has a find_executable that works in windows
 from dockerpycreds.utils import find_executable
 import six
@@ -1118,7 +1119,7 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
                 if filename.startswith("upstream_diff_") and filename.endswith(
                     ".patch"
                 ):
-                    commit = filename[len("upstream_diff_"): -len(".patch")]
+                    commit = filename[len("upstream_diff_") : -len(".patch")]
                     try:
                         api.git.repo.commit(commit)
                     except ValueError:
