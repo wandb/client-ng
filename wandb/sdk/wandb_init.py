@@ -11,7 +11,7 @@ import os
 import time
 import traceback
 
-from six import raise_from, iteritems
+from six import iteritems, raise_from
 import wandb
 from wandb.backend.backend import Backend
 from wandb.errors.error import UsageError
@@ -20,7 +20,7 @@ from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
-from .wandb_config import parse_config
+from .wandb_helper import parse_config
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
 
@@ -82,11 +82,21 @@ class _WandbInit(object):
         config_include_keys = kwargs.pop("config_include_keys", None)
         config_exclude_keys = kwargs.pop("config_exclude_keys", None)
 
-        if config_include_keys and config_exclude_keys:
-            raise UsageError(
-                "Expected at most only one of config_include_keys or config_exclude_keys"
+        if config_include_keys or config_exclude_keys:
+            wandb.termwarn(
+                "config_include_keys and config_exclude_keys are deprecated -- instead,"
+                " use config=wandb.helper.parse_config(config_object, include=('key',))"
+                " or config=wandb.helper.parse_config(config_object, exclude=('key',))"
             )
-        init_config = parse_config(init_config)
+
+        if config_exclude_keys and config_include_keys:
+            raise UsageError(
+                "Expected at most only one of config_exclude_keys or "
+                "config_include_keys"
+            )
+        init_config = parse_config(
+            init_config, include=config_include_keys, exclude=config_exclude_keys
+        )
         if config_include_keys:
             init_config = {
                 key: value
