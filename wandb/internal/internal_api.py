@@ -29,7 +29,7 @@ import wandb
 from wandb import __version__
 from wandb.old.core import wandb_dir, Error
 from wandb import env
-from wandb.git_repo import GitRepo
+from wandb.old.git_repo import GitRepo
 from wandb.old.settings import Settings
 from wandb.old import retry
 from wandb import util
