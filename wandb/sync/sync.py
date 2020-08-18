@@ -85,7 +85,7 @@ class SyncThread(threading.Thread):
                             url_quote(r.project),
                             url_quote(r.run_id)
                         )
-                        print("Syncing: %s..." % url, end="")
+                        print("Syncing: %s ..." % url, end="")
                         sys.stdout.flush()
             sm.finish()
             print("done.")
