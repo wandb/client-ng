@@ -5,6 +5,7 @@ internal.
 
 from __future__ import print_function
 
+import atexit
 import logging
 import multiprocessing
 import os
@@ -33,7 +34,30 @@ from . import update
 logger = logging.getLogger(__name__)
 
 
+_exited = False
+
+
+@atexit.register
+def handle_exit(*args):
+    global _exited
+    if not _exited:
+        _exited = True
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        if exc_traceback:
+            logger.exception("Internal process exited with exception:")
+        else:
+            logger.info("Process exited cleanly")
+
+
+# TODO: we may want this someday, but are avoiding it now to avoid conflicts
+# signal.signal(signal.SIGTERM, handle_exit)
+# signal.signal(signal.SIGINT, handle_exit)
+
+
 def setup_logging(log_fname, log_level, run_id=None):
+    # TODO: we may want make prints and stdout make it into the logs
+    # sys.stdout = open(settings.log_internal, "a")
+    # sys.stderr = open(settings.log_internal, "a")
     handler = logging.FileHandler(log_fname)
     handler.setLevel(log_level)
 
@@ -102,9 +126,22 @@ def wandb_read(settings, q, data_q, stopped):
     # ds.close()
 
 
-def wandb_send(settings, q, resp_q, read_q, data_q, stopped, run_meta):
+def wandb_send(
+    settings,
+    process_q,
+    notify_q,
+    q,
+    resp_q,
+    read_q,
+    data_q,
+    stopped,
+    run_meta,
+    system_stats,
+):
 
-    sh = sender.SendManager(settings, resp_q, run_meta)
+    sh = sender.SendManager(
+        settings, process_q, notify_q, resp_q, run_meta, system_stats
+    )
 
     while not stopped.isSet():
         try:
@@ -164,19 +201,6 @@ def _get_stdout_stderr_streams():
     stdout_streams = [stdout, output_log]
     stderr_streams = [stderr, output_log]
 
-    #        if self._cloud:
-    #            # Tee stdout/stderr into our TextOutputStream,
-    #            # which will push lines to the cloud.
-    #            fs_api = self._api.get_file_stream_api()
-    #            self._stdout_stream = streaming_log.TextStreamPusher(
-    #                fs_api, util.OUTPUT_FNAME, prepend_timestamp=True)
-    #            self._stderr_stream = streaming_log.TextStreamPusher(
-    #                fs_api, util.OUTPUT_FNAME, line_prepend='ERROR',
-    #                prepend_timestamp=True)
-    #
-    #            stdout_streams.append(self._stdout_stream)
-    #            stderr_streams.append(self._stderr_stream)
-
     return stdout_streams, stderr_streams
 
 
@@ -195,8 +219,10 @@ def _check_process(settings, pid):
 
     exists = psutil.pid_exists(pid)
     if not exists:
+        logger.warning("Internal process exiting, parent pid %s disappeared" % pid)
         # my_pid = os.getpid()
         # print("badness: process gone", pid, my_pid)
+        handle_exit()
         os._exit(-1)
 
 
@@ -224,21 +250,22 @@ def wandb_internal(  # noqa: C901
 
     # Lets make sure we dont modify settings so use a static object
     settings = settings_static.SettingsStatic(settings)
-
     if settings.log_internal:
         setup_logging(settings.log_internal, log_level)
 
     pid = os.getpid()
 
+    logger.info("W&B internal server running at pid: %s", pid)
+
     system_stats = None
-    if not settings._disable_stats:
+    if not settings._disable_stats and not settings.offline:
         system_stats = stats.SystemStats(
             pid=pid, process_q=process_queue, notify_q=notify_queue
         )
         system_stats.start()
 
     run_meta = None
-    if not settings._disable_meta:
+    if not settings._disable_meta and not settings.offline:
         # We'll gather the meta now, but wait until we have a run to persist by wiring
         # this through to the sender.
         # If we try to persist now, there may not be a run yet, and we'll error out.
@@ -289,37 +316,53 @@ def wandb_internal(  # noqa: C901
 
     stopped = threading.Event()
 
-    send_queue = queue.Queue()
     write_queue = queue.Queue()
-    read_queue = queue.Queue()
-    data_queue = queue.Queue()
-
-    send_thread = threading.Thread(
-        name="wandb_send",
-        target=wandb_send,
-        args=(
-            settings,
-            send_queue,
-            resp_queue,
-            read_queue,
-            data_queue,
-            stopped,
-            run_meta,
-        ),
-    )
     write_thread = threading.Thread(
         name="wandb_write", target=wandb_write, args=(settings, write_queue, stopped)
     )
-    read_thread = threading.Thread(
-        name="wandb_read",
-        target=wandb_read,
-        args=(settings, read_queue, data_queue, stopped),
-    )
-    # sequencer_thread - future
 
-    read_thread.start()
-    send_thread.start()
-    write_thread.start()
+    # offline requires doesnt need these queues and threads
+    send_queue = None
+    read_queue = None
+    data_queue = None
+    send_thread = None
+    read_thread = None
+
+    if not settings.offline:
+        send_queue = queue.Queue()
+        read_queue = queue.Queue()
+        data_queue = queue.Queue()
+
+        send_thread = threading.Thread(
+            name="wandb_send",
+            target=wandb_send,
+            args=(
+                settings,
+                process_queue,
+                notify_queue,
+                send_queue,
+                resp_queue,
+                read_queue,
+                data_queue,
+                stopped,
+                run_meta,
+                system_stats,
+            ),
+        )
+        read_thread = threading.Thread(
+            name="wandb_read",
+            target=wandb_read,
+            args=(settings, read_queue, data_queue, stopped),
+        )
+        # sequencer_thread - future
+
+    # startup all the threads
+    if read_thread:
+        read_thread.start()
+    if send_thread:
+        send_thread.start()
+    if write_thread:
+        write_thread.start()
 
     done = False
     while not done:
@@ -337,7 +380,8 @@ def wandb_internal(  # noqa: C901
                     pass
                 elif i == constants.NOTIFY_PROCESS:
                     rec = process_queue.get()
-                    send_queue.put(rec)
+                    if send_queue:
+                        send_queue.put(rec)
                     write_queue.put(rec)
                 elif i == constants.NOTIFY_SHUTDOWN:
                     # make sure queue is empty?
@@ -347,7 +391,8 @@ def wandb_internal(  # noqa: C901
                 elif i == constants.NOTIFY_REQUEST:
                     rec = req_queue.get()
                     # check if reqresp set
-                    send_queue.put(rec)
+                    if send_queue:
+                        send_queue.put(rec)
                     if not rec.control.local:
                         write_queue.put(rec)
                 else:
@@ -365,6 +410,9 @@ def wandb_internal(  # noqa: C901
     if system_stats:
         system_stats.shutdown()
 
-    read_thread.join()
-    send_thread.join()
-    write_thread.join()
+    if read_thread:
+        read_thread.join()
+    if send_thread:
+        send_thread.join()
+    if write_thread:
+        write_thread.join()

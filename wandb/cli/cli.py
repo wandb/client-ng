@@ -203,12 +203,32 @@ def superagent(project=None, entity=None, agent_spec=None):
 
 
 @cli.command(context_settings=CONTEXT, help="Configure a directory with Weights & Biases")
+@click.option("--project", "-p", help="The project to use.")
+@click.option("--entity", "-e", help="The entity to scope the project to.")
+# TODO(jhr): Enable these with settings rework
+# @click.option("--setting", "-s", help="enable an arbitrary setting.", multiple=True)
+# @click.option('--show', is_flag=True, help="Show settings")
+@click.option('--reset', is_flag=True, help="Reset settings")
 @click.pass_context
 @display_error
-def init(ctx):
+def init(ctx, project, entity, reset):
     from wandb.old.core import _set_stage_dir, __stage_dir__, wandb_dir
     if __stage_dir__ is None:
         _set_stage_dir('wandb')
+
+    # non interactive init
+    if reset or project or entity:
+        api = InternalApi()
+        if reset:
+            api.clear_setting("entity", persist=True)
+            api.clear_setting("project", persist=True)
+            # TODO(jhr): clear more settings?
+        if entity:
+            api.set_setting('entity', entity, persist=True)
+        if project:
+            api.set_setting('project', project, persist=True)
+        return
+
     if os.path.isdir(wandb_dir()) and os.path.exists(os.path.join(wandb_dir(), "settings")):
         click.confirm(click.style(
             "This directory has been configured previously, should we re-configure it?", bold=True), abort=True)
@@ -285,7 +305,7 @@ def init(ctx):
 
 
 @cli.command(context_settings=CONTEXT,
-             help="Upload an offline training directory to W&B", hidden=True)
+             help="Upload an offline training directory to W&B")
 @click.pass_context
 @click.argument("path", nargs=-1, type=click.Path(exists=True))
 @click.option("--id", help="The run you want to upload to.")
@@ -296,12 +316,9 @@ def init(ctx):
 @click.option('--all', is_flag=True, default=False, help="Sync all runs")
 @display_error
 def sync(ctx, path, id, project, entity, ignore, all):
-    all_args = locals()
-    unsupported = ("id", "project", "entity", "ignore")
-    for item in unsupported:
-        if all_args.get(item):
-            cli_unsupported(item)
-    sm = SyncManager()
+    if ignore:
+        ignore = ignore.split(",")
+    sm = SyncManager(project=project, entity=entity, run_id=id, ignore=ignore)
     if not path:
         # Show listing of possible paths to sync
         # (if interactive, allow user to pick run to sync)

@@ -1,3 +1,7 @@
+"""These test the high level sdk methods by mocking out the backend.
+See wandb_integration_test.py for tests that launch a real backend against
+a live backend server.
+"""
 import wandb
 import pytest
 import tempfile
@@ -163,12 +167,12 @@ def test_bad_json_tfjob(wandb_init_run):
 
 @pytest.mark.wandb_args(wandb_init={"dir": "/tmp"})
 def test_custom_dir(wandb_init_run):
-    assert len(glob.glob("/tmp/wandb/runs/run-*")) > 0
+    assert len(glob.glob("/tmp/wandb/offline-*")) > 0
 
 
 @pytest.mark.wandb_args(env={"WANDB_DIR": "/tmp"})
 def test_custom_dir_env(wandb_init_run):
-    assert len(glob.glob("/tmp/wandb/runs/run-*")) > 0
+    assert len(glob.glob("/tmp/wandb/offline-*")) > 0
 
 
 def test_login_key(capsys):

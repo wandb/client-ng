@@ -22,6 +22,7 @@ import configparser
 import copy
 import datetime
 import getpass
+import json
 import logging
 import os
 import platform
@@ -64,7 +65,9 @@ defaults = dict(
     base_url="https://api.wandb.ai",
     show_warnings=2,
     summary_warnings=5,
-    _mode=Field(str, ("auto", "noop", "online", "offline", "dryrun", "run",)),
+    # old mode field (deprecated in favor of WANDB_OFFLINE=true)
+    _mode=Field(str, ("dryrun", "run",)),
+    # problem: TODO(jhr): Not implemented yet, needs new name?
     _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
     _console=Field(str, ("auto", "redirect", "off", "file", "iowrap",)),
@@ -88,6 +91,8 @@ env_settings = dict(
     job_type=None,
     problem=None,
     console=None,
+    offline=None,
+    disabled=None,
     config_paths=None,
     run_id=None,
     notebook_name=None,
@@ -96,6 +101,7 @@ env_settings = dict(
     disable_code=None,
     anonymous=None,
     ignore_globs=None,
+    resume=None,
     root_dir="WANDB_DIR",
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
@@ -163,7 +169,7 @@ def get_wandb_dir(root_dir):
         __stage_dir__ = "wandb" + os.sep
 
     path = os.path.join(root_dir, __stage_dir__)
-    if not os.access(root_dir, os.W_OK):
+    if not os.access(root_dir or ".", os.W_OK):
         wandb.termwarn("Path %s wasn't writable, using system temp directory" % path)
         path = os.path.join(tempfile.gettempdir(), __stage_dir__ or ("wandb" + os.sep))
 
@@ -193,7 +199,8 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         api_key = None,
         anonymous=None,
         # how do we annotate that: dryrun==offline?
-        mode = "online",
+        mode = "run",
+        offline = None,
         entity = None,
         project = None,
         run_group = None,
@@ -201,11 +208,12 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         run_id = None,
         run_name = None,
         run_notes = None,
+        resume = None,
         run_tags=None,
         sweep_id=None,
         # compatibility / error handling
-        compat_version=None,  # set to "0.8" for safer defaults for older users
-        strict=None,  # set to "on" to enforce current best practices (also "warn")
+        # compat_version=None,  # set to "0.8" for safer defaults for older users
+        # strict=None,  # set to "on" to enforce current best practices (also "warn")
         problem="fatal",
         # dynamic settings
         system_sample_seconds=2,
@@ -220,20 +228,22 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         settings_workspace_spec="{wandb_dir}/settings",
         settings_system=None,  # computed
         settings_workspace=None,  # computed
-        sync_dir_spec="{wandb_dir}/runs/run-{timespec}-{run_id}",
+        sync_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}",
         sync_file_spec="run-{timespec}-{run_id}.wandb",
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
-        sync_symlink_latest_spec="{wandb_dir}/latest",
+        sync_symlink_latest_spec="{wandb_dir}/latest-run",
         sync_file=None,  # computed
-        log_dir_spec="{wandb_dir}/runs/run-{timespec}-{run_id}/logs",
+        log_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/logs",
         log_user_spec="debug-{timespec}-{run_id}.log",
         log_internal_spec="debug-internal-{timespec}-{run_id}.log",
         log_symlink_user_spec="{wandb_dir}/debug.log",
         log_symlink_internal_spec="{wandb_dir}/debug-internal.log",
         log_user=None,  # computed
         log_internal=None,  # computed
-        files_dir_spec="{wandb_dir}/runs/run-{timespec}-{run_id}/files",
+        resume_fname_spec="{wandb_dir}/wandb-resume.json",
+        resume_fname=None,  # computed
+        files_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/files",
         files_dir=None,  # computed
         symlink=None,  # probed
         # where files are temporary stored when saving
@@ -329,6 +339,10 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
 
             _logger.info("setting env: {}".format(env_dict))
             self.update(env_dict, _setter="env")
+        # TODO: is this the right place to do this?
+        self.update(
+            {"resume_fname": self._path_convert(self.__dict__.get("resume_fname_spec"))}
+        )
 
     def _path_convert_part(self, path_part, format_dict):
         """convert slashes, expand ~ and other macros."""
@@ -348,6 +362,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             )
         if self.run_id:
             format_dict["run_id"] = self.run_id
+        format_dict["run_mode"] = "offline-run" if self.offline else "run"
         format_dict["proc"] = os.getpid()
         # TODO(cling): hack to make sure we read from local settings
         #              this is wrong if the run_dir changes later
@@ -421,6 +436,10 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             if self.windows:
                 console = "off"
             u["console"] = console
+
+        # convert wandb mode to "offline"
+        if self.mode == "dryrun":
+            self.offline = True
 
         # For code saving, only allow env var override if value from server is true, or
         # if no preference was specified.
@@ -534,6 +553,33 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             dir="root_dir",
         )
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
+        # fun logic to convert the resume init arg
+        if args.get("resume") is not None:
+            if isinstance(args["resume"], six.string_types):
+                if args["resume"] not in ("allow", "must", "never", "auto"):
+                    if args.get("run_id") is None:
+                        #  TODO: deprecate or don't support
+                        args["run_id"] = args["resume"]
+                    args["resume"] = "allow"
+            elif args["resume"] is True:
+                args["resume"] = "auto"
         self.update(args)
+        self.wandb_dir = get_wandb_dir(self.root_dir or "")
+        # handle auto resume logic
+        if self.resume == "auto":
+            if os.path.exists(self.resume_fname):
+                with open(self.resume_fname) as f:
+                    resume_run_id = json.load(f)["run_id"]
+                if self.run_id is None:
+                    self.run_id = resume_run_id
+                else:
+                    wandb.termwarn(
+                        "Tried to auto resume run with id %s but id %s is set."
+                        % (resume_run_id, self.run_id)
+                    )
         self.run_id = self.run_id or generate_id()
-        self.wandb_dir = get_wandb_dir(self.root_dir or ".")
+        # persist our run id incase of failure
+        if self.resume == "auto":
+            wandb.util.mkdir_exists_ok(self.wandb_dir)
+            with open(self.resume_fname, "w") as f:
+                f.write(json.dumps({"run_id": self.run_id}))
