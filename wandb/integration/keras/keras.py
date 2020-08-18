@@ -142,7 +142,7 @@ def _check_keras_version():
     major, minor, patch = keras_version.split(".")
     if int(major) < 2 or int(minor) < 4:
         wandb.termwarn(
-            f"Keras version %s is not fully supported. Required keras >= 2.4.0"
+            "Keras version %s is not fully supported. Required keras >= 2.4.0"
             % (keras_version)
         )
 
