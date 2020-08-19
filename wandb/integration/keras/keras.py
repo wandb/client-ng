@@ -557,9 +557,6 @@ class WandbCallback(keras.callbacks.Callback):
             if self.output_type == "label":
                 # we just use the predicted label as the caption for now
                 captions = self._logits_to_captions(predictions)
-                print(len(captions))
-                print(captions)
-                print(len(test_data))
                 return [
                     wandb.Image(data, caption=captions[i])
                     for i, data in enumerate(test_data)
