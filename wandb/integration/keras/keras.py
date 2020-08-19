@@ -517,12 +517,14 @@ class WandbCallback(keras.callbacks.Callback):
             predictions = self.model.predict(np.stack(test_data), batch_size=1)
             self.model.reset_states()
         else:
-            predictions = self.model.predict(np.stack(test_data),
-            batch_size=self._prediction_batch_size)
+            predictions = self.model.predict(
+                np.stack(test_data), batch_size=self._prediction_batch_size
+            )
             if len(predictions) != len(test_data):
                 self._prediction_batch_size = 1
-                predictions = self.model.predict(np.stack(test_data),
-                batch_size=self._prediction_batch_size)
+                predictions = self.model.predict(
+                    np.stack(test_data), batch_size=self._prediction_batch_size
+                )
 
         if self.input_type == "label":
             if self.output_type in ("image", "images", "segmentation_mask"):
