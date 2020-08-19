@@ -288,6 +288,8 @@ class WandbCallback(keras.callbacks.Callback):
         self.log_batch_frequency = log_batch_frequency
         self.log_best_prefix = log_best_prefix
 
+        self._prediction_batch_size = None
+
         if self.training_data:
             if len(self.training_data) != 2:
                 raise ValueError("training data must be a tuple of length two")
@@ -511,7 +513,16 @@ class WandbCallback(keras.callbacks.Callback):
             test_data.append(test_example)
             test_output.append(validation_y[i])
 
-        predictions = self.model.predict(np.stack(test_data))
+        if self.model.stateful:
+            predictions = self.model.predict(np.stack(test_data), batch_size=1)
+            self.model.reset_states()
+        else:
+            predictions = self.model.predict(np.stack(test_data),
+            batch_size=self._prediction_batch_size)
+            if len(predictions) != len(test_data):
+                self._prediction_batch_size = 1
+                predictions = self.model.predict(np.stack(test_data),
+                batch_size=self._prediction_batch_size)
 
         if self.input_type == "label":
             if self.output_type in ("image", "images", "segmentation_mask"):
@@ -544,6 +555,9 @@ class WandbCallback(keras.callbacks.Callback):
             if self.output_type == "label":
                 # we just use the predicted label as the caption for now
                 captions = self._logits_to_captions(predictions)
+                print(len(captions))
+                print(captions)
+                print(len(test_data))
                 return [
                     wandb.Image(data, caption=captions[i])
                     for i, data in enumerate(test_data)
