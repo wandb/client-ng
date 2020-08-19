@@ -8,10 +8,10 @@ from __future__ import print_function
 import datetime
 import logging
 import os
-import sys
 import time
+import traceback
 
-from six import raise_from, reraise
+from six import iteritems, raise_from
 import wandb
 from wandb import trigger
 from wandb.backend.backend import Backend
@@ -22,7 +22,7 @@ from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
-from .wandb_config import parse_config
+from .wandb_helper import parse_config
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
 
@@ -81,8 +81,36 @@ class _WandbInit(object):
 
         # Remove parameters that are not part of settings
         init_config = kwargs.pop("config", None) or dict()
-        if not isinstance(init_config, dict):
-            init_config = parse_config(init_config)
+        config_include_keys = kwargs.pop("config_include_keys", None)
+        config_exclude_keys = kwargs.pop("config_exclude_keys", None)
+
+        if config_include_keys or config_exclude_keys:
+            wandb.termwarn(
+                "config_include_keys and config_exclude_keys are deprecated -- instead,"
+                " use config=wandb.helper.parse_config(config_object, include=('key',))"
+                " or config=wandb.helper.parse_config(config_object, exclude=('key',))"
+            )
+
+        if config_exclude_keys and config_include_keys:
+            raise UsageError(
+                "Expected at most only one of config_exclude_keys or "
+                "config_include_keys"
+            )
+        init_config = parse_config(
+            init_config, include=config_include_keys, exclude=config_exclude_keys
+        )
+        if config_include_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key in config_include_keys
+            }
+        if config_exclude_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key not in config_exclude_keys
+            }
 
         # merge config with sweep (or config file)
         self.config = self._wl._config or dict()
@@ -91,8 +119,6 @@ class _WandbInit(object):
 
         # Temporarily unsupported parameters
         unsupported = (
-            "config_exclude_keys",
-            "config_include_keys",
             "allow_val_change",
             "force",
         )
@@ -435,6 +461,7 @@ def init(
     """
     assert not wandb._IS_INTERNAL_PROCESS
     kwargs = locals()
+    error_seen = False
     try:
         wi = _WandbInit()
         wi.setup(kwargs)
@@ -457,11 +484,17 @@ def init(
         logger.warning("interrupted", exc_info=e)
         raise_from(Exception("interrupted"), e)
     except Exception as e:
+        error_seen = True
+        traceback.print_exc()
         assert logger
         logger.error("error", exc_info=e)
         # Need to build delay into this sentry capture because our exit hooks
         # mess with sentry's ability to send out errors before the program ends.
         sentry_exc(e, delay=True)
-        reraise(*sys.exc_info())
-        #  raise_from(Exception("problem"), e)
+        # reraise(*sys.exc_info())
+        # raise_from(Exception("problem"), e)
+    finally:
+        if error_seen:
+            wandb.termerror("Abnormal program exit")
+            os._exit(-1)
     return run
