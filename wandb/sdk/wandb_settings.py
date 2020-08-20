@@ -106,6 +106,7 @@ env_settings = dict(
     run_name="WANDB_NAME",
     run_notes="WANDB_NOTES",
     run_tags="WANDB_TAGS",
+    _project_override="WANDB_PROJECT_OVERRIDE",
 )
 
 env_convert = dict(run_tags=lambda s: s.split(","), ignore_globs=lambda s: s.split(","))
@@ -206,6 +207,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         offline: bool = None,
         entity: str = None,
         project: str = None,
+        _project_override: str = None,
         run_group: str = None,
         job_type: str = None,
         run_id: str = None,
@@ -342,6 +344,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
                     _logger.info("Unhandled environment var: {}".format(k))
 
             _logger.info("setting env: {}".format(env_dict))
+
             self.update(env_dict, _setter="env")
         # TODO: is this the right place to do this?
         self.update(
@@ -556,6 +559,18 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             group="run_group",
             dir="root_dir",
         )
+
+        if self["_project_override"]:
+            current_project = args.get("project") or self["project"]
+            if current_project:
+                logger.info(
+                    "Overriding project {} with {} from WANDB_PROJECT_OVERRIDE".format(
+                        current_project,
+                        self["_project_override"],
+                    )
+                )
+            args["project"] = self["_project_override"]
+
         args = {param_map.get(k, k): v for k, v in six.iteritems(args) if v is not None}
         # fun logic to convert the resume init arg
         if args.get("resume") is not None:
