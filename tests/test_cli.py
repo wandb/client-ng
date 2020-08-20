@@ -648,7 +648,6 @@ def test_restore_no_remote(runner, mock_server, git_repo, docker, monkeypatch):
         f.write("test")
     git_repo.repo.index.add(["patch.txt"])
     git_repo.repo.commit()
-    monkeypatch.setattr(cli, 'api', InternalApi({'project': 'test'}))
     result = runner.invoke(cli.restore, ["wandb/test:abcdef"])
     print(result.output)
     print(traceback.print_tb(result.exc_info[2]))
