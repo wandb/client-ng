@@ -74,11 +74,25 @@ def run(ctx):
                         "name": "weights.h5",
                         "sizeBytes": 20,
                         "md5": "XXX",
-                        "url": request.url_root + "/storage?file=weights.h5",
+                        "directUrl": request.url_root + "/storage?file=weights.h5",
                     }
                 }
             ]
         },
+        'patch': '''
+diff --git a/patch.txt b/patch.txt
+index 30d74d2..9a2c773 100644
+--- a/patch.txt
++++ b/patch.txt
+@@ -1 +1 @@
+-test
+\ No newline at end of file
++testing
+\ No newline at end of file
+        ''',
+        'commit': 'HEAD',
+        'github': 'https://github.com/vanpelt',
+        'config': '{"foo":{"value":"bar"}}',
         "sampledHistory": ['{"loss": 0, "acc": 100}'],
         "shouldStop": False,
         "failed": False,
@@ -168,6 +182,29 @@ def get_ctx():
 def set_ctx(ctx):
     get_ctx()
     g.ctx.set(ctx)
+
+
+
+def _bucket_config():
+    return {
+        'patch': '''
+diff --git a/patch.txt b/patch.txt
+index 30d74d2..9a2c773 100644
+--- a/patch.txt
++++ b/patch.txt
+@@ -1 +1 @@
+-test
+\ No newline at end of file
++testing
+\ No newline at end of file
+        ''',
+        'commit': 'HEAD',
+        'github': 'https://github.com/vanpelt',
+        'config': '{"foo":{"value":"bar"}}',
+        'files': {
+            'edges': [{'node': {'url': 'https://metadata.json'}}]
+        }
+    }
 
 
 def create_app(user_ctx=None):
@@ -527,9 +564,11 @@ def create_app(user_ctx=None):
                 "storagePolicy": "wandb-storage-policy-v1",
                 "storagePolicyConfig": {},
                 "contents": {
-                    "digits.h5": {"digest": "TeSJ4xxXg0ohuL5xEdq2Ew==", "size": 81299}
+                    "digits.h5": {"digest": "TeSJ4xxXg0ohuL5xEdq2Ew==", "size": 81299},
                 },
             }
+        else:
+            return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"]}
         return "", 200
 
     @app.route("/artifacts/<entity>/<digest>", methods=["GET", "POST"])

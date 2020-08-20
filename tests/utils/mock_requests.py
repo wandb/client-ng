@@ -32,7 +32,8 @@ class ResponseMock(object):
         yield self.response.data
 
     def json(self):
-        return json.loads(self.response.data.decode('utf-8'))
+        str_data = self.response.data.decode('utf-8')
+        return json.loads(str_data) if str_data else {}
 
 
 class RequestsMock(object):

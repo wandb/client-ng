@@ -14,6 +14,7 @@ import traceback
 
 import click
 from click.exceptions import ClickException
+
 # pycreds has a find_executable that works in windows
 from dockerpycreds.utils import find_executable
 import six
@@ -1089,6 +1090,7 @@ def restore(ctx, run, no_git, branch, project, entity):
     commit, json_config, patch_content, metadata = api.run_config(
         project, run=run, entity=entity
     )
+    print(metadata)
     repo = metadata.get("git", {}).get("repo")
     image = metadata.get("docker")
     restore_message = (
@@ -1118,7 +1120,7 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
                 if filename.startswith("upstream_diff_") and filename.endswith(
                     ".patch"
                 ):
-                    commit = filename[len("upstream_diff_"): -len(".patch")]
+                    commit = filename[len("upstream_diff_") : -len(".patch")]
                     try:
                         api.git.repo.commit(commit)
                     except ValueError:
@@ -1133,7 +1135,7 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
                 raise ClickException(restore_message)
         else:
             if patch_content:
-                patch_path = os.path.join(wandb.wandb_dir(), "diff.patch")
+                patch_path = os.path.join(wandb_dir(), "diff.patch")
                 with open(patch_path, "w") as f:
                     f.write(patch_content)
             else:
