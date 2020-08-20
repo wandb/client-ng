@@ -567,8 +567,8 @@ def create_app(user_ctx=None):
                     "digits.h5": {"digest": "TeSJ4xxXg0ohuL5xEdq2Ew==", "size": 81299},
                 },
             }
-        else:
-            return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"]}
+        # else:
+        #     return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"]}
         return "", 200
 
     @app.route("/artifacts/<entity>/<digest>", methods=["GET", "POST"])
