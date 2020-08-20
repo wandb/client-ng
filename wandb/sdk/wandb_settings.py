@@ -565,8 +565,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             if current_project:
                 logger.info(
                     "Overriding project {} with {} from WANDB_PROJECT_OVERRIDE".format(
-                        current_project,
-                        self["_project_override"],
+                        current_project, self["_project_override"],
                     )
                 )
             args["project"] = self["_project_override"]
