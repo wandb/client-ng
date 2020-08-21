@@ -17,4 +17,6 @@ include = '''
 | wandb/integration/gym/
 | wandb/integration/tensorboard/
 | wandb/cli/
+| wandb/integration/magic.py
+| wandb/integration/keras
 '''
