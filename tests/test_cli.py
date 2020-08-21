@@ -660,3 +660,19 @@ def test_restore_no_remote(runner, mock_server, git_repo, docker, monkeypatch):
                                wandb.docker.entrypoint+':/wandb-entrypoint.sh', '--entrypoint', '/wandb-entrypoint.sh', '-v', os.getcwd()+
                                ':/app', '-w', '/app', '-e',
                                'WANDB_API_KEY=test', '-e', 'WANDB_COMMAND=python train.py --test foo', '-it', 'test/docker', '/bin/bash'])
+
+
+def test_restore_bad_remote(runner, mock_server, git_repo, docker, monkeypatch):
+    # git_repo creates it's own isolated filesystem
+    mock_server.set_context("git", {"repo": "http://fake.git/foo/bar"})
+    api = InternalApi({'project': 'test'})
+    monkeypatch.setattr(cli, '_api', api)
+    def bad_commit(cmt):
+        raise ValueError()
+    monkeypatch.setattr(api.git.repo, 'commit', bad_commit)
+    monkeypatch.setattr(api, "download_urls", lambda *args, **kwargs: []) 
+    result = runner.invoke(cli.restore, ["wandb/test:abcdef"])
+    print(result.output)
+    print(traceback.print_tb(result.exc_info[2]))
+    assert result.exit_code == 1
+    assert "Run `git clone http://fake.git/foo/bar`" in result.output

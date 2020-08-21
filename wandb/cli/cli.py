@@ -77,12 +77,17 @@ def display_error(func):
     return wrapper
 
 
+_api = None  # caching api instance allows patching from unit tests
+
+
 def _get_cling_api():
     """Get a reference to the internal api with cling settings."""
-    # TODO(jhr): make a settings object that is better for non runs.
-    wandb.setup(settings=wandb.Settings(_cli_only_mode=True))
-    api = InternalApi()
-    return api
+    global _api
+    if _api is None:
+        # TODO(jhr): make a settings object that is better for non runs.
+        wandb.setup(settings=wandb.Settings(_cli_only_mode=True))
+        _api = InternalApi()
+    return _api
 
 
 def prompt_for_project(ctx, entity):

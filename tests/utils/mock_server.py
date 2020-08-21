@@ -202,7 +202,8 @@ index 30d74d2..9a2c773 100644
         'github': 'https://github.com/vanpelt',
         'config': '{"foo":{"value":"bar"}}',
         'files': {
-            'edges': [{'node': {'url': 'https://metadata.json'}}]
+            'edges': [{'node': {'directUrl': request.url_root + "/storage?file=metadata.json"}}]
+
         }
     }
 
@@ -305,13 +306,18 @@ def create_app(user_ctx=None):
         if "query Run(" in body["query"]:
             return json.dumps({"data": {"project": {"run": run(ctx)}}})
         if "query Model(" in body["query"]:
-            project_field_name = "model"
-            run_field_name = "bucket"
             if "project(" in body["query"]:
                 project_field_name = "project"
                 run_field_name = "run"
+            else:
+                project_field_name = "model"
+                run_field_name = "bucket"
+            if "commit" in body["query"]:
+                run_config = _bucket_config()
+            else:
+                run_config = run(ctx)
             return json.dumps(
-                {"data": {project_field_name: {run_field_name: run(ctx)}}}
+                {"data": {project_field_name: {run_field_name: run_config}}}
             )
         if "query Models(" in body["query"]:
             return json.dumps(
@@ -567,8 +573,9 @@ def create_app(user_ctx=None):
                     "digits.h5": {"digest": "TeSJ4xxXg0ohuL5xEdq2Ew==", "size": 81299},
                 },
             }
-        else:
-            return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"]}
+        elif file == "metadata.json":
+            return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"], "git": ctx.get("git", {})}
+
         return "", 200
 
     @app.route("/artifacts/<entity>/<digest>", methods=["GET", "POST"])

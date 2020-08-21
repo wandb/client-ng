@@ -27,7 +27,6 @@ class ResponseMock(object):
     @property
     def headers(self):
         return self.response.headers
-
     def iter_content(self, chunk_size=1024):
         yield self.response.data
 
