@@ -1208,7 +1208,8 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
         ctx.invoke(docker, docker_run_args=[image], cmd=cmd)
 
     return commit, json_config, patch_content, repo, metadata
-=======
+
+
 @cli.command(context_settings=CONTEXT, help="Run any script with wandb", hidden=True)
 @click.pass_context
 @click.argument('program')
