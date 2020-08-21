@@ -105,9 +105,9 @@ class MessageRouter(object):
 
     def _handle_msg_rcv(self, msg):
         with self._lock:
-            future = self._pending_reqs.pop(msg.uuid)
+            future = self._pending_reqs.pop(msg.uuid, None)
         if future is None:
-            logger.warning("No listener found for msg with uuid %s", msg.uuid)
+            logger.warning("No listener found for msg with uuid %s (%s)", msg.uuid, msg)
             return
         future._set_object(msg)
 
@@ -339,7 +339,14 @@ class BackendSender(object):
         return login
 
     def _make_request(
-        self, login=None, defer=None, get_summary=None, status=None,
+        self,
+        login=None,
+        defer=None,
+        get_summary=None,
+        pause=None,
+        resume=None,
+        status=None,
+        poll_exit=None,
     ):
         request = wandb_internal_pb2.Request()
         if login:
@@ -348,11 +355,19 @@ class BackendSender(object):
             request.defer.CopyFrom(defer)
         elif get_summary:
             request.get_summary.CopyFrom(get_summary)
+        elif pause:
+            request.pause.CopyFrom(pause)
+        elif resume:
+            request.resume.CopyFrom(resume)
         elif status:
             request.status.CopyFrom(status)
+        elif poll_exit:
+            request.poll_exit.CopyFrom(poll_exit)
         else:
-            raise Exception("problem")
+            raise Exception("Invalid request")
         record = self._make_record(request=request)
+        # All requests do not get persisted
+        record.control.local = True
         return record
 
     def _make_record(
@@ -390,12 +405,12 @@ class BackendSender(object):
         elif request:
             record.request.CopyFrom(request)
         else:
-            raise Exception("problem")
+            raise Exception("Invalid record")
         return record
 
     def _queue_process(self, rec):
         if self._process and not self._process.is_alive():
-            raise Exception("problem")
+            raise Exception("The wandb backend process has shutdown")
         self.process_queue.put(rec)
         self.notify_queue.put(constants.NOTIFY_PROCESS)
 
@@ -418,6 +433,21 @@ class BackendSender(object):
         login_response = result.response.login_response
         assert login_response
         return login_response
+
+    def send_login(self, api_key=None, anonymous=None):
+        login = self._make_login(api_key, anonymous)
+        rec = self._make_request(login=login)
+        self._queue_process(rec)
+
+    def send_pause(self):
+        pause = wandb_internal_pb2.PauseRequest()
+        rec = self._make_request(pause=pause)
+        self._queue_process(rec)
+
+    def send_resume(self):
+        resume = wandb_internal_pb2.ResumeRequest()
+        rec = self._make_request(resume=resume)
+        self._queue_process(rec)
 
     def send_run(self, run_obj):
         run = self._make_run(run_obj)
@@ -501,7 +531,9 @@ class BackendSender(object):
         return resp.response.status_response
 
     def send_exit(self, exit_code):
-        pass
+        exit_data = self._make_exit(exit_code)
+        rec = self._make_record(exit=exit_data)
+        self._queue_process(rec)
 
     def _send_exit_sync(self, exit_data, timeout=None):
         req = self._make_record(exit=exit_data)
@@ -515,11 +547,15 @@ class BackendSender(object):
         assert result.exit_result
         return result.exit_result
 
-    def send_defer(self, uuid):
+    def send_poll_exit_sync(self, timeout=None):
+        poll_request = wandb_internal_pb2.PollExitRequest()
+        rec = self._make_request(poll_exit=poll_request)
+        result = self._request_response(rec, timeout=timeout)
+        return result
+
+    def send_defer(self):
         defer_request = wandb_internal_pb2.DeferRequest()
         rec = self._make_request(defer=defer_request)
-        rec.uuid = uuid
-        rec.control.local = True
         self._queue_process(rec)
 
     def send_exit_sync(self, exit_code, timeout=None):

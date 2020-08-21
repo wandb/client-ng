@@ -8,19 +8,21 @@ from __future__ import print_function
 import datetime
 import logging
 import os
-import sys
 import time
+import traceback
 
-from six import raise_from, reraise
+from six import iteritems, raise_from
 import wandb
+from wandb import trigger
 from wandb.backend.backend import Backend
 from wandb.errors.error import UsageError
+from wandb.integration.magic import magic_install
 from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
-from .wandb_config import parse_config
+from .wandb_helper import parse_config
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
 
@@ -48,7 +50,7 @@ class _WandbInit(object):
         self.run = None
         self.backend = None
 
-        self._log_handler = None
+        self._teardown_hooks = []
         self._wl = None
         self._reporter = None
 
@@ -79,8 +81,36 @@ class _WandbInit(object):
 
         # Remove parameters that are not part of settings
         init_config = kwargs.pop("config", None) or dict()
-        if not isinstance(init_config, dict):
-            init_config = parse_config(init_config)
+        config_include_keys = kwargs.pop("config_include_keys", None)
+        config_exclude_keys = kwargs.pop("config_exclude_keys", None)
+
+        if config_include_keys or config_exclude_keys:
+            wandb.termwarn(
+                "config_include_keys and config_exclude_keys are deprecated -- instead,"
+                " use config=wandb.helper.parse_config(config_object, include=('key',))"
+                " or config=wandb.helper.parse_config(config_object, exclude=('key',))"
+            )
+
+        if config_exclude_keys and config_include_keys:
+            raise UsageError(
+                "Expected at most only one of config_exclude_keys or "
+                "config_include_keys"
+            )
+        init_config = parse_config(
+            init_config, include=config_include_keys, exclude=config_exclude_keys
+        )
+        if config_include_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key in config_include_keys
+            }
+        if config_exclude_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key not in config_exclude_keys
+            }
 
         # merge config with sweep (or config file)
         self.config = self._wl._config or dict()
@@ -89,9 +119,6 @@ class _WandbInit(object):
 
         # Temporarily unsupported parameters
         unsupported = (
-            "magic",
-            "config_exclude_keys",
-            "config_include_keys",
             "allow_val_change",
             "force",
         )
@@ -111,6 +138,10 @@ class _WandbInit(object):
         if tensorboard or sync_tensorboard and len(wandb.patched["tensorboard"]) == 0:
             wandb.tensorboard.patch()
 
+        magic = kwargs.get("magic")
+        if magic not in (None, False):
+            magic_install(kwargs)
+
         # prevent setting project, entity if in sweep
         # TODO(jhr): these should be locked elements in the future or at least
         #            moved to apply_init()
@@ -126,11 +157,18 @@ class _WandbInit(object):
         settings.update(d)
 
         if settings.jupyter:
-            self._jupyter_setup()
+            self._jupyter_setup(settings)
 
         self._log_setup(settings)
 
         self.settings = settings.freeze()
+
+    def teardown(self):
+        # TODO: currently this is only called on failed wandb.init attempts
+        # normally this happens on the run object
+        logger.info("tearing down wandb.init")
+        for hook in self._teardown_hooks:
+            hook()
 
     def _enable_logging(self, log_fname, run_id=None):
         """Enable logging to the global debug log.  This adds a run_id to the log,
@@ -164,7 +202,8 @@ class _WandbInit(object):
         logger.addHandler(handler)
         # TODO: make me configurable
         logger.setLevel(logging.DEBUG)
-        self._wl.set_log_handler(handler)
+        # TODO: we may need to close the handler as well...
+        self._teardown_hooks.append(lambda: logger.removeHandler(handler))
 
     def _safe_symlink(self, base, target, name, delete=False):
         # TODO(jhr): do this with relpaths, but i cant figure it out on no sleep
@@ -185,14 +224,46 @@ class _WandbInit(object):
         os.rename(tmp_name, name)
         os.chdir(owd)
 
-    def _jupyter_setup(self):
-        self.notebook = wandb.jupyter.Notebook()
+    def _pause_backend(self):
+        if self.backend is not None:
+            logger.info("pausing backend")
+            self.backend.interface.send_pause()
+
+    def _resume_backend(self):
+        if self.backend is not None:
+            logger.info("resuming backend")
+            self.backend.interface.send_resume()
+
+    def _jupyter_teardown(self):
+        """Teardown hooks and display saving, called with wandb.join"""
+        logger.info("cleaning up jupyter logic")
+        ipython = self.notebook.shell
+        self.notebook.save_history()
+        # because of how we bind our methods we manually find them to unregister
+        for hook in ipython.events.callbacks["pre_run_cell"]:
+            if "_resume_backend" in hook.__name__:
+                ipython.events.unregister("pre_run_cell", hook)
+        for hook in ipython.events.callbacks["post_run_cell"]:
+            if "_pause_backend" in hook.__name__:
+                ipython.events.unregister("post_run_cell", hook)
+        ipython.display_pub.publish = ipython.display_pub._orig_publish
+        del ipython.display_pub._orig_publish
+
+    def _jupyter_setup(self, settings):
+        """Add magic, hooks, and session history saving"""
+        self.notebook = wandb.jupyter.Notebook(settings)
         ipython = self.notebook.shell
         ipython.register_magics(wandb.jupyter.WandBMagics)
 
         # Monkey patch ipython publish to capture displayed outputs
         if not hasattr(ipython.display_pub, "_orig_publish"):
+            logger.info("configuring jupyter hooks %s", self)
             ipython.display_pub._orig_publish = ipython.display_pub.publish
+            # Registering resume and pause hooks
+
+            ipython.events.register("pre_run_cell", self._resume_backend)
+            ipython.events.register("post_run_cell", self._pause_backend)
+            self._teardown_hooks.append(self._jupyter_teardown)
 
         def publish(data, metadata=None, **kwargs):
             ipython.display_pub._orig_publish(data, metadata=metadata, **kwargs)
@@ -201,8 +272,6 @@ class _WandbInit(object):
             )
 
         ipython.display_pub.publish = publish
-        # TODO: should we reset start or any other fancy pre or post run cell magic?
-        # ipython.events.register("pre_run_cell", reset_start)
 
     def _log_setup(self, settings):
         """Setup logging from settings."""
@@ -257,6 +326,7 @@ class _WandbInit(object):
         self._wl._early_logger_flush(logger)
 
     def init(self):
+        trigger.call("on_init", **self.kwargs)
         s = self.settings
         config = self.config
 
@@ -267,10 +337,6 @@ class _WandbInit(object):
                         "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"  # noqa: E501
                     )
                 self._wl._global_run_stack[-1].join()
-
-        if s.mode == "noop":
-            # TODO(jhr): return dummy object
-            return None
 
         console = s.console
         use_redirect = True
@@ -306,12 +372,15 @@ class _WandbInit(object):
         run._set_library(self._wl)
         run._set_backend(backend)
         run._set_reporter(self._reporter)
+        run._set_teardown_hooks(self._teardown_hooks)
         # TODO: pass mode to backend
         # run_synced = None
 
         backend._hack_set_run(run)
 
-        if s.mode == "online":
+        if s.offline:
+            backend.interface.send_run(run)
+        else:
             ret = backend.interface.send_run_sync(run, timeout=30)
             # TODO: fail on more errors, check return type
             # TODO: make the backend log stacktraces on catostrophic failure
@@ -319,15 +388,9 @@ class _WandbInit(object):
                 # Shutdown the backend and get rid of the logger
                 # we don't need to do console cleanup at this point
                 backend.cleanup()
-                self._wl.on_finish()
+                self.teardown()
                 raise UsageError(ret.error.message)
             run._set_run_obj(ret.run)
-        elif s.mode in ("offline", "dryrun"):
-            backend.interface.send_run(run)
-        elif s.mode in ("async", "run"):
-            ret = backend.interface.send_run_sync(run, timeout=10)
-            # TODO: on network error, do async run save
-            backend.interface.send_run(run)
 
         self._wl._global_run_stack.append(run)
         self.run = run
@@ -364,7 +427,6 @@ def init(
     entity = None,
     reinit = None,
     tags = None,
-    team = None,
     group = None,
     name = None,
     notes = None,
@@ -372,7 +434,7 @@ def init(
     config_exclude_keys=None,
     config_include_keys=None,
     anonymous = None,
-    disable = None,
+    disabled = None,
     offline = None,
     allow_val_change = None,
     resume = None,
@@ -399,6 +461,7 @@ def init(
     """
     assert not wandb._IS_INTERNAL_PROCESS
     kwargs = locals()
+    error_seen = False
     try:
         wi = _WandbInit()
         wi.setup(kwargs)
@@ -421,11 +484,17 @@ def init(
         logger.warning("interrupted", exc_info=e)
         raise_from(Exception("interrupted"), e)
     except Exception as e:
+        error_seen = True
+        traceback.print_exc()
         assert logger
         logger.error("error", exc_info=e)
         # Need to build delay into this sentry capture because our exit hooks
         # mess with sentry's ability to send out errors before the program ends.
         sentry_exc(e, delay=True)
-        reraise(*sys.exc_info())
-        #  raise_from(Exception("problem"), e)
+        # reraise(*sys.exc_info())
+        # raise_from(Exception("problem"), e)
+    finally:
+        if error_seen:
+            wandb.termerror("Abnormal program exit")
+            os._exit(-1)
     return run

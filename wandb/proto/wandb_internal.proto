@@ -111,14 +111,6 @@ message RunExitRecord {
 }
 
 message RunExitResult {
-  FilesSynced files = 1;
-}
-
-message FilesSynced {
-  int32 wandb_count = 1;
-  int32 media_count = 2;
-  int32 artifact_count = 3;
-  int32 other_count = 4;
 }
 
 /*
@@ -300,6 +292,9 @@ message Request {
     DeferRequest      defer = 3;
     GetSummaryRequest get_summary = 4;
     LoginRequest      login = 5;
+    PauseRequest      pause = 6;
+    ResumeRequest     resume = 7;
+    PollExitRequest   poll_exit = 8;
   }
 }
 
@@ -311,6 +306,7 @@ message Response {
     StatusResponse     status_response = 19;
     LoginResponse      login_response = 24;
     GetSummaryResponse get_summary_response = 25;
+    PollExitResponse   poll_exit_response = 26;
   }
 }
 
@@ -318,6 +314,18 @@ message Response {
  * DeferRequest: internal message to defer work
  */
 message DeferRequest {
+}
+
+/*
+ * PauseRequest: internal message to pause the heartbeat
+ */
+message PauseRequest {
+}
+
+/*
+ * ResumeRequest: internal message to resume the heartbeat
+ */
+message ResumeRequest {
 }
 
 /*
@@ -350,4 +358,30 @@ message StatusRequest {
 
 message StatusResponse {
   bool run_should_stop = 1;
+}
+
+/*
+ * PollExitRequest:
+ */
+message PollExitRequest {
+}
+
+message PollExitResponse {
+  bool            done = 1;
+  RunExitResult   exit_result = 2;
+  FileCounts      file_counts = 3;
+  FilePusherStats pusher_stats = 4;
+}
+
+message FileCounts {
+  int32 wandb_count = 1;
+  int32 media_count = 2;
+  int32 artifact_count = 3;
+  int32 other_count = 4;
+}
+
+message FilePusherStats {
+  int64 uploaded_bytes = 1;
+  int64 total_bytes = 2;
+  int64 deduped_bytes = 3;
 }
