@@ -13,7 +13,7 @@ class InternalRun(wandb_run.RunManaged):
         super(InternalRun, self).__init__(settings=settings)
         self._run_obj = run_obj
 
-        # HACK: Undoing what's done in the constructor of RunManaged. Probably what we
+        # TODO: This undoes what's done in the constructor of RunManaged. Probably what
         # really want is a common interface for RunManaged and InternalRun.
         data_types._datatypes_set_callback(None)
 
