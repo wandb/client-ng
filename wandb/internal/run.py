@@ -4,8 +4,13 @@
 Semi-stubbed run for internal process use.
 
 """
+import wandb
 from wandb import data_types
-from wandb.wandb_sdk import wandb_run  # type: ignore[import]
+
+if wandb.PY3:
+    from wandb.sdk import wandb_run
+else:
+    from wandb.sdk_py27 import wandb_run
 
 
 class InternalRun(wandb_run.RunManaged):
