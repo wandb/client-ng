@@ -19,6 +19,7 @@ from click.exceptions import ClickException
 from dockerpycreds.utils import find_executable
 import six
 import wandb
+from wandb import Config
 from wandb import env, util
 from wandb import Error
 from wandb import wandb_agent
@@ -26,7 +27,6 @@ from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
 from wandb.integration.magic import magic_install
 from wandb.old.settings import Settings
-from wandb.sdk import Config
 from wandb.sync import SyncManager
 import yaml
 
