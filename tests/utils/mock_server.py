@@ -74,25 +74,11 @@ def run(ctx):
                         "name": "weights.h5",
                         "sizeBytes": 20,
                         "md5": "XXX",
-                        "directUrl": request.url_root + "/storage?file=weights.h5",
+                        "url": request.url_root + "/storage?file=weights.h5",
                     }
                 }
             ]
         },
-        'patch': '''
-diff --git a/patch.txt b/patch.txt
-index 30d74d2..9a2c773 100644
---- a/patch.txt
-+++ b/patch.txt
-@@ -1 +1 @@
--test
-\ No newline at end of file
-+testing
-\ No newline at end of file
-        ''',
-        'commit': 'HEAD',
-        'github': 'https://github.com/vanpelt',
-        'config': '{"foo":{"value":"bar"}}',
         "sampledHistory": ['{"loss": 0, "acc": 100}'],
         "shouldStop": False,
         "failed": False,
@@ -203,7 +189,6 @@ index 30d74d2..9a2c773 100644
         'config': '{"foo":{"value":"bar"}}',
         'files': {
             'edges': [{'node': {'directUrl': request.url_root + "/storage?file=metadata.json"}}]
-
         }
     }
 
@@ -575,7 +560,6 @@ def create_app(user_ctx=None):
             }
         elif file == "metadata.json":
             return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"], "git": ctx.get("git", {})}
-
         return "", 200
 
     @app.route("/artifacts/<entity>/<digest>", methods=["GET", "POST"])
