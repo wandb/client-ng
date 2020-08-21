@@ -5,7 +5,7 @@ Semi-stubbed run for internal process use.
 
 """
 from wandb import data_types
-from wandb.wandb_sdk import wandb_run
+from wandb.wandb_sdk import wandb_run  # type: ignore[import]
 
 
 class InternalRun(wandb_run.RunManaged):
