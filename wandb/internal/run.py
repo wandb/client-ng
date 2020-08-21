@@ -7,7 +7,7 @@ Semi-stubbed run for internal process use.
 import wandb
 from wandb import data_types
 
-if wandb.PY3:
+if wandb.PY3:  # type: ignore[has-type]
     from wandb.sdk import wandb_run
 else:
     from wandb.sdk_py27 import wandb_run
