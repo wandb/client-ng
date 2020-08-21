@@ -189,8 +189,7 @@ def projects(entity, display=True):
 @display_error
 def login(key, host, cloud, relogin, anonymously):
     anon_mode = "must" if anonymously else "never"
-    wandb.setup(settings=wandb.Settings(
-        _cli_only_mode=True, anonymous=anon_mode))
+    wandb.setup(settings=wandb.Settings(_cli_only_mode=True, anonymous=anon_mode))
     api = _get_cling_api()
 
     if host == "https://api.wandb.ai" or (host is None and cloud):
@@ -201,8 +200,7 @@ def login(key, host, cloud, relogin, anonymously):
     elif host:
         if not host.startswith("http"):
             raise ClickException("host must start with http(s)://")
-        api.set_setting("base_url", host.strip("/"),
-                        globally=True, persist=True)
+        api.set_setting("base_url", host.strip("/"), globally=True, persist=True)
     key = key[0] if len(key) > 0 else None
 
     wandb.login(relogin=relogin, key=key, anonymous=anon_mode)
@@ -386,8 +384,7 @@ def sync(ctx, path, id, project, entity, ignore, all):
             return
         if not all:
             wandb.termlog("NOTE: use sync --all to sync all unsynced runs")
-            wandb.termlog(
-                "Number of runs to be synced: {}".format(len(sync_items)))
+            wandb.termlog("Number of runs to be synced: {}".format(len(sync_items)))
             some_runs = 5
             if some_runs < len(sync_items):
                 wandb.termlog("Showing {} runs".format(some_runs))
@@ -434,7 +431,7 @@ def sweep(
         """settings could be json or comma seperated assignments."""
         ret = {}
         # TODO(jhr): merge with magic:_parse_magic
-        if settings.find('=') > 0:
+        if settings.find("=") > 0:
             for item in settings.split(","):
                 kv = item.split("=")
                 if len(kv) != 2:
@@ -1212,11 +1209,10 @@ Run `git clone %s` and restore from there or pass the --no-git flag."""
 
 @cli.command(context_settings=CONTEXT, help="Run any script with wandb", hidden=True)
 @click.pass_context
-@click.argument('program')
-@click.argument('args', nargs=-1)
+@click.argument("program")
+@click.argument("args", nargs=-1)
 @display_error
 def magic(ctx, program, args):
-
     def magic_run(cmd, globals, locals):
         try:
             exec(cmd, globals, locals)
@@ -1227,22 +1223,24 @@ def magic(ctx, program, args):
     sys.argv.insert(0, program)
     sys.path.insert(0, os.path.dirname(program))
     try:
-        with open(program, 'rb') as fp:
-            code = compile(fp.read(), program, 'exec')
+        with open(program, "rb") as fp:
+            code = compile(fp.read(), program, "exec")
     except IOError:
-        click.echo(click.style("Could not launch program: %s" %
-                               program, fg="red"))
+        click.echo(click.style("Could not launch program: %s" % program, fg="red"))
         sys.exit(1)
     globs = {
-        '__file__': program,
-        '__name__': '__main__',
-        '__package__': None,
-        'wandb_magic_install': magic_install,
+        "__file__": program,
+        "__name__": "__main__",
+        "__package__": None,
+        "wandb_magic_install": magic_install,
     }
-    prep = '''
+    prep = (
+        """
 import __main__
 __main__.__file__ = "%s"
 wandb_magic_install()
-''' % program
+"""
+        % program
+    )
     magic_run(prep, globs, None)
     magic_run(code, globs, None)

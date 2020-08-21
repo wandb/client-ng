@@ -29,13 +29,13 @@ import wandb
 from wandb import __version__
 from wandb.old.core import wandb_dir, Error
 from wandb import env
-from wandb.old.git_repo import GitRepo
 from wandb.old.settings import Settings
 from wandb.old import retry
 from wandb import util
 from wandb.apis.normalize import normalize_exceptions
 from wandb.errors.error import CommError, UsageError
 from wandb.lib.filenames import DIFF_FNAME, METADATA_FNAME
+from wandb.lib.git import GitRepo
 
 from .file_stream import FileStreamApi
 from .progress import Progress
