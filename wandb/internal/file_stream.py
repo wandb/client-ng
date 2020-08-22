@@ -99,17 +99,17 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
 
             data = data[len(chunk):]
 
-            if self._buf:
+            if self._buff:
                 # TODO(adrian): some day these hacks should be replaced with
                 # real terminal emulation
 
-                if self._buf[-1].endswith(ANSI_CURSOR_UP) and chunk.startswith(b('\n')):
+                if self._buff[-1].endswith(ANSI_CURSOR_UP) and chunk.startswith(b('\n')):
                     # Some progress bars (TQDM) move up then immediately back down.
                     # These cancel out.
-                    self._buf[-1] = self._buf[-1][:-len(ANSI_CURSOR_UP)]
+                    self._buff[-1] = self._buff[-1][:-len(ANSI_CURSOR_UP)]
                     chunk = chunk[1:]
 
-                if self._buf[-1].endswith('\r') and not chunk.startswith('\n'):
+                if self._buff[-1].endswith('\r') and not chunk.startswith('\n'):
                     # if we get a carriage return followed by something other than
                     # a newline then we assume that we're overwriting the current
                     # line (ie. a progress bar)
@@ -119,15 +119,15 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
                     # progress bar situation and a Windows line terminator.
                     lines.append(self._finish_line())
 
-            self._buf.append(chunk)
+            self._buff.append(chunk)
             if chunk.endswith('\n'):
                 lines.append(self._finish_line())
 
         return lines
 
     def _finish_line(self):
-        line = ''.join(self._buf)#.decode('utf-8')
-        self._buf = []
+        line = ''.join(self._buff)#.decode('utf-8')
+        self._buff = []
         return line
 
     def process_chunks(self, chunks):
