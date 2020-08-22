@@ -136,7 +136,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
         print("======")
         content = []
         for line in [c.data for c in chunks]:
-            content += self.add_string(line)
+            content += self.add_string(b(line))
             # if content and content[-1].endswith('\r'):
             #     content[-1] = line
             # else:
