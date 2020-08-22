@@ -7,6 +7,7 @@ import requests
 import time
 import wandb
 import itertools
+from six import b
 from six.moves import queue
 from wandb import util
 from wandb import env
