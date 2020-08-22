@@ -94,7 +94,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
             # else:
             #     content.append(line)
         chunk_id = self._chunk_id
-        self._chunk_id += len(content)
+        self._chunk_id += len(lines)
         # if content and content[-1].endswith('\r'):
         #     self._chunk_id -= 1
         return {
