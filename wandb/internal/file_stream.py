@@ -75,6 +75,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
     """
 
     def process_chunks(self, chunks):
+        print(chunks)
         ret = []
         for c in chunks:
             lines = c.data.split(os.linesep)
