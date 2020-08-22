@@ -76,31 +76,18 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
     """
 
     def process_chunks(self, chunks):
-        lines = []
-        curr_line = ''
-        for line in [c.data for c in chunks]:
-            for c in line:
-                if c == '\n':
-                    lines.append(curr_line + c)
-                    curr_line = ''
-                elif c == '\r':
-                    curr_line = ''
-                else:
-                    curr_line += c
-            if curr_line:
-                lines.append(curr_line)
-        
-            # if content and content[-1].endswith('\r'):
-            #     content[-1] = line
-            # else:
-            #     content.append(line)
+        ret = []
+        for c in chunks:
+            lines = c.data.split('\n')
+            for line in lines:
+                line = line.split('\r')[-1]
+                if line:
+                    ret.append(line + '\n')
         chunk_id = self._chunk_id
-        self._chunk_id += len(lines)
-        # if content and content[-1].endswith('\r'):
-        #     self._chunk_id -= 1
+        self._chunk_id += len(ret)
         return {
             'offset': chunk_id,
-            'content': lines
+            'content': ret
         }
 
 
