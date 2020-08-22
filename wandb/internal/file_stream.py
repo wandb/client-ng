@@ -63,6 +63,8 @@ class SummaryFilePolicy(DefaultFilePolicy):
         }
 
 
+LINE_END_RE = re.compile(b('\r\n|\r|\n'))
+ANSI_CURSOR_UP = b('\x1b\x5b\x41')
 class CRDedupeFilePolicy(DefaultFilePolicy):
     """File stream policy that removes characters that would be erased by
     carriage returns.
@@ -71,6 +73,59 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
     amount of data we need to send over the network (eg. for progress bars),
     while preserving the output's appearance in the web app.
     """
+    def __init__(self, *args, **kwargs):
+        super(CRDedupeFilePolicy, self).__init__(*args, **kwargs)
+        self._buff = []
+
+    def add_string(self, data):
+        """Process some data splitting it into complete lines and buffering the rest
+
+        Args:
+            data: A `str` in Python 2 or `bytes` in Python 3
+        Returns:
+            list of complete lines ending with a carriage return (eg. a progress
+            bar) or a newline.
+        """
+        lines = []
+        while data:
+            match = LINE_END_RE.search(data)
+            if match is None:
+                chunk = data
+            else:
+                chunk = data[:match.end()]
+
+            data = data[len(chunk):]
+
+            if self._buf:
+                # TODO(adrian): some day these hacks should be replaced with
+                # real terminal emulation
+
+                if self._buf[-1].endswith(ANSI_CURSOR_UP) and chunk.startswith(b('\n')):
+                    # Some progress bars (TQDM) move up then immediately back down.
+                    # These cancel out.
+                    self._buf[-1] = self._buf[-1][:-len(ANSI_CURSOR_UP)]
+                    chunk = chunk[1:]
+
+                if self._buf[-1].endswith(b('\r')) and not chunk.startswith(b('\n')):
+                    # if we get a carriage return followed by something other than
+                    # a newline then we assume that we're overwriting the current
+                    # line (ie. a progress bar)
+                    #
+                    # We don't terminate lines that end with a carriage return until
+                    # we see what's coming next so we can distinguish between a
+                    # progress bar situation and a Windows line terminator.
+                    lines.append(self._finish_line())
+
+            self._buf.append(chunk)
+            if chunk.endswith(b('\n')):
+                lines.append(self._finish_line())
+
+        return lines
+
+    def _finish_line(self):
+        line = b('').join(self._buf).decode('utf-8')
+        self._buf = []
+        return line
 
     def process_chunks(self, chunks):
         print("======")
@@ -78,10 +133,11 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
         print("======")
         content = []
         for line in [c.data for c in chunks]:
-            if content and content[-1].endswith('\r'):
-                content[-1] = line
-            else:
-                content.append(line)
+            content += self.add_string(line)
+            # if content and content[-1].endswith('\r'):
+            #     content[-1] = line
+            # else:
+            #     content.append(line)
         chunk_id = self._chunk_id
         self._chunk_id += len(content)
         if content and content[-1].endswith('\r'):
