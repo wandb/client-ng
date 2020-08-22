@@ -66,8 +66,8 @@ class SummaryFilePolicy(DefaultFilePolicy):
         }
 
 
-LINE_END_RE = re.compile(b('\r\n|\r|\n'))
-ANSI_CURSOR_UP = b('\x1b\x5b\x41')
+LINE_END_RE = re.compile('\r\n|\r|\n')
+ANSI_CURSOR_UP = '\x1b\x5b\x41'
 class CRDedupeFilePolicy(DefaultFilePolicy):
     """File stream policy that removes characters that would be erased by
     carriage returns.
@@ -109,7 +109,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
                     self._buf[-1] = self._buf[-1][:-len(ANSI_CURSOR_UP)]
                     chunk = chunk[1:]
 
-                if self._buf[-1].endswith(b('\r')) and not chunk.startswith(b('\n')):
+                if self._buf[-1].endswith('\r') and not chunk.startswith('\n'):
                     # if we get a carriage return followed by something other than
                     # a newline then we assume that we're overwriting the current
                     # line (ie. a progress bar)
@@ -120,13 +120,13 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
                     lines.append(self._finish_line())
 
             self._buf.append(chunk)
-            if chunk.endswith(b('\n')):
+            if chunk.endswith('\n'):
                 lines.append(self._finish_line())
 
         return lines
 
     def _finish_line(self):
-        line = b('').join(self._buf).decode('utf-8')
+        line = ''.join(self._buf)#.decode('utf-8')
         self._buf = []
         return line
 
@@ -136,7 +136,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
         print("======")
         content = []
         for line in [c.data for c in chunks]:
-            content += self.add_string(b(line))
+            content += self.add_string(line)
             # if content and content[-1].endswith('\r'):
             #     content[-1] = line
             # else:
