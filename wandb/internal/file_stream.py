@@ -73,6 +73,9 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
     """
 
     def process_chunks(self, chunks):
+        print("======")
+        print(chunks)
+        print("======")
         content = []
         for line in [c.data for c in chunks]:
             if content and content[-1].endswith('\r'):
