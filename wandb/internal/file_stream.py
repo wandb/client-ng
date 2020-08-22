@@ -103,7 +103,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
                 # TODO(adrian): some day these hacks should be replaced with
                 # real terminal emulation
 
-                if self._buff[-1].endswith(ANSI_CURSOR_UP) and chunk.startswith(b('\n')):
+                if self._buff[-1].endswith(ANSI_CURSOR_UP) and chunk.startswith('\n'):
                     # Some progress bars (TQDM) move up then immediately back down.
                     # These cancel out.
                     self._buff[-1] = self._buff[-1][:-len(ANSI_CURSOR_UP)]
