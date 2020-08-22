@@ -67,7 +67,7 @@ class SummaryFilePolicy(DefaultFilePolicy):
 
 
 LINE_END_RE = re.compile('\r\n|\r|\n')
-ANSI_CURSOR_UP = '\x1b\x5b\x41'
+ANSI_CURSOR_UP = '\r'#'\x1b\x5b\x41'
 class CRDedupeFilePolicy(DefaultFilePolicy):
     """File stream policy that removes characters that would be erased by
     carriage returns.
