@@ -82,6 +82,7 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
             for c in line:
                 if c == '\n':
                     lines.append(curr_line + c)
+                    curr_line = ''
                 elif c == '\r':
                     curr_line = ''
                 else:
