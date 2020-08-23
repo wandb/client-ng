@@ -9,7 +9,7 @@ import os
 import time
 
 import grpc
-from wandb.interface import constants, interface
+from wandb.interface import interface
 from wandb.internal.internal import wandb_internal
 from wandb.lib import runid
 from wandb.proto import wandb_internal_pb2  # type: ignore
@@ -135,11 +135,7 @@ class Backend:
 
         wandb_process = mp.Process(
             target=wandb_internal,
-            kwargs=dict(
-                settings=settings,
-                record_q=record_q,
-                result_q=result_q,
-            ),
+            kwargs=dict(settings=settings, record_q=record_q, result_q=result_q,),
         )
         wandb_process.name = "wandb_internal"
         wandb_process.start()
@@ -149,9 +145,7 @@ class Backend:
         self.wandb_process = wandb_process
 
         self._interface = interface.BackendSender(
-            record_q=record_q,
-            result_q=result_q,
-            process=wandb_process,
+            record_q=record_q, result_q=result_q, process=wandb_process,
         )
 
     def cleanup(self):
