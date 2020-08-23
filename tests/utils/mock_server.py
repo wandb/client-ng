@@ -11,6 +11,7 @@ import logging
 from six.moves import urllib
 import threading
 from tests.utils.mock_requests import RequestsMock
+import uuid
 
 
 def default_ctx():
@@ -559,7 +560,7 @@ def create_app(user_ctx=None):
                 },
             }
         elif file == "metadata.json":
-            return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"], "git": ctx.get("git", {})}
+            return {"docker": "test/docker-" + str(uuid.uuid4()), "program": "train.py", "args": ["--test", "foo"], "git": ctx.get("git", {})}
         return "", 200
 
     @app.route("/artifacts/<entity>/<digest>", methods=["GET", "POST"])
