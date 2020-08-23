@@ -203,20 +203,7 @@ class HandleManager(object):
         self._dispatch_record(record)
 
     def handle_request_status(self, record):
-        assert record.control.req_resp
-
-        result = wandb_internal_pb2.Result(uuid=record.uuid)
-        status_resp = result.response.status_response
-        if record.request.status.check_stop_req:
-            status_resp.run_should_stop = False
-            if self._entity and self._project and self._run.run_id:
-                try:
-                    status_resp.run_should_stop = self._api.check_stop_requested(
-                        self._project, self._entity, self._run.run_id
-                    )
-                except Exception as e:
-                    logger.warning("Failed to check stop requested status: %s", e)
-        self._result_q.put(result)
+        self._dispatch_record(record)
 
     def handle_request_get_summary(self, data):
         result = wandb_internal_pb2.Result(uuid=data.uuid)
@@ -226,6 +213,9 @@ class HandleManager(object):
             item.value_json = json.dumps(value)
             result.response.get_summary_response.item.append(item)
         self._result_q.put(result)
+
+    def handle_tbrecord(self, record):
+        self._dispatch_record(record)
 
     def handle_request_sampled_history(self, data):
         result = wandb_internal_pb2.Result(uuid=data.uuid)

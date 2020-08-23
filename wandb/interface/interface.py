@@ -530,10 +530,10 @@ class BackendSender(object):
         rec = self._make_record(exit=exit_data)
         self._publish(rec)
 
-    def _send_exit_sync(self, exit_data, timeout=None):
+    def _communicate_exit(self, exit_data, timeout=None):
         req = self._make_record(exit=exit_data)
 
-        result = self._request_response(req, timeout=timeout)
+        result = self._communicate(req, timeout=timeout)
         if result is None:
             # TODO: friendlier error message here
             raise wandb.Error(
@@ -565,9 +565,9 @@ class BackendSender(object):
         result = self._communicate(rec)
         return result
 
-    def send_exit_sync(self, exit_code, timeout=None):
+    def communicate_exit(self, exit_code, timeout=None):
         exit_data = self._make_exit(exit_code)
-        return self._send_exit_sync(exit_data, timeout=timeout)
+        return self._communicate_exit(exit_data, timeout=timeout)
 
     def communicate_summary(self):
         record = self._make_request(get_summary=wandb_internal_pb2.GetSummaryRequest())

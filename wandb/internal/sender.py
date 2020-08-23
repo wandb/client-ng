@@ -118,13 +118,12 @@ class SendManager(object):
                     for k2, v2 in v.items():
                         dictionary[k + "." + k2] = v2
 
-    def handle_request_status(self, data):
-        if not data.control.req_resp:
-            return
+    def send_request_status(self, record):
+        assert record.control.req_resp
 
-        result = wandb_internal_pb2.Result(uuid=data.uuid)
+        result = wandb_internal_pb2.Result(uuid=record.uuid)
         status_resp = result.response.status_response
-        if data.request.status.check_stop_req:
+        if record.request.status.check_stop_req:
             status_resp.run_should_stop = False
             if self._entity and self._project and self._run.run_id:
                 try:
@@ -133,13 +132,7 @@ class SendManager(object):
                     )
                 except Exception as e:
                     logger.warning("Failed to check stop requested status: %s", e)
-        self._resp_q.put(result)
-
-    def handle_tbrecord(self, data):
-        logger.info("handling tbrecord: %s", data)
-        if self._tb_watcher:
-            tbrecord = data.tbrecord
-            self._tb_watcher.add(tbrecord.log_dir, tbrecord.save)
+        self._result_q.put(result)
 
     def handle_request(self, rec):
         self.send_request(rec)
@@ -509,6 +502,12 @@ class SendManager(object):
         for k in files.files:
             # TODO(jhr): fix paths with directories
             self._save_file(k.path, interface.file_enum_to_policy(k.policy))
+
+    def send_tbrecord(self, data):
+        logger.info("handling tbrecord: %s", data)
+        if self._tb_watcher:
+            tbrecord = data.tbrecord
+            self._tb_watcher.add(tbrecord.log_dir, tbrecord.save)
 
     def handle_artifact(self, data):
         artifact = data.artifact

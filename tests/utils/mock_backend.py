@@ -40,11 +40,8 @@ class BackendMock(object):
         self._run = None
         self._done = True
         self._wl = wandb.setup()
-        self.process_queue = self._wl._multiprocessing.Queue()
-        self.req_queue = self._wl._multiprocessing.Queue()
-        self.resp_queue = self._wl._multiprocessing.Queue()
-        self.cancel_queue = self._wl._multiprocessing.Queue()
-        self.notify_queue = self._wl._multiprocessing.Queue()
+        self.record_q = self._wl._multiprocessing.Queue()
+        self.result_q = self._wl._multiprocessing.Queue()
         self.interface = None
         self.last_queued = None
         self.history = []
@@ -90,10 +87,8 @@ class BackendMock(object):
         wandb_process = ProcessMock()
         self.interface = interface.BackendSender(
             process=wandb_process,
-            notify_queue=self.notify_queue,
-            process_queue=self.process_queue,
-            request_queue=self.req_queue,
-            response_queue=self.resp_queue,
+            record_q=self.record_q,
+            result_q=self.result_q,
         )
         self.interface._request_response = self._request_response
         self.interface._orig_queue_process = self.interface._queue_process
@@ -107,8 +102,5 @@ class BackendMock(object):
 
     def cleanup(self):
         #  self.notify_queue.put(constants.NOTIFY_SHUTDOWN) # TODO: shut it down
-        self.req_queue.close()
-        self.resp_queue.close()
-        self.cancel_queue.close()
-        self.notify_queue.close()
-        self.process_queue.close()
+        self.record_q.close()
+        self.result_q.close()
