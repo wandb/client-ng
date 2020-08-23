@@ -429,7 +429,7 @@ class BackendSender(object):
     def publish_login(self, api_key=None, anonymous=None):
         login = self._make_login(api_key, anonymous)
         rec = self._make_request(login=login)
-        self._queue_process(rec)
+        self._publish(rec)
 
     def publish_pause(self):
         pause = wandb_internal_pb2.PauseRequest()
@@ -511,7 +511,7 @@ class BackendSender(object):
         for alias in aliases:
             proto_artifact.aliases.append(alias)
         rec = self._make_record(artifact=proto_artifact)
-        self._queue_process(rec)
+        self._publish(rec)
 
     def communicate_status(self, check_stop_req, timeout=None):
         status = wandb_internal_pb2.StatusRequest()
