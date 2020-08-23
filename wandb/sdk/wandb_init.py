@@ -396,8 +396,6 @@ class _WandbInit(object):
                 self.teardown()
                 raise UsageError(ret.error.message)
             run._set_run_obj(ret.run)
-            # Let the internal process handler know about this run
-            backend.interface.publish_run_inform(ret.run)
 
         # initiate run (stats and metadata probing)
         _ = backend.interface.communicate_run_start()

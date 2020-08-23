@@ -10,7 +10,6 @@ import os
 
 import six
 import wandb
-from wandb.internal import internal_api
 from wandb.internal import meta, sample, stats, update
 from wandb.lib import proto_util
 from wandb.proto import wandb_internal_pb2
@@ -27,13 +26,6 @@ class HandleManager(object):
         self._stopped = stopped
         self._sender_q = sender_q
         self._writer_q = writer_q
-
-        self._api = internal_api.Api(default_settings=settings)
-        self._api_settings = dict()
-
-        self._entity = None
-        self._project = None
-        self._run = None
 
         self._system_stats = None
 
@@ -60,22 +52,13 @@ class HandleManager(object):
         assert handler, "unknown handle: {}".format(handler_str)
         handler(record)
 
-    def handle_request_login(self, record):
-        # TODO: do something with api_key or anonymous?
-        # TODO: return an error if we aren't logged in?
-        self._api.reauth()
-        viewer = self._api.viewer()
-        self._login_flags = json.loads(viewer.get("flags", "{}"))
-        self._login_entity = viewer.get("entity")
-        if record.control.req_resp:
-            result = wandb_internal_pb2.Result(uuid=record.uuid)
-            result.response.login_response.active_entity = self._login_entity
-            self._result_q.put(result)
-
     def _dispatch_record(self, record):
         if not self._settings.offline:
             self._sender_q.put(record)
         self._writer_q.put(record)
+
+    def handle_request_login(self, record):
+        self._dispatch_record(record)
 
     def handle_run(self, record):
         self._dispatch_record(record)
@@ -90,6 +73,9 @@ class HandleManager(object):
         self._dispatch_record(record)
 
     def handle_files(self, record):
+        self._dispatch_record(record)
+
+    def handle_artifact(self, record):
         self._dispatch_record(record)
 
     def _save_summary(self, summary_dict):
@@ -163,9 +149,6 @@ class HandleManager(object):
 
     def handle_exit(self, record):
         self._dispatch_record(record)
-
-    def handle_request_run_inform(self, record):
-        self._run = record.request.run_inform.run
 
     def handle_request_check_version(self, record):
         result = wandb_internal_pb2.Result(uuid=record.uuid)

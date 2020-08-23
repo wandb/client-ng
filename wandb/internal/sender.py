@@ -134,20 +134,18 @@ class SendManager(object):
                     logger.warning("Failed to check stop requested status: %s", e)
         self._result_q.put(result)
 
-    def handle_request(self, rec):
-        self.send_request(rec)
-
-    def handle_request_login(self, data):
+    def send_request_login(self, record):
         # TODO: do something with api_key or anonymous?
         # TODO: return an error if we aren't logged in?
         self._api.reauth()
         viewer = self._api.viewer()
-        self._flags = json.loads(viewer.get("flags", "{}"))
-        self._entity = viewer.get("entity")
-        if data.control.req_resp:
-            result = wandb_internal_pb2.Result(uuid=data.uuid)
-            result.response.login_response.active_entity = self._entity
-            self._resp_q.put(result)
+        # self._login_flags = json.loads(viewer.get("flags", "{}"))
+        # self._login_entity = viewer.get("entity")
+        login_entity = viewer.get("entity")
+        if record.control.req_resp:
+            result = wandb_internal_pb2.Result(uuid=record.uuid)
+            result.response.login_response.active_entity = login_entity
+            self._result_q.put(result)
 
     def send_exit(self, data):
         exit = data.exit
@@ -509,7 +507,7 @@ class SendManager(object):
             tbrecord = data.tbrecord
             self._tb_watcher.add(tbrecord.log_dir, tbrecord.save)
 
-    def handle_artifact(self, data):
+    def send_artifact(self, data):
         artifact = data.artifact
         saver = artifacts.ArtifactSaver(
             api=self._api,

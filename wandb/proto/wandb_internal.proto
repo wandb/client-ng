@@ -296,7 +296,6 @@ message Request {
     ResumeRequest         resume = 7;
     PollExitRequest       poll_exit = 8;
     SampledHistoryRequest sampled_history = 9;
-    RunInformRequest      run_inform = 10;
     RunStartRequest       run_start = 11;
     CheckVersionRequest   check_version = 12;
     ShutdownRequest       shutdown = 64;
@@ -419,13 +418,6 @@ message SampledHistoryItem {
 
 message SampledHistoryResponse {
   repeated SampledHistoryItem item = 1;
-}
-
-/*
- * RunInformRequest: inform internal handlers of run changes (not persisted)
- */
-message RunInformRequest {
-  RunRecord run = 1;
 }
 
 /*

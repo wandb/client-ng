@@ -336,7 +336,6 @@ class BackendSender(object):
         status=None,
         poll_exit=None,
         sampled_history=None,
-        run_inform=None,
         run_start=None,
         check_version=None,
     ):
@@ -355,8 +354,6 @@ class BackendSender(object):
             request.poll_exit.CopyFrom(poll_exit)
         elif sampled_history:
             request.sampled_history.CopyFrom(sampled_history)
-        elif run_inform:
-            request.run_inform.CopyFrom(run_inform)
         elif run_start:
             request.run_start.CopyFrom(run_start)
         elif check_version:
@@ -547,11 +544,6 @@ class BackendSender(object):
         rec = self._make_request(poll_exit=poll_request)
         result = self._communicate(rec, timeout=timeout)
         return result
-
-    def publish_run_inform(self, run):
-        run_inform = wandb_internal_pb2.RunInformRequest(run=run)
-        rec = self._make_request(run_inform=run_inform)
-        self._publish(rec)
 
     def communicate_check_version(self):
         check_version = wandb_internal_pb2.CheckVersionRequest()
