@@ -464,7 +464,7 @@ class BackendSender(object):
 
     def _publish_summary(self, summary):
         rec = self._make_record(summary=summary)
-        self._queue_process(rec)
+        self._publish(rec)
 
     def _communicate_run(self, run, timeout=None):
         """Send synchronous run object waiting for a response.

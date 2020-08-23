@@ -471,12 +471,15 @@ def init(
     """
     assert not wandb._IS_INTERNAL_PROCESS
     kwargs = locals()
-    error_seen = False
+    error_seen = None
+    except_exit = None
     try:
         wi = _WandbInit()
         wi.setup(kwargs)
+        except_exit = wi.settings._except_exit
         try:
             run = wi.init()
+            except_exit = wi.settings._except_exit
         except (KeyboardInterrupt, Exception) as e:
             if not isinstance(e, KeyboardInterrupt):
                 sentry_exc(e)
@@ -494,7 +497,7 @@ def init(
         logger.warning("interrupted", exc_info=e)
         raise_from(Exception("interrupted"), e)
     except Exception as e:
-        error_seen = True
+        error_seen = e
         traceback.print_exc()
         assert logger
         logger.error("error", exc_info=e)
@@ -506,5 +509,7 @@ def init(
     finally:
         if error_seen:
             wandb.termerror("Abnormal program exit")
-            os._exit(-1)
+            if except_exit:
+                os._exit(-1)
+            raise_from(Exception("problem"), error_seen)
     return run
