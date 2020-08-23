@@ -9,15 +9,15 @@ class UniformSampleAccumulator(object):
     def __init__(self, min_samples=None):
         self._samples = min_samples or 64
         # force power of 2 samples
-        self._samples = 2 ** int(math.ceil(math.log2(self._samples)))
+        self._samples = 2 ** int(math.ceil(math.log(self._samples, 2)))
         # target oversample by factor of 2
         self._samples2 = self._samples * 2
         # max size of each buffer
         self._max = self._samples2 // 2
         self._shift = 0
         self._mask = (1 << self._shift) - 1
-        self._buckets = int(math.log2(self._samples2))
-        self._buckets_bits = int(math.log2(self._buckets))
+        self._buckets = int(math.log(self._samples2, 2))
+        self._buckets_bits = int(math.log(self._buckets, 2))
         self._buckets_mask = (1 << self._buckets_bits + 1) - 1
         self._buckets_index = 0
         self._bucket = []
@@ -29,7 +29,7 @@ class UniformSampleAccumulator(object):
         for _ in range(self._buckets):
             self._bucket.append([0] * self._max)
         # compute integer log2
-        self._log2 += [int(math.log2(i)) for i in range(1, 2 ** self._buckets + 1)]
+        self._log2 += [int(math.log(i, 2)) for i in range(1, 2 ** self._buckets + 1)]
 
     def _show(self):
         print("=" * 20)
@@ -44,7 +44,7 @@ class UniformSampleAccumulator(object):
         if cnt & self._mask:
             return
         b = cnt >> self._shift
-        b = self._log2[b]  # b = int(math.log2(b))
+        b = self._log2[b]  # b = int(math.log(b, 2))
         if b >= self._buckets:
             self._index[self._buckets_index] = 0
             self._buckets_index = (self._buckets_index + 1) % self._buckets
