@@ -15,6 +15,7 @@ import time
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface import interface
 from wandb.lib import config_util, filenames, proto_util
+from wandb.lib.git import GitRepo
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
 
@@ -26,7 +27,6 @@ from . import file_stream
 from . import internal_api
 from . import tb_watcher
 from .file_pusher import FilePusher
-from .git_repo import GitRepo
 
 
 logger = logging.getLogger(__name__)

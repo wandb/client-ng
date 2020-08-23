@@ -13,8 +13,8 @@ import sys
 
 from wandb import util
 from wandb.interface import interface
-from wandb.internal import git_repo
 from wandb.lib.filenames import DIFF_FNAME, METADATA_FNAME, REQUIREMENTS_FNAME
+from wandb.lib.git import GitRepo
 from wandb.vendor.pynvml import pynvml
 
 if os.name == "posix" and sys.version_info[0] < 3:
@@ -34,7 +34,7 @@ class Meta(object):
         self.data = {}
         self.fname = os.path.join(self._settings.files_dir, METADATA_FNAME)
         self._interface = interface.BackendSender(record_q=record_q)
-        self._git = git_repo.GitRepo(
+        self._git = GitRepo(
             remote=self._settings["git_remote"]
             if "git_remote" in self._settings.keys()
             else "origin"
