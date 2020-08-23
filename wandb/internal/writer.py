@@ -12,11 +12,12 @@ logger = logging.getLogger(__name__)
 
 
 class WriteManager(object):
-    def __init__(self, settings, record_q, result_q, stopped):
+    def __init__(
+        self, settings, record_q, result_q,
+    ):
         self._settings = settings
         self._record_q = record_q
         self._result_q = result_q
-        self._stopped = stopped
         self._ds = None
 
     def open(self):

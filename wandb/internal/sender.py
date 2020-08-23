@@ -46,12 +46,11 @@ def _config_dict_from_proto_list(obj_list):
 
 class SendManager(object):
     def __init__(
-        self, settings, record_q, result_q, stopped,
+        self, settings, record_q, result_q,
     ):
         self._settings = settings
         self._record_q = record_q
         self._result_q = result_q
-        self._stopped = stopped
 
         self._resp_q = result_q
 

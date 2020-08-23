@@ -61,8 +61,7 @@ def sm(
 ):
     with runner.isolated_filesystem():
         test_settings.root_dir = os.getcwd()
-        stopped = threading.Event()
-        sm = SendManager(settings=test_settings, record_q=sender_q, result_q=result_q, stopped=stopped)
+        sm = SendManager(settings=test_settings, record_q=sender_q, result_q=result_q,)
         yield sm
 
 

@@ -26,8 +26,7 @@ def meta(test_settings, record_q):
 @pytest.fixture()
 def sm(runner, git_repo, record_q, result_q, test_settings, meta, mock_server, mocked_run):
     test_settings.root_dir = os.getcwd()
-    stopped = threading.Event()
-    sm = SendManager(settings=test_settings, record_q=record_q, result_q=result_q, stopped=stopped)
+    sm = SendManager(settings=test_settings, record_q=record_q, result_q=result_q)
     meta._interface.publish_run(mocked_run)
     sm.send(record_q.get())
     yield sm

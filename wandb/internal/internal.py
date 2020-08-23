@@ -206,14 +206,10 @@ class SenderThread(internal_util.RecordLoopThread):
         self._settings = settings
         self._record_q = record_q
         self._result_q = result_q
-        self._stopped = stopped
 
     def _setup(self):
         self._sm = sender.SendManager(
-            settings=self._settings,
-            record_q=self._record_q,
-            result_q=self._result_q,
-            stopped=self._stopped,
+            settings=self._settings, record_q=self._record_q, result_q=self._result_q,
         )
 
     def _process(self, record):
@@ -234,14 +230,10 @@ class WriterThread(internal_util.RecordLoopThread):
         self._settings = settings
         self._record_q = record_q
         self._result_q = result_q
-        self._stopped = stopped
 
     def _setup(self):
         self._wm = writer.WriteManager(
-            settings=self._settings,
-            record_q=self._record_q,
-            result_q=self._result_q,
-            stopped=self._stopped,
+            settings=self._settings, record_q=self._record_q, result_q=self._result_q,
         )
 
     def _process(self, record):
