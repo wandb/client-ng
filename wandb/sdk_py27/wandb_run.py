@@ -118,8 +118,11 @@ class RunStatusChecker(object):
                 return
             join_requested = self._join_event.wait(self._polling_interval)
 
-    def join(self):
+    def stop(self):
         self._join_event.set()
+
+    def join(self):
+        self.stop()
         self._thread.join()
 
 
@@ -871,7 +874,6 @@ class RunManaged(Run):
                 os.remove(self._settings.resume_fname)
 
         self._exit_code = exit_code
-        self._halt_bg_threads()
         try:
             self._on_finish()
         except KeyboardInterrupt:
@@ -947,11 +949,6 @@ class RunManaged(Run):
     def _on_finish_progress(self, progress, done=None):
         self._pusher_print_status(progress, done=done)
 
-    def _halt_bg_threads(self):
-        if self._run_status_checker:
-            self._run_status_checker.join()
-            self._run_status_checker = None
-
     def _wait_for_finish(self):
         ret = None
         while True:
@@ -969,6 +966,9 @@ class RunManaged(Run):
 
     def _on_finish(self):
         trigger.call("on_finished")
+
+        if self._run_status_checker:
+            self._run_status_checker.stop()
 
         # make sure all uncommitted history is flushed
         self.history._flush()
@@ -994,6 +994,9 @@ class RunManaged(Run):
 
         self._console_stop()
         self._backend.cleanup()
+
+        if self._run_status_checker:
+            self._run_status_checker.join()
 
     def _on_final(self):
         # check for warnings and errors, show log file locations
