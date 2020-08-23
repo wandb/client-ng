@@ -559,7 +559,7 @@ def create_app(user_ctx=None):
                 },
             }
         elif file == "metadata.json":
-            return {"docker": "test/docker", "program": "train.py", "args": ["--test", "foo"], "git": ctx.get("git", {})}
+            return {"docker": "test/docker2", "program": "train.py", "args": ["--test", "foo"], "git": ctx.get("git", {})}
         return "", 200
 
     @app.route("/artifacts/<entity>/<digest>", methods=["GET", "POST"])

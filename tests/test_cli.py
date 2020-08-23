@@ -659,7 +659,7 @@ def test_restore_no_remote(runner, mock_server, git_repo, docker, monkeypatch):
     docker.assert_called_with(['docker', 'run', '-e', 'LANG=C.UTF-8', '-e', 'WANDB_DOCKER=wandb/deepo@sha256:abc123', '--ipc=host', '-v',
                             wandb.docker.entrypoint+':/wandb-entrypoint.sh', '--entrypoint', '/wandb-entrypoint.sh', '-v', os.getcwd()+
                             ':/app', '-w', '/app', '-e',
-                            'WANDB_API_KEY=test', '-e', 'WANDB_COMMAND=python train.py --test foo', '-it', 'test/docker', '/bin/bash'])
+                            'WANDB_API_KEY=test', '-e', 'WANDB_COMMAND=python train.py --test foo', '-it', 'test/docker2', '/bin/bash'])
 
 
 def test_restore_bad_remote(runner, mock_server, git_repo, docker, monkeypatch):
