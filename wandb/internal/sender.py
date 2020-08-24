@@ -414,12 +414,7 @@ class SendManager(object):
 
     def _save_history(self, history_dict):
         if self._fs:
-            # print("\n\nABOUT TO SAVE:\n", history_dict, "\n\n")
             self._fs.push(filenames.HISTORY_FNAME, json.dumps(history_dict))
-            # print("got", x)
-        # save history into summary
-        # self._consolidated_summary.update(history_dict)
-        # self._save_summary(self._consolidated_summary)
 
     def send_history(self, data):
         history = data.history
@@ -427,10 +422,11 @@ class SendManager(object):
         self._save_history(history_dict)
 
     def send_summary(self, data):
-        summary_dict = proto_util.dict_from_proto_list(data.history.item)
+        summary_dict = proto_util.dict_from_proto_list(data.summary.update)
         json_summary = json.dumps(summary_dict)
         if self._fs:
             self._fs.push(filenames.SUMMARY_FNAME, json_summary)
+        # TODO(jhr): we should only write this at the end of the script
         summary_path = os.path.join(self._settings.files_dir, filenames.SUMMARY_FNAME)
         with open(summary_path, "w") as f:
             f.write(json_summary)
