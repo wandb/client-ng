@@ -211,9 +211,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
 
     """
 
-    # pylint: disable=no-member
-    entity: Optional[str]
-
     def __init__(  # pylint: disable=unused-argument
         self,
         base_url: Optional[str] = None,
@@ -667,7 +664,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         def __setattr__(self, name, value):
             self.update({name: value})
 
-        def update(self, __d=None, **kwargs):
-            self._settings.update(
-                __d, **kwargs, _source=self._source, _override=self._override
-            )
+        def update(self, *args, **kwargs):
+            kwargs.update(_source=self._source, _override=self._override)
+            self._settings.update(*args, **kwargs)
