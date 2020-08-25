@@ -11,16 +11,18 @@ import os
 import time
 import traceback
 
-from six import raise_from
+from six import iteritems, raise_from
 import wandb
+from wandb import trigger
 from wandb.backend.backend import Backend
 from wandb.errors.error import UsageError
+from wandb.integration.magic import magic_install
 from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
-from .wandb_config import parse_config
+from .wandb_helper import parse_config
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
 
@@ -79,8 +81,36 @@ class _WandbInit(object):
 
         # Remove parameters that are not part of settings
         init_config = kwargs.pop("config", None) or dict()
-        if not isinstance(init_config, dict):
-            init_config = parse_config(init_config)
+        config_include_keys = kwargs.pop("config_include_keys", None)
+        config_exclude_keys = kwargs.pop("config_exclude_keys", None)
+
+        if config_include_keys or config_exclude_keys:
+            wandb.termwarn(
+                "config_include_keys and config_exclude_keys are deprecated -- instead,"
+                " use config=wandb.helper.parse_config(config_object, include=('key',))"
+                " or config=wandb.helper.parse_config(config_object, exclude=('key',))"
+            )
+
+        if config_exclude_keys and config_include_keys:
+            raise UsageError(
+                "Expected at most only one of config_exclude_keys or "
+                "config_include_keys"
+            )
+        init_config = parse_config(
+            init_config, include=config_include_keys, exclude=config_exclude_keys
+        )
+        if config_include_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key in config_include_keys
+            }
+        if config_exclude_keys:
+            init_config = {
+                key: value
+                for key, value in iteritems(init_config)
+                if key not in config_exclude_keys
+            }
 
         # merge config with sweep (or config file)
         self.config = self._wl._config or dict()
@@ -89,9 +119,6 @@ class _WandbInit(object):
 
         # Temporarily unsupported parameters
         unsupported = (
-            "magic",
-            "config_exclude_keys",
-            "config_include_keys",
             "allow_val_change",
             "force",
         )
@@ -110,6 +137,10 @@ class _WandbInit(object):
         sync_tensorboard = kwargs.pop("sync_tensorboard", None)
         if tensorboard or sync_tensorboard and len(wandb.patched["tensorboard"]) == 0:
             wandb.tensorboard.patch()
+
+        magic = kwargs.get("magic")
+        if magic not in (None, False):
+            magic_install(kwargs)
 
         # prevent setting project, entity if in sweep
         # TODO(jhr): these should be locked elements in the future or at least
@@ -196,12 +227,12 @@ class _WandbInit(object):
     def _pause_backend(self):
         if self.backend is not None:
             logger.info("pausing backend")
-            self.backend.interface.send_pause()
+            self.backend.interface.publish_pause()
 
     def _resume_backend(self):
         if self.backend is not None:
             logger.info("resuming backend")
-            self.backend.interface.send_resume()
+            self.backend.interface.publish_resume()
 
     def _jupyter_teardown(self):
         """Teardown hooks and display saving, called with wandb.join"""
@@ -295,6 +326,7 @@ class _WandbInit(object):
         self._wl._early_logger_flush(logger)
 
     def init(self):
+        trigger.call("on_init", **self.kwargs)
         s = self.settings
         config = self.config
 
@@ -347,9 +379,14 @@ class _WandbInit(object):
         backend._hack_set_run(run)
 
         if s.offline:
-            backend.interface.send_run(run)
+            backend.interface.publish_run(run)
         else:
-            ret = backend.interface.send_run_sync(run, timeout=30)
+            ret = backend.interface.communicate_check_version()
+            message = ret.response.check_version_response.message
+            if message:
+                wandb.termlog(message)
+
+            ret = backend.interface.communicate_run(run, timeout=30)
             # TODO: fail on more errors, check return type
             # TODO: make the backend log stacktraces on catostrophic failure
             if ret.HasField("error"):
@@ -359,6 +396,9 @@ class _WandbInit(object):
                 self.teardown()
                 raise UsageError(ret.error.message)
             run._set_run_obj(ret.run)
+
+        # initiate run (stats and metadata probing)
+        _ = backend.interface.communicate_run_start()
 
         self._wl._global_run_stack.append(run)
         self.run = run
@@ -429,12 +469,15 @@ def init(
     """
     assert not wandb._IS_INTERNAL_PROCESS
     kwargs = locals()
-    error_seen = False
+    error_seen = None
+    except_exit = None
     try:
         wi = _WandbInit()
         wi.setup(kwargs)
+        except_exit = wi.settings._except_exit
         try:
             run = wi.init()
+            except_exit = wi.settings._except_exit
         except (KeyboardInterrupt, Exception) as e:
             if not isinstance(e, KeyboardInterrupt):
                 sentry_exc(e)
@@ -452,7 +495,7 @@ def init(
         logger.warning("interrupted", exc_info=e)
         raise_from(Exception("interrupted"), e)
     except Exception as e:
-        error_seen = True
+        error_seen = e
         traceback.print_exc()
         assert logger
         logger.error("error", exc_info=e)
@@ -464,5 +507,7 @@ def init(
     finally:
         if error_seen:
             wandb.termerror("Abnormal program exit")
-            os._exit(-1)
+            if except_exit:
+                os._exit(-1)
+            raise_from(Exception("problem"), error_seen)
     return run

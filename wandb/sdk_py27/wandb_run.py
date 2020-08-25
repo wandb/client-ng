@@ -25,12 +25,12 @@ from six import iteritems, string_types
 from six.moves import _thread as thread
 from six.moves.urllib.parse import quote as url_quote
 import wandb
+from wandb import trigger
 from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
-from wandb.lib import module, redirect
-from wandb.lib.dict import dict_from_proto_list
+from wandb.lib import module, proto_util, redirect, sparkline
 from wandb.lib.filenames import JOBSPEC_FNAME
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
@@ -110,7 +110,7 @@ class RunStatusChecker(object):
         while not join_requested:
             status_response = (
                 # 'or False' because this could return None.
-                self._interface.send_status_request(check_stop_req=True)
+                self._interface.communicate_status(check_stop_req=True)
                 or False
             )
             if status_response.run_should_stop:
@@ -118,8 +118,11 @@ class RunStatusChecker(object):
                 return
             join_requested = self._join_event.wait(self._polling_interval)
 
-    def join(self):
+    def stop(self):
         self._join_event.set()
+
+    def join(self):
+        self.stop()
         self._thread.join()
 
 
@@ -167,6 +170,7 @@ class RunManaged(Run):
         self._exit_code = None
         self._exit_result = None
         self._final_summary = None
+        self._sampled_history = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -175,7 +179,7 @@ class RunManaged(Run):
         # actual run comes back.
         sentry_set_scope("user", self._entity, self._project)
 
-        # Returned from backend send_run_sync, set from wandb_init?
+        # Returned from backend request_run(), set from wandb_init?
         self._run_obj = None
 
         # Created when the run "starts".
@@ -186,7 +190,20 @@ class RunManaged(Run):
         config = config or dict()
         wandb_key = "_wandb"
         config.setdefault(wandb_key, dict())
-        config[wandb_key]["cli_version"] = wandb.__version__
+
+        wandb_data = dict()
+        wandb_data["cli_version"] = wandb.__version__
+        wandb_data["python_version"] = platform.python_version()
+        wandb_data["is_jupyter_run"] = settings.jupyter or False
+        wandb_data["is_kaggle_kernel"] = settings._kaggle or False
+        hf_version = huggingface_version()
+        if hf_version:
+            wandb_data["huggingface_version"] = hf_version
+        framework = self._telemetry_get_framework()
+        if framework:
+            wandb_data["framework"] = framework
+        config[wandb_key].update(wandb_data)
+
         if settings.save_code and settings.program_relpath:
             config[wandb_key]["code_path"] = to_forward_slash_path(
                 os.path.join("code", settings.program_relpath)
@@ -195,6 +212,32 @@ class RunManaged(Run):
         self._atexit_cleanup_called = None
         self._use_redirect = True
         self._progress_step = 0
+
+    def _telemetry_get_framework(self):
+        """Get telemetry data for internal config structure."""
+        # detect framework by checking what is loaded
+        loaded = {}
+        loaded["lightgbm"] = sys.modules.get("lightgbm")
+        loaded["catboost"] = sys.modules.get("catboost")
+        loaded["xgboost"] = sys.modules.get("xgboost")
+        loaded["fastai"] = sys.modules.get("fastai")
+        loaded["torch"] = sys.modules.get("torch")
+        loaded["keras"] = sys.modules.get("keras")  # vanilla keras
+        loaded["tensorflow"] = sys.modules.get("tensorflow")
+        loaded["sklearn"] = sys.modules.get("sklearn")
+
+        priority = (
+            "lightgbm",
+            "catboost",
+            "xgboost",
+            "fastai",
+            "torch",
+            "keras",
+            "tensorflow",
+            "sklearn",
+        )
+        framework = next((f for f in priority if loaded.get(f)), None)
+        return framework
 
     def _init_from_settings(self, settings):
         if settings.entity is not None:
@@ -259,7 +302,7 @@ class RunManaged(Run):
     def name(self, name):
         self._name = name
         if self._backend:
-            self._backend.interface.send_run(self)
+            self._backend.interface.publish_run(self)
 
     @property
     def notes(self):
@@ -271,7 +314,7 @@ class RunManaged(Run):
     def notes(self, notes):
         self._notes = notes
         if self._backend:
-            self._backend.interface.send_run(self)
+            self._backend.interface.publish_run(self)
 
     @property
     def id(self):
@@ -338,18 +381,18 @@ class RunManaged(Run):
 
     def _config_callback(self, key=None, val=None, data=None):
         logger.info("config_cb %s %s %s", key, val, data)
-        self._backend.interface.send_config(data)
+        self._backend.interface.publish_config(data)
 
     def _summary_update_callback(self, summary_record):
-        self._backend.interface.send_summary(summary_record)
+        self._backend.interface.publish_summary(summary_record)
 
     def _summary_get_current_summary_callback(self):
-        ret = self._backend.interface.send_get_summary_sync()
-        return dict_from_proto_list(ret.item)
+        ret = self._backend.interface.request_summary()
+        return proto_util.dict_from_proto_list(ret.item)
 
     def _datatypes_callback(self, fname):
         files = dict(files=[(fname, "now")])
-        self._backend.interface.send_files(files)
+        self._backend.interface.publish_files(files)
 
     def _history_callback(self, row=None, step=None):
 
@@ -368,16 +411,16 @@ class RunManaged(Run):
         if visualize_persist_config:
             self._config_callback(data=self._config._as_dict())
 
-        self._backend.interface.send_history(row, step)
+        self._backend.interface.publish_history(row, step)
 
     def _console_callback(self, name, data):
         logger.info("console callback: %s, %s", name, data)
-        self._backend.interface.send_output(name, data)
+        self._backend.interface.publish_output(name, data)
 
     def _tensorboard_callback(self, logdir, save=None):
         logger.info("tensorboard callback: %s, %s", logdir, save)
         save = True if save is None else save
-        self._backend.interface.send_tbdata(logdir, save)
+        self._backend.interface.publish_tbdata(logdir, save)
 
     def _set_library(self, library):
         self._wl = library
@@ -642,7 +685,7 @@ class RunManaged(Run):
                 % file_str
             )
         files_dict = dict(files=[(wandb_glob_str, policy)])
-        self._backend.interface.send_files(files_dict)
+        self._backend.interface.publish_files(files_dict)
         return files
 
     def restore(
@@ -870,11 +913,17 @@ class RunManaged(Run):
                 os.remove(self._settings.resume_fname)
 
         self._exit_code = exit_code
-        self._halt_bg_threads()
         try:
             self._on_finish()
         except KeyboardInterrupt:
             wandb.termerror("Control-C detected -- Run data was not synced")
+            os._exit(-1)
+        except Exception as e:
+            self._console_stop()
+            self._backend.cleanup()
+            logger.error("Problem finishing run", exc_info=e)
+            wandb.termerror("Problem finishing run")
+            traceback.print_exception(*sys.exc_info())
             os._exit(-1)
         self._on_final()
 
@@ -939,15 +988,10 @@ class RunManaged(Run):
     def _on_finish_progress(self, progress, done=None):
         self._pusher_print_status(progress, done=done)
 
-    def _halt_bg_threads(self):
-        if self._run_status_checker:
-            self._run_status_checker.join()
-            self._run_status_checker = None
-
     def _wait_for_finish(self):
         ret = None
         while True:
-            ret = self._backend.interface.send_poll_exit_sync()
+            ret = self._backend.interface.communicate_poll_exit()
             logger.info("got exit ret: %s", ret)
 
             done = ret.response.poll_exit_response.done
@@ -960,25 +1004,38 @@ class RunManaged(Run):
         return ret
 
     def _on_finish(self):
+        trigger.call("on_finished")
+
+        if self._run_status_checker:
+            self._run_status_checker.stop()
+
         # make sure all uncommitted history is flushed
         self.history._flush()
 
         if self._settings.offline:
-            self._backend.interface.send_exit(self._exit_code)
+            self._backend.interface.publish_exit(self._exit_code)
         else:
             # TODO: we need to handle catastrophic failure better
             # some tests were timing out on sending exit for reasons not clear to me
-            self._backend.interface.send_exit(self._exit_code)
+            self._backend.interface.publish_exit(self._exit_code)
 
             # Wait for data to be synced
             ret = self._wait_for_finish()
 
             self._poll_exit_response = ret.response.poll_exit_response
-            ret = self._backend.interface.send_get_summary_sync()
-            self._final_summary = dict_from_proto_list(ret.item)
+
+            ret = self._backend.interface.communicate_summary()
+            self._final_summary = proto_util.dict_from_proto_list(ret.item)
+
+            ret = self._backend.interface.communicate_sampled_history()
+            d = {item.key: item.values_float or item.values_int for item in ret.item}
+            self._sampled_history = d
 
         self._console_stop()
         self._backend.cleanup()
+
+        if self._run_status_checker:
+            self._run_status_checker.join()
 
     def _on_final(self):
         # check for warnings and errors, show log file locations
@@ -1012,18 +1069,9 @@ class RunManaged(Run):
                 )
             )
 
-        self._print_summary()
-
-        if self._poll_exit_response and self._poll_exit_response.file_counts:
-            logger.info("logging synced files")
-            wandb.termlog(
-                "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
-                    self._poll_exit_response.file_counts.wandb_count,
-                    self._poll_exit_response.file_counts.media_count,
-                    self._poll_exit_response.file_counts.artifact_count,
-                    self._poll_exit_response.file_counts.other_count,
-                )
-            )
+        self._show_summary()
+        self._show_history()
+        self._show_files()
 
         if self._run_obj:
             run_url = self._get_run_url()
@@ -1034,7 +1082,7 @@ class RunManaged(Run):
                 )
             )
 
-    def _print_summary(self):
+    def _show_summary(self):
         if self._final_summary:
             logger.info("rendering summary")
             wandb.termlog("Run summary:")
@@ -1048,6 +1096,43 @@ class RunManaged(Run):
                     wandb.termlog(format_str.format(k, v))
                 elif isinstance(v, numbers.Number):
                     wandb.termlog(format_str.format(k, v))
+
+    def _show_history(self):
+        if not self._sampled_history:
+            return
+
+        # Only print sparklines if the terminal is utf-8
+        # In some python 2.7 tests sys.stdout is a 'cStringIO.StringO' object
+        #   which doesn't have the attribute 'encoding'
+        if not hasattr(sys.stdout, "encoding") or sys.stdout.encoding not in (
+            "UTF_8",
+            "UTF-8",
+        ):
+            return
+
+        logger.info("rendering history")
+        wandb.termlog("Run history:")
+        max_len = max([len(k) for k in self._sampled_history])
+        for key in self._sampled_history:
+            vals = wandb.util.downsample(self._sampled_history[key], 40)
+            if any((not isinstance(v, numbers.Number) for v in vals)):
+                continue
+            line = sparkline.sparkify(vals)
+            format_str = u"  {:>%s} {}" % max_len
+            wandb.termlog(format_str.format(key, line))
+
+    def _show_files(self):
+        if not self._poll_exit_response or not self._poll_exit_response.file_counts:
+            return
+        logger.info("logging synced files")
+        wandb.termlog(
+            "Synced {} W&B file(s), {} media file(s), {} artifact file(s) and {} other file(s)".format(  # noqa:E501
+                self._poll_exit_response.file_counts.wandb_count,
+                self._poll_exit_response.file_counts.media_count,
+                self._poll_exit_response.file_counts.artifact_count,
+                self._poll_exit_response.file_counts.other_count,
+            )
+        )
 
     def _save_job_spec(self):
         envdict = dict(python="python3.6", requirements=[],)
@@ -1127,7 +1212,7 @@ class RunManaged(Run):
                 aliases = [aliases]
             if isinstance(artifact_or_name, wandb.Artifact):
                 artifact.finalize()
-                self._backend.interface.send_artifact(
+                self._backend.interface.publish_artifact(
                     self, artifact, aliases, is_user_created=True, use_after_commit=True
                 )
                 return artifact
@@ -1189,7 +1274,7 @@ class RunManaged(Run):
         if isinstance(aliases, str):
             aliases = [aliases]
         artifact.finalize()
-        self._backend.interface.send_artifact(self, artifact, aliases)
+        self._backend.interface.publish_artifact(self, artifact, aliases)
         return artifact
 
     def _set_console(self, use_redirect, stdout_slave_fd, stderr_slave_fd):
@@ -1204,3 +1289,11 @@ class RunManaged(Run):
         exit_code = 0 if exc_type is None else 1
         self.join(exit_code)
         return exc_type is None
+
+
+def huggingface_version():
+    if "transformers" in sys.modules:
+        trans = wandb.util.get_module("transformers")
+        if hasattr(trans, "__version__"):
+            return trans.__version__
+    return None

@@ -32,7 +32,7 @@ import tempfile
 
 import six
 import wandb
-from wandb.internal import git_repo
+from wandb.lib.git import GitRepo
 from wandb.lib.ipython import _get_python_type
 from wandb.lib.runid import generate_id
 
@@ -140,7 +140,7 @@ def _get_program():
 
 
 def _get_program_relpath_from_gitrepo(program):
-    repo = git_repo.GitRepo()
+    repo = GitRepo()
     root = repo.root
     if not root:
         root = os.getcwd()
@@ -212,6 +212,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         run_name: str = None,
         run_notes: str = None,
         resume: str = None,
+        magic: Union[Dict, str, bool] = False,
         run_tags=None,
         sweep_id=None,
         # compatibility / error handling
@@ -301,6 +302,8 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _args=None,
         _os=None,
         _python=None,
+        _kaggle=None,
+        _except_exit=None,
     ):
         kwargs = locals()
         object.__setattr__(self, "_masked_keys", set(["self", "_frozen"]))
@@ -423,6 +426,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         """Modify settings based on environment (for runs and cli)."""
         d = {}
         d["jupyter"] = _get_python_type() != "python"
+        d["_kaggle"] = _is_kaggle()
         d["windows"] = platform.system() == "Windows"
         # disable symlinks if on windows (requires admin or developer setup)
         d["symlink"] = True
@@ -481,6 +485,9 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         u["_args"] = sys.argv[1:]
         u["_os"] = platform.platform(aliased=True)
         u["_python"] = platform.python_version()
+        # hack to make sure we don't hang on windows
+        if self.windows and self._except_exit is None:
+            u["_except_exit"] = True
 
         self.update(u)
 
