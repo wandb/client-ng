@@ -76,18 +76,21 @@ class CRDedupeFilePolicy(DefaultFilePolicy):
 
     def process_chunks(self, chunks):
         ret = []
-        flag = False
+        flag = False # whether the cursor can be moved up
         for c in chunks:
+            s = c.data.split(':')
+            tstamp = s[0] + ':' + s[1].split(' ')[0]
             lines = c.data.split(os.linesep)
             for line in lines:
                 line = line.split('\r')[-1]
                 if line:
+                    # check for cursor up control character
                     if line.endswith('\x1b\x5b\x41'):
                         if flag:
                             ret.pop()
                             flag = False
                     else:
-                        ret.append(line + os.linesep)
+                        ret.append(tstamp + ' ' + line + os.linesep)
                         flag = True
         chunk_id = self._chunk_id
         self._chunk_id += len(ret)
