@@ -1022,6 +1022,9 @@ class RunManaged(Run):
         # make sure all uncommitted history is flushed
         self.history._flush()
 
+        self._console_stop()
+        print("")
+
         if self._settings.offline:
             self._backend.interface.publish_exit(self._exit_code)
         else:
@@ -1041,7 +1044,6 @@ class RunManaged(Run):
             d = {item.key: item.values_float or item.values_int for item in ret.item}
             self._sampled_history = d
 
-        self._console_stop()
         self._backend.cleanup()
 
         if self._run_status_checker:
