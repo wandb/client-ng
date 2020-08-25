@@ -30,8 +30,7 @@ from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
-from wandb.lib import module, proto_util, redirect, sparkline
-from wandb.lib.filenames import JOBSPEC_FNAME
+from wandb.lib import filenames, module, proto_util, redirect, sparkline
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
@@ -172,6 +171,8 @@ class RunManaged(Run):
         self._exit_result = None
         self._final_summary = None
         self._sampled_history = None
+
+        self._output_writer = None
 
         # Pull info from settings
         self._init_from_settings(settings)
@@ -837,11 +838,15 @@ class RunManaged(Run):
 
         if console == "redirect":
             logger.info("redirect1")
-            out_cap = redirect.Capture(name="stdout", cb=self._redirect_cb)
+            out_cap = redirect.Capture(
+                name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
+            )
             out_redir = redirect.Redirect(
                 src="stdout", dest=out_cap, unbuffered=True, tee=True
             )
-            err_cap = redirect.Capture(name="stderr", cb=self._redirect_cb)
+            err_cap = redirect.Capture(
+                name="stderr", cb=self._redirect_cb, output_writer=self._output_writer
+            )
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
@@ -938,10 +943,14 @@ class RunManaged(Run):
             # setup fake callback
             self._redirect_cb = self._console_callback
 
+        output_log_path = os.path.join(self.dir, filenames.OUTPUT_FNAME)
+        self._output_writer = WriteSerializingFile(open(output_log_path, "wb"))
         self._redirect(self._stdout_slave_fd, self._stderr_slave_fd)
 
     def _console_stop(self):
         self._restore()
+        self._output_writer.f.close()
+        self._output_writer = None
 
     def _on_start(self):
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
@@ -1160,7 +1169,7 @@ class RunManaged(Run):
         }
 
         s = json.dumps(job_spec, indent=4)
-        spec_filename = JOBSPEC_FNAME
+        spec_filename = filenames.JOBSPEC_FNAME
         with open(spec_filename, "w") as f:
             print(s, file=f)
         self.save(spec_filename)
@@ -1298,3 +1307,20 @@ def huggingface_version():
         if hasattr(trans, "__version__"):
             return trans.__version__
     return None
+
+
+class WriteSerializingFile(object):
+    """Wrapper for a file object that serializes writes.
+    """
+
+    def __init__(self, f):
+        self.lock = threading.Lock()
+        self.f = f
+
+    def write(self, *args, **kargs):
+        self.lock.acquire()
+        try:
+            self.f.write(*args, **kargs)
+            self.f.flush()
+        finally:
+            self.lock.release()
