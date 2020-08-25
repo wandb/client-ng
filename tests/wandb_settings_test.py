@@ -136,3 +136,88 @@ def test_bad_choice():
         s.mode = "goodprojo"
     with pytest.raises(TypeError):
         s.update(mode="badpro")
+
+
+def test_prio_update_ok():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.ENTITY)
+    assert s.project == "pizza"
+    s.update(project="pizza2", _source=s.Source.PROJECT)
+    assert s.project == "pizza2"
+
+
+def test_prio_update_ignore():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.PROJECT)
+    assert s.project == "pizza"
+    s.update(project="pizza2", _source=s.Source.ENTITY)
+    assert s.project == "pizza"
+
+
+def test_prio_update_over_ok():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.PROJECT)
+    assert s.project == "pizza"
+    s.update(project="pizza2", _source=s.Source.ENTITY, _override=True)
+    assert s.project == "pizza2"
+
+
+def test_prio_update_over_both_ok():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.PROJECT, _override=True)
+    assert s.project == "pizza"
+    s.update(project="pizza2", _source=s.Source.ENTITY, _override=True)
+    assert s.project == "pizza2"
+
+
+def test_prio_update_over_ignore():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.ENTITY, _override=True)
+    assert s.project == "pizza"
+    s.update(project="pizza2", _source=s.Source.PROJECT, _override=True)
+    assert s.project == "pizza"
+
+
+def test_prio_context_ok():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.ENTITY)
+    assert s.project == "pizza"
+    with s._as_source(s.Source.PROJECT) as s2:
+        s2.project="pizza2"
+    assert s.project == "pizza2"
+
+
+def test_prio_context_ignore():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.PROJECT)
+    assert s.project == "pizza"
+    with s._as_source(s.Source.ENTITY) as s2:
+        s2.project="pizza2"
+    assert s.project == "pizza"
+
+
+def test_prio_context_over_ok():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.PROJECT)
+    assert s.project == "pizza"
+    with s._as_source(s.Source.ENTITY, override=True) as s2:
+        s2.project="pizza2"
+    assert s.project == "pizza2"
+
+
+def test_prio_context_over_both_ok():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.PROJECT, _override=True)
+    assert s.project == "pizza"
+    with s._as_source(s.Source.ENTITY, override=True) as s2:
+        s2.project="pizza2"
+    assert s.project == "pizza2"
+
+
+def test_prio_context_over_ignore():
+    s = Settings()
+    s.update(project="pizza", _source=s.Source.ENTITY, _override=True)
+    assert s.project == "pizza"
+    with s._as_source(s.Source.PROJECT, override=True) as s2:
+        s2.project="pizza2"
+    assert s.project == "pizza"

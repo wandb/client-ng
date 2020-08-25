@@ -15,6 +15,10 @@ Order of loading settings: (differs from priority)
 
 Priority of settings:  See "source" variable.
 
+When override is used, it has priority over non-override settings
+
+Override priorities are in the reverse order of non-override settings
+
 """
 
 import collections
@@ -46,7 +50,8 @@ if wandb.TYPE_CHECKING:  # type: ignore
 
 logger = logging.getLogger("wandb")
 
-source = (
+source_str = (
+    "none",
     "org",
     "entity",
     "project",
@@ -57,6 +62,19 @@ source = (
     "settings",
     "args",
 )
+
+
+class Source(object):
+    ORG = 1
+    ENTITY = 2
+    PROJECT = 3
+    SYSTEM = 4
+    WORKSPACE = 5
+    ENV = 6
+    SETUP = 7
+    SETTINGS = 8
+    ARGS = 9
+
 
 Field = collections.namedtuple("TypedField", ["type", "choices"])
 
@@ -302,13 +320,15 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         _except_exit=None,
     ):
         kwargs = locals()
+        object.__setattr__(self, "Source", Source)
         object.__setattr__(self, "_masked_keys", set(["self", "_frozen"]))
         object.__setattr__(
             self, "_unsaved_keys", set(["_settings", "_files", "_environ"])
         )
         object.__setattr__(self, "_frozen", False)
-        object.__setattr__(self, "_locked_by", dict)
-        object.__setattr__(self, "_configured_by", dict)
+        # object.__setattr__(self, "_locked_by", dict())
+        object.__setattr__(self, "_source_dict", dict())
+        object.__setattr__(self, "_override_dict", dict())
         self._setup(kwargs)
 
         if _files:
@@ -316,11 +336,11 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             settings_system = self._path_convert(
                 self.__dict__.get("settings_system_spec")
             )
-            self.update(self._load(settings_system), _setter="system")
+            self.update(self._load(settings_system), _source=Source.SYSTEM)
             settings_workspace = self._path_convert(
                 self.__dict__.get("settings_workspace_spec")
             )
-            self.update(self._load(settings_workspace), _setter="workspace")
+            self.update(self._load(settings_workspace), _source=Source.WORKSPACE)
         if _settings:
             self.update(dict(_settings))
         if _environ:
@@ -340,7 +360,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
                     _logger.info("Unhandled environment var: {}".format(k))
 
             _logger.info("setting env: {}".format(env_dict))
-            self.update(env_dict, _setter="env")
+            self.update(env_dict, _source=Source.ENV)
         # TODO: is this the right place to do this?
         self.update(
             {"resume_fname": self._path_convert(self.__dict__.get("resume_fname_spec"))}
@@ -406,7 +426,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
                     )
                 )
 
-    def update(self, __d=None, _setter=None, **kwargs):
+    def update(self, __d=None, _source=None, _override=None, **kwargs):
         if self._frozen and (__d or kwargs):
             raise TypeError("Settings object is frozen")
         d = __d or dict()
@@ -415,8 +435,45 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
                 if k not in self.__dict__:
                     raise KeyError(k)
                 self._check_invalid(k, check[k])
-        self.__dict__.update({k: v for k, v in d.items() if v is not None})
-        self.__dict__.update({k: v for k, v in kwargs.items() if v is not None})
+        for data in d, kwargs:
+            for k, v in six.iteritems(data):
+                if v is None:
+                    continue
+                if self._priority_failed(k, v, source=_source, override=_override):
+                    continue
+                self.__dict__[k] = v
+                if _source:
+                    self._source_dict[k] = _source
+                if _override:
+                    self._override_dict[k] = _override
+
+    def _priority_failed(self, k, v, source, override):
+        key_source = self._source_dict.get(k)
+        key_override = self._override_dict.get(k)
+        if not key_source or not source:
+            return False
+        if key_override and not override:
+            wandb.termwarn(
+                "Settings key '%s' already set by override from source %s"
+                % (k, source_str[key_source])
+            )
+            return True
+        if key_override and override and source > key_source:
+            wandb.termwarn(
+                (
+                    "Settings key '%s' already set by override from higher "
+                    "priority override source %s"
+                )
+                % (k, source_str[key_source])
+            )
+            return True
+        if not override and source < key_source:
+            wandb.termwarn(
+                "Settings key '%s' already set from higher priority source %s"
+                % (k, source_str[key_source])
+            )
+            return True
+        return False
 
     def _infer_settings_from_env(self):
         """Modify settings based on environment (for runs and cli)."""
@@ -588,3 +645,26 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             wandb.util.mkdir_exists_ok(self.wandb_dir)
             with open(self.resume_fname, "w") as f:
                 f.write(json.dumps({"run_id": self.run_id}))
+
+    def _as_source(self, source, override=None):
+        return Settings._Setter(settings=self, source=source, override=override)
+
+    class _Setter(object):
+        def __init__(self, settings, source, override):
+            object.__setattr__(self, "_settings", settings)
+            object.__setattr__(self, "_source", source)
+            object.__setattr__(self, "_override", override)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_traceback):
+            pass
+
+        def __setattr__(self, name, value):
+            self.update({name: value})
+
+        def update(self, __d=None, **kwargs):
+            self._settings.update(
+                __d, **kwargs, _source=self._source, _override=self._override
+            )
