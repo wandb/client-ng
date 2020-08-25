@@ -225,8 +225,6 @@ class RunManaged(Run):
         loaded["keras"] = sys.modules.get("keras")  # vanilla keras
         loaded["tensorflow"] = sys.modules.get("tensorflow")
         loaded["sklearn"] = sys.modules.get("sklearn")
-        # TODO(jhr): tfkeras is always loaded with recent tensorflow
-        # loaded['tfkeras'] = sys.modules.get('tensorflow.python.keras')
 
         priority = (
             "lightgbm",
@@ -235,7 +233,6 @@ class RunManaged(Run):
             "fastai",
             "torch",
             "keras",
-            "tfkeras",
             "tensorflow",
             "sklearn",
         )
