@@ -237,11 +237,9 @@ class HandleManager(object):
             item = wandb_internal_pb2.SampledHistoryItem()
             item.key = key
             values = sampled.get()
-            first = next(iter(values), None)
-            assert first is not None
-            if isinstance(first, numbers.Integral):
+            if all(isinstance(i, numbers.Integral) for i in values):
                 item.values_int.extend(values)
-            elif isinstance(first, numbers.Real):
+            elif all(isinstance(i, numbers.Real) for i in values):
                 item.values_float.extend(values)
             result.response.sampled_history_response.item.append(item)
         self._result_q.put(result)
