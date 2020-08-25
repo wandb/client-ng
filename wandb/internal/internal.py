@@ -114,8 +114,7 @@ def wandb_internal(settings, record_q, result_q):
         except KeyboardInterrupt:
             interrupt_count += 1
             logger.warning(
-                "Internal process interrupt: {}".format(interrupt_count),
-                file=sys.stderr,
+                "Internal process interrupt: {}".format(interrupt_count)
             )
         finally:
             if interrupt_count >= 2:
