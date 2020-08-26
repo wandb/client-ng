@@ -1114,7 +1114,7 @@ class RunManaged(Run):
             wandb.termlog("You can sync this run to the cloud by running:")
             wandb.termlog(
                 click.style(
-                    "wandb sync {}".format(self._settings._sync_dir), fg="yellow"
+                    "wandb sync {}".format(self._settings.sync_file), fg="yellow"
                 )
             )
 
