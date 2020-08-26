@@ -949,7 +949,7 @@ class RunManaged(Run):
 
     def _console_stop(self):
         self._restore()
-        self._output_writer.f.close()
+        self._output_writer.close()
         self._output_writer = None
 
     def _on_start(self):
@@ -1326,3 +1326,6 @@ class WriteSerializingFile(object):
             self.f.flush()
         finally:
             self.lock.release()
+
+    def close(self):
+        self.f.close()
