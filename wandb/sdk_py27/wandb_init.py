@@ -23,6 +23,7 @@ from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
 from .wandb_helper import parse_config
+from .wandb_login import _login
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
 
@@ -282,6 +283,7 @@ class _WandbInit(object):
         settings.log_internal = settings._path_convert(
             settings.log_dir_spec, settings.log_internal_spec
         )
+        settings._sync_dir = settings._path_convert(settings.sync_dir_spec)
         settings.sync_file = settings._path_convert(
             settings.sync_dir_spec, settings.sync_file_spec
         )
@@ -330,13 +332,16 @@ class _WandbInit(object):
         s = self.settings
         config = self.config
 
-        if s.reinit:
+        if s.reinit or (s.jupyter and s.reinit is not False):
             if len(self._wl._global_run_stack) > 0:
                 if len(self._wl._global_run_stack) > 1:
                     wandb.termwarn(
                         "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"  # noqa: E501
                     )
                 self._wl._global_run_stack[-1].join()
+        elif wandb.run:
+            logger.info("wandb.init() called when a run is still active")
+            return wandb.run
 
         console = s.console
         use_redirect = True
@@ -350,7 +355,7 @@ class _WandbInit(object):
             stdout_master_fd, stdout_slave_fd = lib_console.win32_create_pipe()
             stderr_master_fd, stderr_slave_fd = lib_console.win32_create_pipe()
 
-        backend = Backend(mode=s.mode)
+        backend = Backend()
         backend.ensure_launched(
             settings=s,
             stdout_fd=stdout_master_fd,
@@ -359,7 +364,7 @@ class _WandbInit(object):
         )
         backend.server_connect()
         # Make sure we are logged in
-        wandb.login(backend=backend)
+        _login(_backend=backend, _disable_warning=True, _settings=self.settings)
 
         # resuming needs access to the server, check server_status()?
 
@@ -442,8 +447,7 @@ def init(
     config_exclude_keys=None,
     config_include_keys=None,
     anonymous = None,
-    disabled = None,
-    offline = None,
+    mode = None,
     allow_val_change = None,
     resume = None,
     force=None,

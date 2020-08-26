@@ -30,8 +30,7 @@ from wandb.apis import internal, public
 from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
-from wandb.lib import module, proto_util, redirect, sparkline
-from wandb.lib.filenames import JOBSPEC_FNAME
+from wandb.lib import filenames, module, proto_util, redirect, sparkline
 from wandb.util import sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
@@ -130,6 +129,7 @@ class RunManaged(Run):
     def __init__(self, config=None, settings=None):
         self._config = wandb_config.Config()
         self._config._set_callback(self._config_callback)
+        self._config._set_settings(settings)
         self._backend = None
         self.summary = wandb_summary.Summary(
             self._summary_get_current_summary_callback,
@@ -172,6 +172,8 @@ class RunManaged(Run):
         self._final_summary = None
         self._sampled_history = None
 
+        self._output_writer = None
+
         # Pull info from settings
         self._init_from_settings(settings)
 
@@ -190,7 +192,20 @@ class RunManaged(Run):
         config = config or dict()
         wandb_key = "_wandb"
         config.setdefault(wandb_key, dict())
-        config[wandb_key]["cli_version"] = wandb.__version__
+
+        wandb_data = dict()
+        wandb_data["cli_version"] = wandb.__version__
+        wandb_data["python_version"] = platform.python_version()
+        wandb_data["is_jupyter_run"] = settings.jupyter or False
+        wandb_data["is_kaggle_kernel"] = settings._kaggle or False
+        hf_version = huggingface_version()
+        if hf_version:
+            wandb_data["huggingface_version"] = hf_version
+        framework = self._telemetry_get_framework()
+        if framework:
+            wandb_data["framework"] = framework
+        config[wandb_key].update(wandb_data)
+
         if settings.save_code and settings.program_relpath:
             config[wandb_key]["code_path"] = to_forward_slash_path(
                 os.path.join("code", settings.program_relpath)
@@ -199,6 +214,32 @@ class RunManaged(Run):
         self._atexit_cleanup_called = None
         self._use_redirect = True
         self._progress_step = 0
+
+    def _telemetry_get_framework(self):
+        """Get telemetry data for internal config structure."""
+        # detect framework by checking what is loaded
+        loaded = {}
+        loaded["lightgbm"] = sys.modules.get("lightgbm")
+        loaded["catboost"] = sys.modules.get("catboost")
+        loaded["xgboost"] = sys.modules.get("xgboost")
+        loaded["fastai"] = sys.modules.get("fastai")
+        loaded["torch"] = sys.modules.get("torch")
+        loaded["keras"] = sys.modules.get("keras")  # vanilla keras
+        loaded["tensorflow"] = sys.modules.get("tensorflow")
+        loaded["sklearn"] = sys.modules.get("sklearn")
+
+        priority = (
+            "lightgbm",
+            "catboost",
+            "xgboost",
+            "fastai",
+            "torch",
+            "keras",
+            "tensorflow",
+            "sklearn",
+        )
+        framework = next((f for f in priority if loaded.get(f)), None)
+        return framework
 
     def _init_from_settings(self, settings):
         if settings.entity is not None:
@@ -375,7 +416,7 @@ class RunManaged(Run):
         self._backend.interface.publish_history(row, step)
 
     def _console_callback(self, name, data):
-        logger.info("console callback: %s, %s", name, data)
+        # logger.info("console callback: %s, %s", name, data)
         self._backend.interface.publish_output(name, data)
 
     def _tensorboard_callback(self, logdir, save=None):
@@ -726,7 +767,7 @@ class RunManaged(Run):
 
         r = self._run_obj
         sweep_id = r.sweep_id
-        if sweep_id is None:
+        if not sweep_id:
             return
 
         app_url = self._settings.base_url.replace("//api.", "//app.")
@@ -784,12 +825,21 @@ class RunManaged(Run):
                     click.style(project_url, underline=True, fg="blue"),
                 )
             )
+            if sweep_url:
+                wandb.termlog(
+                    "{} View sweep at {}".format(
+                        emojis.get("broom", ""),
+                        click.style(sweep_url, underline=True, fg="blue"),
+                    )
+                )
             wandb.termlog(
                 "{} View run at {}".format(
                     emojis.get("rocket", ""),
                     click.style(run_url, underline=True, fg="blue"),
                 )
             )
+            if not self._settings.offline:
+                wandb.termlog("Run `wandb off` to turn off syncing.")
 
     def _redirect(self, stdout_slave_fd, stderr_slave_fd):
         console = self._settings.console
@@ -797,11 +847,15 @@ class RunManaged(Run):
 
         if console == "redirect":
             logger.info("redirect1")
-            out_cap = redirect.Capture(name="stdout", cb=self._redirect_cb)
+            out_cap = redirect.Capture(
+                name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
+            )
             out_redir = redirect.Redirect(
                 src="stdout", dest=out_cap, unbuffered=True, tee=True
             )
-            err_cap = redirect.Capture(name="stderr", cb=self._redirect_cb)
+            err_cap = redirect.Capture(
+                name="stderr", cb=self._redirect_cb, output_writer=self._output_writer
+            )
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
@@ -898,13 +952,29 @@ class RunManaged(Run):
             # setup fake callback
             self._redirect_cb = self._console_callback
 
+        output_log_path = os.path.join(self.dir, filenames.OUTPUT_FNAME)
+        self._output_writer = WriteSerializingFile(open(output_log_path, "wb"))
         self._redirect(self._stdout_slave_fd, self._stderr_slave_fd)
 
     def _console_stop(self):
         self._restore()
+        self._output_writer.close()
+        self._output_writer = None
 
     def _on_start(self):
+        if self._settings.offline:
+            wandb.termlog("Offline run mode, not syncing to the cloud.")
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
+        if self._settings.offline:
+            wandb.termlog(
+                (
+                    "W&B is disabled in this directory.  "
+                    "Run `wandb on` to enable cloud syncing."
+                )
+            )
+        wandb.termlog(
+            "Run data is saved locally in {}".format(self._settings._sync_dir)
+        )
         if self._run_obj:
             if self.resumed:
                 run_state_str = "Resuming run"
@@ -973,6 +1043,18 @@ class RunManaged(Run):
         # make sure all uncommitted history is flushed
         self.history._flush()
 
+        self._console_stop()
+        print("")
+        pid = self._backend._internal_pid
+        wandb.termlog("Waiting for W&B process to finish, PID {}".format(pid))
+        if not self._exit_code:
+            wandb.termlog("Program ended successfully.")
+        else:
+            msg = "Program failed with code {}. ".format(self._exit_code)
+            if not self._settings.offline:
+                msg += " Press ctrl-c to abort syncing."
+            wandb.termlog(msg)
+
         if self._settings.offline:
             self._backend.interface.publish_exit(self._exit_code)
         else:
@@ -992,7 +1074,6 @@ class RunManaged(Run):
             d = {item.key: item.values_float or item.values_int for item in ret.item}
             self._sampled_history = d
 
-        self._console_stop()
         self._backend.cleanup()
 
         if self._run_status_checker:
@@ -1027,6 +1108,13 @@ class RunManaged(Run):
             wandb.termlog(
                 "Find internal logs for this run at: {}".format(
                     self._settings.log_internal
+                )
+            )
+        if self._settings.offline:
+            wandb.termlog("You can sync this run to the cloud by running:")
+            wandb.termlog(
+                click.style(
+                    "wandb sync {}".format(self._settings.sync_file), fg="yellow"
                 )
             )
 
@@ -1120,7 +1208,7 @@ class RunManaged(Run):
         }
 
         s = json.dumps(job_spec, indent=4)
-        spec_filename = JOBSPEC_FNAME
+        spec_filename = filenames.JOBSPEC_FNAME
         with open(spec_filename, "w") as f:
             print(s, file=f)
         self.save(spec_filename)
@@ -1250,3 +1338,31 @@ class RunManaged(Run):
         exit_code = 0 if exc_type is None else 1
         self.join(exit_code)
         return exc_type is None
+
+
+def huggingface_version():
+    if "transformers" in sys.modules:
+        trans = wandb.util.get_module("transformers")
+        if hasattr(trans, "__version__"):
+            return trans.__version__
+    return None
+
+
+class WriteSerializingFile(object):
+    """Wrapper for a file object that serializes writes.
+    """
+
+    def __init__(self, f):
+        self.lock = threading.Lock()
+        self.f = f
+
+    def write(self, *args, **kargs):
+        self.lock.acquire()
+        try:
+            self.f.write(*args, **kargs)
+            self.f.flush()
+        finally:
+            self.lock.release()
+
+    def close(self):
+        self.f.close()
