@@ -44,8 +44,10 @@ setup = wandb_sdk.setup
 save = wandb_sdk.save
 watch = wandb_sdk.watch
 login = wandb_sdk.login
+helper = wandb_sdk.helper
 Artifact = wandb_sdk.Artifact
 Settings = wandb_sdk.Settings
+Config = wandb_sdk.Config
 
 from wandb.apis import InternalApi, PublicApi
 from wandb.errors.error import CommError

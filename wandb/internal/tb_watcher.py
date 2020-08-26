@@ -2,7 +2,6 @@
 tensor b watcher.
 """
 
-import json
 import os
 import threading
 import time
@@ -10,20 +9,17 @@ import time
 import six
 from six.moves import queue
 import wandb
-from wandb import data_types
 from wandb import util
-from wandb.util import json_dumps_safer_history
+from wandb.internal import run as internal_run
 
 
 # Give some time for tensorboard data to be flushed
 SHUTDOWN_DELAY = 5
 
 
-def _link_and_save_file(path, base_path=None, sender=None):
+def _link_and_save_file(path, base_path, interface, settings):
     # TODO(jhr): should this logic be merged with Run.save()
-    if base_path is None:
-        base_path = os.path.dirname(path)
-    files_dir = sender._settings.files_dir
+    files_dir = settings.files_dir
     file_name = os.path.relpath(path, base_path)
     abs_path = os.path.abspath(path)
     wandb_path = os.path.join(files_dir, file_name)
@@ -35,15 +31,16 @@ def _link_and_save_file(path, base_path=None, sender=None):
     elif not os.path.exists(wandb_path):
         os.symlink(abs_path, wandb_path)
     # TODO(jhr): need to figure out policy, live/throttled?
-    sender._save_file(file_name, policy="live")
+    interface.publish_files(dict(files=[(file_name, "live")]))
 
 
 class TBWatcher(object):
-    def __init__(self, settings, sender=None):
+    def __init__(self, settings, run_proto, interface):
         self._logdirs = {}
         self._consumer = None
         self._settings = settings
-        self._sender = sender
+        self._interface = interface
+        self._internal_run = internal_run.InternalRun(run_proto, settings)
         # TODO(jhr): do we need locking in this queue?
         self._watcher_queue = queue.PriorityQueue()
         wandb.tensorboard.reset_state()
@@ -72,7 +69,9 @@ class TBWatcher(object):
         # TODO(jhr): implement the deferred tbdirwatcher to find namespace
 
         if not self._consumer:
-            self._consumer = TBEventConsumer(self, self._watcher_queue)
+            self._consumer = TBEventConsumer(
+                self, self._watcher_queue, self._internal_run
+            )
             self._consumer.start()
 
         tbdir_watcher = TBDirWatcher(self, logdir, save, namespace, self._watcher_queue)
@@ -131,7 +130,8 @@ class TBDirWatcher(object):
 
     def _loader(self, save=True, namespace=None):
         """Incredibly hacky class generator to optionally save / prefix tfevent files"""
-        _loader_sender = self._tbwatcher._sender
+        _loader_interface = self._tbwatcher._interface
+        _loader_settings = self._tbwatcher._settings
 
         class EventFileLoader(self.event_file_loader.EventFileLoader):
             def __init__(self, file_path):
@@ -144,7 +144,10 @@ class TBDirWatcher(object):
                         parts.pop()
                         logdir = os.path.join(*parts)
                     _link_and_save_file(
-                        file_path, base_path=logdir, sender=_loader_sender
+                        path=file_path,
+                        base_path=logdir,
+                        interface=_loader_interface,
+                        settings=_loader_settings,
                     )
 
         return EventFileLoader
@@ -204,9 +207,10 @@ class TBEventConsumer(object):
     out of order steps.
     """
 
-    def __init__(self, tbwatcher, queue, delay=10):
+    def __init__(self, tbwatcher, queue, internal_run, delay=10):
         self._tbwatcher = tbwatcher
         self._queue = queue
+        self._internal_run = internal_run
         self._thread = threading.Thread(target=self._thread_body)
         self._shutdown = None
         self._delay = delay
@@ -237,7 +241,7 @@ class TBEventConsumer(object):
                 self._handle_event(event, history=tb_history)
                 items = tb_history._get_and_reset()
                 for item in items:
-                    self._save_row(item)
+                    self._save_row(item,)
         # flush uncommitted data
         tb_history._flush()
         items = tb_history._get_and_reset()
@@ -253,17 +257,7 @@ class TBEventConsumer(object):
         )
 
     def _save_row(self, row):
-        data = {}
-        for k, v in six.iteritems(row):
-            if v is None:
-                continue
-            if isinstance(v, data_types.Histogram):
-                v = v.to_json()
-            elif isinstance(v, data_types.WBValue):
-                # TODO(jhr): support more wandb data types
-                continue
-            data[k] = json.loads(json_dumps_safer_history(v))
-        self._tbwatcher._sender._save_history(data)
+        self._tbwatcher._interface.publish_history(row, run=self._internal_run)
 
 
 class TBHistory(object):

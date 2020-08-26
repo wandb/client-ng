@@ -3,58 +3,18 @@
 config.
 """
 
-import inspect
 import logging
-import types
 
 import six
-from wandb.lib.config import ConfigError
-from wandb.lib.term import terminfo
+from six.moves.collections_abc import Sequence
+import wandb
+from wandb.lib import config_util
 from wandb.util import json_friendly
 
-try:
-    # Since python 3
-    from collections.abc import Sequence
-except ImportError:
-    # Won't work after python 3.8
-    from collections import Sequence
+from . import wandb_helper
+
 
 logger = logging.getLogger("wandb")
-
-
-def parse_config(params):
-    if isinstance(params, dict):
-        return params
-
-    # Handle some cases where params is not a dictionary
-    # by trying to convert it into a dictionary
-    meta = inspect.getmodule(params)
-    if meta:
-        is_tf_flags_module = (
-            isinstance(params, types.ModuleType)
-            and meta.__name__ == "tensorflow.python.platform.flags"  # noqa: W503
-        )
-        if is_tf_flags_module or meta.__name__ == "absl.flags":
-            params = params.FLAGS
-            meta = inspect.getmodule(params)
-
-    # newer tensorflow flags (post 1.4) uses absl.flags
-    if meta and meta.__name__ == "absl.flags._flagvalues":
-        params = {name: params[name].value for name in dir(params)}
-    elif "__flags" in vars(params):
-        # for older tensorflow flags (pre 1.4)
-        if not "__parsed" not in vars(params):
-            params._parse_flags()
-        params = vars(params)["__flags"]
-    elif not hasattr(params, "__dict__"):
-        raise TypeError("config must be a dict or have a __dict__ attribute.")
-    else:
-        # params is a Namespace object (argparse)
-        # or something else
-        params = vars(params)
-
-    # assume argparse Namespace
-    return params
 
 
 # TODO(jhr): consider a callback for persisting changes?
@@ -68,9 +28,13 @@ class Config(object):
         object.__setattr__(self, "_users_inv", dict())
         object.__setattr__(self, "_users_cnt", 0)
         object.__setattr__(self, "_callback", None)
+        object.__setattr__(self, "_settings", None)
 
     def _set_callback(self, cb):
         object.__setattr__(self, "_callback", cb)
+
+    def _set_settings(self, settings):
+        object.__setattr__(self, "_settings", settings)
 
     def __repr__(self):
         return str(dict(self))
@@ -87,25 +51,30 @@ class Config(object):
     def __setitem__(self, key, val):
         key, val = self._sanitize(key, val)
         if key in self._locked:
-            terminfo("Config item '%s' was locked." % key)
+            wandb.termwarn("Config item '%s' was locked." % key)
             return
         self._items[key] = val
         logger.info("config set %s = %s - %s", key, val, self._callback)
         if self._callback:
             self._callback(key=key, val=val, data=self._as_dict())
 
+    def items(self):
+        return [(k, v) for k, v in self._items.items() if not k.startswith("_")]
+
     __setattr__ = __setitem__
 
     def __getattr__(self, key):
         return self.__getitem__(key)
 
-    def _update(self, d, allow_val_change=False):
-        parsed_dict = parse_config(d)
+    def __contains__(self, key):
+        return key in self._items
+
+    def _update(self, d, allow_val_change=None):
+        parsed_dict = wandb_helper.parse_config(d)
         sanitized = self._sanitize_dict(parsed_dict)
         self._items.update(sanitized)
 
-    def update(self, d, allow_val_change=False):
-        # TODO(cling): implement allow_val_change.
+    def update(self, d, allow_val_change=None):
         self._update(d, allow_val_change)
         if self._callback:
             self._callback(data=self._as_dict())
@@ -119,7 +88,7 @@ class Config(object):
             self._callback(data=self._as_dict())
 
     def setdefaults(self, d):
-        d = parse_config(d)
+        d = wandb_helper.parse_config(d)
         d = self._sanitize_dict(d)
         for k, v in six.iteritems(d):
             self._items.setdefault(k, v)
@@ -140,7 +109,7 @@ class Config(object):
             self._locked[k] = num
             self._items[k] = v
 
-    def _sanitize_dict(self, config_dict, allow_val_change=False):
+    def _sanitize_dict(self, config_dict, allow_val_change=None):
         sanitized = {}
         for k, v in six.iteritems(config_dict):
             k, v = self._sanitize(k, v)
@@ -148,13 +117,16 @@ class Config(object):
 
         return sanitized
 
-    def _sanitize(self, key, val, allow_val_change=False):
+    def _sanitize(self, key, val, allow_val_change=None):
+        # Let jupyter change config freely by default
+        if self._settings and self._settings.jupyter and allow_val_change is None:
+            allow_val_change = True
         # We always normalize keys by stripping '-'
         key = key.strip("-")
         val = self._sanitize_val(val)
         if not allow_val_change:
             if key in self._items and val != self._items[key]:
-                raise ConfigError(
+                raise config_util.ConfigError(
                     (
                         'Attempted to change value of key "{}" '
                         "from {} to {}\n"
