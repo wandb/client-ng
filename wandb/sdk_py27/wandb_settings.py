@@ -421,8 +421,18 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         self.__dict__.update({k: v for k, v in d.items() if v is not None})
         self.__dict__.update({k: v for k, v in kwargs.items() if v is not None})
 
+    def _reinfer_settings_from_env(self):
+        """As settings change we might want to run this again."""
+        # figure out if we are in offline mode
+        # (disabled is how it is stored in settings files)
+        if self.disabled:
+            self.offline = True
+        if self.mode in ("dryrun", "offline"):
+            self.offline = True
+
     def _infer_settings_from_env(self):
         """Modify settings based on environment (for runs and cli)."""
+
         d = {}
         d["jupyter"] = _get_python_type() != "python"
         d["_kaggle"] = _is_kaggle()
@@ -442,13 +452,6 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             # if self.windows:
             #     console = "off"
             u["console"] = console
-
-        # figure out if we are in offline mode
-        # (disabled is how it is stored in settings files)
-        if self.disabled:
-            self.offline = True
-        if self.mode in ("dryrun", "offline"):
-            self.offline = True
 
         # For code saving, only allow env var override if value from server is true, or
         # if no preference was specified.
@@ -492,6 +495,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             u["_except_exit"] = True
 
         self.update(u)
+        self._reinfer_settings_from_env()
 
     def _infer_run_settings_from_env(self):
         """Modify settings based on environment (for runs only)."""
@@ -595,3 +599,4 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             wandb.util.mkdir_exists_ok(self.wandb_dir)
             with open(self.resume_fname, "w") as f:
                 f.write(json.dumps({"run_id": self.run_id}))
+        self._reinfer_settings_from_env()

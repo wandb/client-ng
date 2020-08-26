@@ -364,7 +364,7 @@ class _WandbInit(object):
         )
         backend.server_connect()
         # Make sure we are logged in
-        _login(_backend=backend, _disable_warning=True)
+        _login(_backend=backend, _disable_warning=True, _settings=self.settings)
 
         # resuming needs access to the server, check server_status()?
 
