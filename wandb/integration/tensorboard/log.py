@@ -82,6 +82,26 @@ def tf_summary_to_dict(tf_summary_str_or_pb, namespace=""):  # noqa: C901
         # Ignore these, caller is responsible for handling None
         return None
 
+    def encode_images(img_strs, value):
+        from PIL import Image
+
+        if len(img_strs) == 0:
+            return
+
+        images = []
+        for img_str in img_strs:
+            # Supports gifs from TboardX
+            if img_str.startswith(b"GIF"):
+                images.append(wandb.Video(six.BytesIO(img_str), format="gif"))
+            else:
+                images.append(wandb.Image(Image.open(six.BytesIO(img_str))))
+        tag_idx = value.tag.rsplit("/", 1)
+        if len(tag_idx) > 1 and tag_idx[1].isdigit():
+            tag, idx = tag_idx
+            values.setdefault(history_image_key(tag, namespace), []).extend(images)
+        else:
+            values[history_image_key(value.tag, namespace)] = images
+
     for value in summary_pb.value:
         kind = value.WhichOneof("value")
         if kind in IGNORE_KINDS:
@@ -89,22 +109,18 @@ def tf_summary_to_dict(tf_summary_str_or_pb, namespace=""):  # noqa: C901
         if kind == "simple_value":
             values[namespaced_tag(value.tag, namespace)] = value.simple_value
         elif kind == "tensor":
-            values[namespaced_tag(value.tag, namespace)] = make_ndarray(value.tensor)
+            plugin_name = value.metadata.plugin_data.plugin_name
+            if plugin_name == "scalars" or plugin_name == "":
+                values[namespaced_tag(value.tag, namespace)] = make_ndarray(
+                    value.tensor
+                )
+            elif plugin_name == "images":
+                img_strs = value.tensor.string_val[2:]  # First two items are dims.
+                encode_images(img_strs, value)
         elif kind == "image":
-            from PIL import Image
-
             img_str = value.image.encoded_image_string
-            # Supports gifs from TboardX
-            if img_str.startswith(b"GIF"):
-                image = wandb.Video(six.BytesIO(img_str), format="gif")
-            else:
-                image = wandb.Image(Image.open(six.BytesIO(img_str)))
-            tag_idx = value.tag.rsplit("/", 1)
-            if len(tag_idx) > 1 and tag_idx[1].isdigit():
-                tag, idx = tag_idx
-                values.setdefault(history_image_key(tag, namespace), []).append(image)
-            else:
-                values[history_image_key(value.tag, namespace)] = [image]
+            encode_images([img_str], value)
+
         # Coming soon...
         # elif kind == "audio":
         #     audio = wandb.Audio(
@@ -148,22 +164,23 @@ def tf_summary_to_dict(tf_summary_str_or_pb, namespace=""):  # noqa: C901
                     ),
                     repeat=False,
                 )
-        elif value.tag == "_hparams_/session_start_info":
-            if wandb.util.get_module("tensorboard.plugins.hparams"):
-                from tensorboard.plugins.hparams import plugin_data_pb2
-
-                plugin_data = plugin_data_pb2.HParamsPluginData()
-                plugin_data.ParseFromString(value.metadata.plugin_data.content)
-                for key, param in six.iteritems(plugin_data.session_start_info.hparams):
-                    if not wandb.run.config.get(key):
-                        wandb.run.config[key] = (
-                            param.number_value or param.string_value or param.bool_value
-                        )
-            else:
-                wandb.termerror(
-                    "Received hparams tf.summary, but could not import "
-                    "the hparams plugin from tensorboard"
-                )
+        # TODO(jhr): figure out how to share this between userspace and internal process or dont
+        # elif value.tag == "_hparams_/session_start_info":
+        #     if wandb.util.get_module("tensorboard.plugins.hparams"):
+        #         from tensorboard.plugins.hparams import plugin_data_pb2
+        #
+        #         plugin_data = plugin_data_pb2.HParamsPluginData()        #
+        #         plugin_data.ParseFromString(value.metadata.plugin_data.content)
+        #         for key, param in six.iteritems(plugin_data.session_start_info.hparams):
+        #             if not wandb.run.config.get(key):
+        #                 wandb.run.config[key] = (
+        #                     param.number_value or param.string_value or param.bool_value
+        #                 )
+        #     else:
+        #         wandb.termerror(
+        #             "Received hparams tf.summary, but could not import "
+        #             "the hparams plugin from tensorboard"
+        #         )
     return values
 
 
@@ -220,7 +237,7 @@ def log(tf_summary_str_or_pb, history=None, step=0, namespace="", **kwargs):
         # Only commit our data if we're below the rate limit or don't have one
         if (
             RATE_LIMIT_SECONDS is None
-            or timestamp - STEPS["global"]["last_log"] >= RATE_LIMIT_SECONDS  # noqa: W503 E501
+            or timestamp - STEPS["global"]["last_log"] >= RATE_LIMIT_SECONDS
         ):
             history.add({}, **kwargs)
         STEPS["global"]["last_log"] = timestamp

@@ -5,21 +5,14 @@ package wandb_internal;
 import "wandb/proto/wandb_internal.proto";
 
 service InternalService {
-  rpc RunUpdate(RunData) returns (RunUpdateResult) {}
-  rpc RunExit(ExitData) returns (RunExitResult) {}
-  rpc Log(HistoryData) returns (LogResult) {}
+  rpc RunUpdate(RunRecord) returns (RunUpdateResult) {}
+  rpc RunExit(RunExitRecord) returns (RunExitResult) {}
+  rpc Log(HistoryRecord) returns (HistoryResult) {}
+  rpc Summary(SummaryRecord) returns (SummaryResult) {}
+  rpc Config(ConfigRecord) returns (ConfigResult) {}
+  rpc Output(OutputRecord) returns (OutputResult) {}
   rpc ServerShutdown(ServerShutdownRequest) returns (ServerShutdownResult) {}
   rpc ServerStatus(ServerStatusRequest) returns (ServerStatusResult) {}
-}
-
-message RunUpdateResult {
-  RunData run = 1;
-}
-
-message RunExitResult {
-}
-
-message LogResult {
 }
 
 message ServerShutdownRequest {

@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 """wandb setup."""
 
-import sys
-
 from setuptools import setup
 
 with open('package_readme.md') as readme_file:
@@ -11,9 +9,6 @@ with open('package_readme.md') as readme_file:
 
 with open('requirements.txt') as requirements_file:
     requirements = requirements_file.read().splitlines()
-
-if sys.version_info < (3, 5):
-    requirements.append('typing')
 
 test_requirements = [
     'mock>=2.0.0',
@@ -27,7 +22,7 @@ kubeflow_requirements = ['kubernetes', 'minio', 'google-cloud-storage', 'sh']
 
 setup(
     name='wandb-ng',
-    version='0.0.38',
+    version='0.0.41',
     description="A CLI and library for interacting with the Weights and Biases API.",
     long_description=readme,
     long_description_content_type="text/markdown",

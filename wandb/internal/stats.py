@@ -52,7 +52,7 @@ def gpu_in_use_by_this_process(gpu_handle):
 
 
 class SystemStats(object):
-    def __init__(self, pid=None, api=None, process_q=None, notify_q=None):
+    def __init__(self, pid=None, api=None, interface=None):
         try:
             pynvml.nvmlInit()
             self.gpu_count = pynvml.nvmlDeviceGetCount()
@@ -61,10 +61,7 @@ class SystemStats(object):
         #self.run = run
         self._pid = pid
         self._api = api
-        self._interface = interface.BackendSender(
-                process_queue=process_q,
-                notify_queue=notify_q,
-                )
+        self._interface = interface
         self.sampler = {}
         self.samples = 0
         self._shutdown = False
@@ -77,10 +74,13 @@ class SystemStats(object):
         else:
             wandb.termlog(
                 "psutil not installed, only GPU stats will be reported.  Install with pip install psutil")
-        self._thread = threading.Thread(target=self._thread_body)
-        self._thread.daemon = True
+        self._thread = None
 
     def start(self):
+        if self._thread is None:
+            self._shutdown = False
+            self._thread = threading.Thread(target=self._thread_body)
+            self._thread.daemon = True
         self._thread.start()
 
     @property
@@ -121,10 +121,10 @@ class SystemStats(object):
     def shutdown(self):
         self._shutdown = True
         try:
-            self._thread.join()
-        # Incase we never start it
-        except RuntimeError:
-            pass
+            if self._thread is not None:
+                self._thread.join()
+        finally:
+            self._thread = None
 
     def flush(self):
         stats = self.stats()
@@ -135,7 +135,7 @@ class SystemStats(object):
                 samples = list(self.sampler.get(stat, [stats[stat]]))
                 stats[stat] = round(sum(samples) / len(samples), 2)
         #self.run.events.track("system", stats, _wandb=True)
-        self._interface.send_stats(stats)
+        self._interface.publish_stats(stats)
         self.samples = 0
         self.sampler = {}
 

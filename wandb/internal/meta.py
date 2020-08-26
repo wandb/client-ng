@@ -12,8 +12,8 @@ from shutil import copyfile
 import sys
 
 from wandb import util
-from wandb.interface import interface
-from wandb.internal import git_repo
+from wandb.lib.filenames import DIFF_FNAME, METADATA_FNAME, REQUIREMENTS_FNAME
+from wandb.lib.git import GitRepo
 from wandb.vendor.pynvml import pynvml
 
 if os.name == "posix" and sys.version_info[0] < 3:
@@ -22,22 +22,18 @@ else:
     import subprocess  # type: ignore[no-redef]
 
 
-METADATA_FNAME = "wandb-metadata.json"
-
 logger = logging.getLogger(__name__)
 
 
 class Meta(object):
     """Used to store metadata during and after a run."""
 
-    def __init__(self, settings=None, process_q=None, notify_q=None):
+    def __init__(self, settings=None, interface=None):
         self._settings = settings
         self.data = {}
         self.fname = os.path.join(self._settings.files_dir, METADATA_FNAME)
-        self._interface = interface.BackendSender(
-            process_queue=process_q, notify_queue=notify_q,
-        )
-        self._git = git_repo.GitRepo(
+        self._interface = interface
+        self._git = GitRepo(
             remote=self._settings["git_remote"]
             if "git_remote" in self._settings.keys()
             else "origin"
@@ -48,7 +44,7 @@ class Meta(object):
         self._saved_patches = []
 
     def _save_pip(self):
-        """Saves the current working set of pip packages to requirements.txt"""
+        """Saves the current working set of pip packages to {REQUIREMENTS_FNAME}"""
         try:
             import pkg_resources
 
@@ -57,7 +53,7 @@ class Meta(object):
                 ["%s==%s" % (i.key, i.version) for i in installed_packages]
             )
             with open(
-                os.path.join(self._settings.files_dir, "requirements.txt"), "w"
+                os.path.join(self._settings.files_dir, REQUIREMENTS_FNAME), "w"
             ) as f:
                 f.write("\n".join(installed_packages_list))
         except Exception:
@@ -90,7 +86,7 @@ class Meta(object):
         to history editing as long as the user never does "push -f" to break
         history on an upstream branch.
 
-        Writes the first patch to <files_dir>/diff.patch and the second to
+        Writes the first patch to <files_dir>/<DIFF_FNAME> and the second to
         <files_dir>/upstream_diff_<commit_id>.patch.
 
         """
@@ -104,7 +100,7 @@ class Meta(object):
                 diff_args.append("--submodule=diff")
 
             if self._git.dirty:
-                patch_path = os.path.join(self._settings.files_dir, "diff.patch")
+                patch_path = os.path.join(self._settings.files_dir, DIFF_FNAME)
                 with open(patch_path, "wb") as patch:
                     # we diff against HEAD to ensure we get changes in the index
                     subprocess.check_call(
@@ -231,4 +227,4 @@ class Meta(object):
         for patch in self._saved_patches:
             files["files"].append((patch, "now"))
 
-        self._interface.send_files(files)
+        self._interface.publish_files(files)

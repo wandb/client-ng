@@ -10,6 +10,8 @@ import itertools
 from six.moves import queue
 from wandb import util
 from wandb import env
+import os
+
 
 MAX_LINE_SIZE = 4*1024*1024 - 100*1024  # imposed by back end
 
@@ -31,10 +33,7 @@ class DefaultFilePolicy(object):
         }
 
 
-class JsonlFilePolicy(object):
-    def __init__(self, start_chunk_id=0):
-        self._chunk_id = start_chunk_id
-
+class JsonlFilePolicy(DefaultFilePolicy):
     def process_chunks(self, chunks):
         chunk_id = self._chunk_id
         self._chunk_id += len(chunks)
@@ -53,7 +52,7 @@ class JsonlFilePolicy(object):
         }
 
 
-class SummaryFilePolicy(object):
+class SummaryFilePolicy(DefaultFilePolicy):
     def process_chunks(self, chunks):
         data = chunks[-1].data
         if len(data) > MAX_LINE_SIZE:
@@ -66,7 +65,7 @@ class SummaryFilePolicy(object):
         }
 
 
-class CRDedupeFilePolicy(object):
+class CRDedupeFilePolicy(DefaultFilePolicy):
     """File stream policy that removes characters that would be erased by
     carriage returns.
 
@@ -75,30 +74,41 @@ class CRDedupeFilePolicy(object):
     while preserving the output's appearance in the web app.
     """
 
-    def __init__(self, start_chunk_id=0):
-        self._chunk_id = start_chunk_id
-
     def process_chunks(self, chunks):
-        content = []
-        for line in [c.data for c in chunks]:
-            if content and content[-1].endswith('\r'):
-                content[-1] = line
-            else:
-                content.append(line)
+        ret = []
+        flag = False # whether the cursor can be moved up
+        for c in chunks:
+            # Line has two possible formats:
+            # 1) "2020-08-25T20:38:36.895321 this is my line of text"
+            # 2) "ERROR 2020-08-25T20:38:36.895321 this is my line of text"
+            prefix = ""
+            token, rest = c.data.split(" ", 1)
+            if token == "ERROR":
+                prefix += token + " "
+                token, rest = rest.split(" ", 1)
+            prefix += token + " "
+
+            lines = rest.split(os.linesep)
+            for line in lines:
+                line = line.split('\r')[-1]
+                if line:
+                    # check for cursor up control character
+                    if line.endswith('\x1b\x5b\x41'):
+                        if flag:
+                            ret.pop()
+                            flag = False
+                    else:
+                        ret.append(prefix + line + os.linesep)
+                        flag = True
         chunk_id = self._chunk_id
-        self._chunk_id += len(content)
-        if content and content[-1].endswith('\r'):
-            self._chunk_id -= 1
+        self._chunk_id += len(ret)
         return {
             'offset': chunk_id,
-            'content': content
+            'content': ret
         }
 
 
-class BinaryFilePolicy(object):
-    def __init__(self):
-        self._offset = 0
-
+class BinaryFilePolicy(DefaultFilePolicy):
     def process_chunks(self, chunks):
         data = b''.join([c.data for c in chunks])
         enc = base64.b64encode(data).decode('ascii')
@@ -124,12 +134,13 @@ class FileStreamApi(object):
     HTTP_TIMEOUT = env.get_http_timeout(10)
     MAX_ITEMS_PER_PUSH = 10000
 
-    def __init__(self, api, run_id, settings=None):
+    def __init__(self, api, run_id, start_time, settings=None):
         if settings is None:
             settings = dict()
         self._settings = settings
         self._api = api
         self._run_id = run_id
+        self._start_time = start_time
         self._client = requests.Session()
         self._client.auth = ('api', api.api_key)
         self._client.timeout = self.HTTP_TIMEOUT
@@ -174,7 +185,7 @@ class FileStreamApi(object):
         return self._api.dynamic_settings["heartbeat_seconds"]
 
     def rate_limit_seconds(self):
-        run_time = time.time() - wandb.START_TIME
+        run_time = time.time() - self._start_time
         if run_time < 60:
             return max(1, self.heartbeat_seconds / 15)
         elif run_time < 300:
@@ -243,6 +254,7 @@ class FileStreamApi(object):
         chunks.sort(key=lambda c: c.filename)
         for filename, file_chunks in itertools.groupby(chunks, lambda c: c.filename):
             file_chunks = list(file_chunks)  # groupby returns iterator
+            # Specific file policies are set by internal/sender.py
             self.set_default_file_policy(filename, DefaultFilePolicy())
             files[filename] = self._file_policies[filename].process_chunks(
                 file_chunks)

@@ -1,3 +1,7 @@
+"""These test the high level sdk methods by mocking out the backend.
+See wandb_integration_test.py for tests that launch a real backend against
+a live backend server.
+"""
 import wandb
 import pytest
 import tempfile
@@ -19,9 +23,9 @@ def test_log_silent(wandb_init_run, capsys):
 
 
 def test_log_only_strings_as_keys(wandb_init_run):
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         wandb.log({1: 1000})
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         wandb.log({("tup", "idx"): 1000})
 
 
@@ -163,18 +167,18 @@ def test_bad_json_tfjob(wandb_init_run):
 
 @pytest.mark.wandb_args(wandb_init={"dir": "/tmp"})
 def test_custom_dir(wandb_init_run):
-    assert len(glob.glob("/tmp/wandb/runs/run-*")) > 0
+    assert len(glob.glob("/tmp/wandb/offline-*")) > 0
 
 
 @pytest.mark.wandb_args(env={"WANDB_DIR": "/tmp"})
 def test_custom_dir_env(wandb_init_run):
-    assert len(glob.glob("/tmp/wandb/runs/run-*")) > 0
+    assert len(glob.glob("/tmp/wandb/offline-*")) > 0
 
 
 def test_login_key(capsys):
     wandb.login(key="A" * 40)
-    # TODO: this could be indicative a bug, suddenly had to do this in tests
-    wandb.api.set_setting("base_url", "http://localhost:8080")
+    # TODO: this was a bug when tests were leaking out to the global config
+    # wandb.api.set_setting("base_url", "http://localhost:8080")
     out, err = capsys.readouterr()
     print(out)
     print(err)

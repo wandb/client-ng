@@ -17,8 +17,7 @@ import os
 import sys
 import threading
 
-from wandb.lib import server
-from wandb.lib.config import dict_from_config_file
+from wandb.lib import config_util, server
 
 from . import wandb_settings
 
@@ -108,6 +107,7 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         # TODO: Do a more formal merge of user settings from the backend.
         flags = self._get_user_flags()
         if "code_saving_enabled" in flags:
+            logger.info("enabling code saving by default")
             kwargs["save_code"] = flags["code_saving_enabled"]
 
         s = wandb_settings.Settings(**kwargs)
@@ -192,10 +192,9 @@ class _WandbSetup__WandbSetup(object):  # noqa: N801
         # if config_paths was set, read in config dict
         if self._settings.config_paths:
             # TODO(jhr): handle load errors, handle list of files
-            self._config = dict_from_config_file(self._settings.config_paths)
-
-    def on_finish(self):
-        logger.info("done")
+            self._config = config_util.dict_from_config_file(
+                self._settings.config_paths
+            )
 
 
 class _WandbSetup(object):
@@ -203,12 +202,13 @@ class _WandbSetup(object):
 
     _instance = None
 
-    def __init__(self, settings=None):
+    def __init__(self, settings=None, _warn=True):
         if _WandbSetup._instance is not None:
-            logger.warning(
-                "Ignoring settings passed to wandb.setup() "
-                "which has already been configured."
-            )
+            if _warn:
+                logger.warning(
+                    "Ignoring settings passed to wandb.setup() "
+                    "which has already been configured."
+                )
             return
         _WandbSetup._instance = _WandbSetup__WandbSetup(settings=settings)
 
@@ -216,7 +216,7 @@ class _WandbSetup(object):
         return getattr(self._instance, name)
 
 
-def setup(settings=None):
+def setup(settings=None, _warn=True):
     """Setup library context."""
-    wl = _WandbSetup(settings=settings)
+    wl = _WandbSetup(settings=settings, _warn=_warn)
     return wl

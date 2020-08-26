@@ -116,6 +116,17 @@ fragment ArtifactFragment on Artifact {
         artifactCollectionName
         alias
     }
+    artifactType {
+        id
+        name
+    }
+    currentManifest {
+        id
+        file {
+            id
+            url
+        }
+    }
 }
 '''
 
@@ -394,7 +405,7 @@ class Api(object):
         Returns:
             A :obj:`Runs` object, which is an iterable collection of :obj:`Run` objects.
         """
-        entity, project, run = self._parse_path(path)
+        entity, project = self._parse_project_path(path)
         key = path + str(filters) + str(order)
         if not self._runs.get(key):
             self._runs[key] = Runs(self.client, entity, project,
@@ -2099,7 +2110,7 @@ class Artifact(object):
         
         raise ValueError('Unexpected API result.')
 
-    def new_file(self, name):
+    def new_file(self, name, mode=None):
         raise ValueError('Cannot add files to an artifact once it has been saved')
 
     def add_file(self, path, name=None):
@@ -2149,7 +2160,8 @@ class Artifact(object):
         if dirpath is None:
             dirpath = os.path.join('.', 'artifacts', self.name)
             if platform.system() == "Windows":
-                dirpath = dirpath.replace(":", "-")
+                head, tail = os.path.splitdrive(dirpath)
+                dirpath = head + tail.replace(":", "-")
 
         manifest = self._load_manifest()
         nfiles = len(manifest.entries)
@@ -2204,7 +2216,8 @@ class Artifact(object):
         target_path = os.path.join(dirpath, name)
         # can't have colons in Windows
         if platform.system() == "Windows":
-            target_path = target_path.replace(":", "-")
+            head, tail = os.path.splitdrive(target_path)
+            target_path = head + tail.replace(":", "-")
 
         need_copy = (not os.path.isfile(target_path)
             or os.stat(cache_path).st_mtime != os.stat(target_path).st_mtime)
@@ -2290,17 +2303,6 @@ class Artifact(object):
             project(name: $projectName, entityName: $entityName) {
                 artifact(name: $name) {
                     ...ArtifactFragment
-                    artifactType {
-                       id
-                       name
-                    }
-                    currentManifest {
-                        id
-                        file {
-                            id
-                            url
-                        }
-                    }
                 }
             }
         }
@@ -2321,7 +2323,7 @@ class Artifact(object):
             raise ValueError('Project %s/%s does not contain artifact: "%s"' % (
                 self.entity, self.project, self.artifact_name))
         self._attrs = response['project']['artifact']
-        if 'metadata' in response['project']['artifact']:
+        if 'metadata' in response['project']['artifact'] and response['project']['artifact']['metadata']:
             self._metadata = json.loads(response['project']['artifact']['metadata'])
         return self._attrs
 
