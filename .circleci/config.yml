@@ -122,7 +122,7 @@ jobs:
               environment:
                 CI: "1"
                 DISABLE_TELEMETRY: "true"
-                GORILLA_FRONTEND_HOST: "http://localhost:9000"
+                GORILLA_FRONTEND_HOST: "http://localhost:8080"
         steps:
             - checkout
             # - run:
@@ -148,9 +148,9 @@ jobs:
             - run:
                   name: Set environment variables
                   command: python integration_tests/setup.py >> $BASH_ENV
-            - run:
-                name: Test command
-                command: sleep 1000000s
             # - run:
-            #       name: Run all test script for setup
-            #       command: python -m pytest integration_tests/
+            #     name: Test command
+            #     command: sleep 1000000s
+            - run:
+                  name: Run all test script for setup
+                  command: python -m pytest integration_tests/
