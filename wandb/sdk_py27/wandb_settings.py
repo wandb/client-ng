@@ -66,7 +66,7 @@ defaults = dict(
     show_warnings=2,
     summary_warnings=5,
     # old mode field (deprecated in favor of WANDB_OFFLINE=true)
-    _mode=Field(str, ("dryrun", "run",)),
+    _mode=Field(str, ("dryrun", "run", "offline", "online",)),
     # problem: TODO(jhr): Not implemented yet, needs new name?
     _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
@@ -234,6 +234,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
         sync_symlink_latest_spec="{wandb_dir}/latest-run",
+        _sync_dir=None,  # computed
         sync_file=None,  # computed
         log_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/logs",
         log_user_spec="debug-{timespec}-{run_id}.log",
@@ -261,6 +262,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         save_code=None,
         program_relpath=None,
         git_remote=None,
+        dev_prod=None,  # in old settings files, TODO: support?
         host=None,
         username=None,
         docker=None,
@@ -441,8 +443,11 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
             #     console = "off"
             u["console"] = console
 
-        # convert wandb mode to "offline"
-        if self.mode == "dryrun":
+        # figure out if we are in offline mode
+        # (disabled is how it is stored in settings files)
+        if self.disabled:
+            self.offline = True
+        if self.mode in ("dryrun", "offline"):
             self.offline = True
 
         # For code saving, only allow env var override if value from server is true, or
