@@ -125,16 +125,16 @@ jobs:
                 GORILLA_FRONTEND_HOST: "http://localhost:9000"
         steps:
             - checkout
-            - run:
-                  name: Install system deps
-                  command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
+            # - run:
+            #       name: Install system deps
+            #       command: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
             # Caching the deps in a docker image instead of circleci for now
             # - restore_cache:
             #       keys:
             #           - integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
-            - run:
-                  name: Install python dependencies
-                  command: pip install -r integration_tests/requirements.txt 
+            # - run:
+            #       name: Install python dependencies
+            #       command: pip install -r integration_tests/requirements.txt 
             # - save_cache:
             #       paths:
             #           - ~/.deps
