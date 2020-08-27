@@ -70,7 +70,7 @@ defaults = dict(
     # problem: TODO(jhr): Not implemented yet, needs new name?
     _problem=Field(str, ("fatal", "warn", "silent",)),
     console="auto",
-    _console=Field(str, ("auto", "redirect", "off", "file", "iowrap", "jupyter")),
+    _console=Field(str, ("auto", "redirect", "off", "file", "iowrap", "notebook")),
     git_remote="origin",
     ignore_globs=[],
     # anonymous might be set by a config file: "false" and "true"
@@ -448,7 +448,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         if self.console == "auto":
             console = "redirect"
             if self.jupyter:
-                console = "jupyter"
+                console = "notebok"
             # if self.windows:
             #     console = "off"
             u["console"] = console
