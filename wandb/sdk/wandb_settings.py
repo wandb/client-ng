@@ -451,7 +451,7 @@ class Settings(six.with_metaclass(CantTouchThis, object)):
         if self.console == "auto":
             console = "redirect"
             if self.jupyter:
-                console = "notebok"
+                console = "notebook"
             # if self.windows:
             #     console = "off"
             u["console"] = console

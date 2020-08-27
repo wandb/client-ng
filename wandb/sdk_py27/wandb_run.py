@@ -861,8 +861,8 @@ class RunManaged(Run):
             )
         elif console == "notebook":
             logger.info("Redirecting notebook output.")
-            out_redir = redirect.StreamWrapper(name="stdout", cb=self._redirect_cb)
-            err_redir = redirect.StreamWrapper(name="stderr", cb=self._redirect_cb)
+            out_redir = redirect.StreamWrapper(name="stdout", cb=self._redirect_cb, output_writer=self._output_writer)
+            err_redir = redirect.StreamWrapper(name="stderr", cb=self._redirect_cb, output_weiter=self._output_writer)
         else:
             return
         try:
