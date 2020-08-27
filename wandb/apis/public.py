@@ -2109,7 +2109,6 @@ class Artifact(object):
         
         raise ValueError('Unexpected API result.')
 
-<<<<<<< HEAD
     @property
     def aliases(self):
         if ":" not in self.artifact_name:
