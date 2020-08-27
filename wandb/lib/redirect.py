@@ -30,6 +30,34 @@ class Unbuffered(object):
         return getattr(self.stream, attr)
 
 
+class StreamWrapper(object):
+    def __init__(self, name, cb):
+        self.name = name
+        self.cb = cb
+        self.stream = getattr(sys, name)
+        self.installed = False
+
+    def install(self):
+        if self.installed:
+            return
+        # TODO(farizrahman4u): patch writelines too?
+        old_write = self.stream.write
+        name = self.name
+        cb = self.cb
+
+        def new_write(data):
+            cb(name, data)
+            old_write(data)
+        self.stream.write = new_write
+        self._old_write = old_write
+        self.installed = True
+
+    def uninstall(self):
+        if self.installed:
+            self.src.write = self._old_write
+            self.installed = False
+
+
 def _pipe_relay(stopped, fd, name, cb, tee, output_writer):
     while True:
         try:
