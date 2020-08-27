@@ -65,7 +65,8 @@ def test_ignore_globs_explicit():
 
 
 def test_ignore_globs_env():
-    s = Settings(_environ={"WANDB_IGNORE_GLOBS": "foo,bar"})
+    s = Settings()
+    s._apply_environ({"WANDB_IGNORE_GLOBS": "foo,bar"})
     s.setdefaults()
     assert s.ignore_globs == ["foo", "bar"]
 

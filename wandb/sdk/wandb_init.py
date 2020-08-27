@@ -22,8 +22,9 @@ from wandb.lib import filesystem, module, reporting
 from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
+from . import wandb_login
+from . import wandb_setup
 from .wandb_helper import parse_config
-from .wandb_login import _login
 from .wandb_run import Run, RunDummy, RunManaged
 from .wandb_settings import Settings
 
@@ -63,18 +64,17 @@ class _WandbInit(object):
 
         """
         self.kwargs = kwargs
-        # Some settings should be persisted across multiple runs the first
-        # time setup is called.
-        # TODO: Is this the best way to do this?
-        session_settings_keys = ["anonymous"]
-        session_settings = {k: kwargs[k] for k in session_settings_keys}
-        self._wl = wandb.setup(settings=session_settings, _warn=False)
+
+        self._wl = wandb_setup._setup()
         # Make sure we have a logger setup (might be an early logger)
         _set_logger(self._wl._get_logger())
 
-        settings: Settings = self._wl.settings(
-            dict(kwargs.pop("settings", None) or tuple())
-        )
+        # Start with settings from wandb library singleton
+        settings: Settings = self._wl.settings().duplicate()
+
+        settings_param = kwargs.pop("settings", None)
+        if settings_param:
+            settings._apply_settings(settings_param)
 
         self._reporter = reporting.setup_reporter(
             settings=settings.duplicate().freeze()
@@ -364,7 +364,9 @@ class _WandbInit(object):
         )
         backend.server_connect()
         # Make sure we are logged in
-        _login(_backend=backend, _disable_warning=True, _settings=self.settings)
+        wandb_login._login(
+            _backend=backend, _disable_warning=True, _settings=self.settings
+        )
 
         # resuming needs access to the server, check server_status()?
 
