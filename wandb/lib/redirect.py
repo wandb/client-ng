@@ -66,7 +66,7 @@ class StreamWrapper(object):
 
     def uninstall(self):
         if self.installed:
-            self.src.write = self._old_write
+            self.stream.write = self._old_write
             self.installed = False
 
 
