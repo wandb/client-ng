@@ -47,14 +47,16 @@ def new_user(db, user_info):
          updated_at,
          name,
          photo_url,
-         subscription_id
+         subscription_id,
+         default_access
         )
         VALUES
         (NOW(),
          NOW(),
          "%s",
          '',
-         %d
+         %d,
+         "USER_WRITE"
         )
     ''' % (username, subscription_id))
     db.commit()
