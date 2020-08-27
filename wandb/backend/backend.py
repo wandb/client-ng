@@ -103,23 +103,8 @@ class Backend(object):
         if self._done:
             return
         self._done = True
-<<<<<<< HEAD
-
-        self.notify_queue.put(constants.NOTIFY_SHUTDOWN)
-        # TODO: make sure this is last in the queue?  lock?
-        self.notify_queue.close()
-        self.wandb_process.join()
-
-        self.interface.join()
-
-        self.req_queue.close()
-        self.resp_queue.close()
-        self.cancel_queue.close()
-        self.fd_pipe_parent.close()
-=======
         self.interface.join()
         self.wandb_process.join()
         self.record_q.close()
         self.result_q.close()
->>>>>>> 56b31d4442c837e80749654f0a9187e178832b6e
         # No printing allowed from here until redirect restore!!!
