@@ -122,7 +122,6 @@ jobs:
               environment:
                 CI: "1"
                 DISABLE_TELEMETRY: "true"
-                GORILLA_FRONTEND_HOST: "http://localhost:8080"
         steps:
             - checkout
             # - run:
