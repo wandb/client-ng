@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.40'
+__version__ = '0.0.42'
 
 # Used with pypi checks and other messages related to pip
 _wandb_module = 'wandb-ng'
@@ -44,8 +44,10 @@ setup = wandb_sdk.setup
 save = wandb_sdk.save
 watch = wandb_sdk.watch
 login = wandb_sdk.login
+helper = wandb_sdk.helper
 Artifact = wandb_sdk.Artifact
 Settings = wandb_sdk.Settings
+Config = wandb_sdk.Config
 
 from wandb.apis import InternalApi, PublicApi
 from wandb.errors.error import CommError

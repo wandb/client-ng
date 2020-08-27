@@ -5,25 +5,16 @@ sender.
 
 from __future__ import print_function
 
-import collections
 from datetime import datetime
 import json
 import logging
 import os
 import time
 
-import six
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface import interface
-from wandb.lib.config import save_config_file_from_dict
-from wandb.lib.dict import dict_from_proto_list
-from wandb.lib.filenames import (
-    CONFIG_FNAME,
-    EVENTS_FNAME,
-    HISTORY_FNAME,
-    OUTPUT_FNAME,
-    SUMMARY_FNAME,
-)
+from wandb.lib import config_util, filenames, proto_util
+from wandb.lib.git import GitRepo
 from wandb.proto import wandb_internal_pb2  # type: ignore
 from wandb.util import sentry_set_scope
 
@@ -33,17 +24,10 @@ from wandb.util import sentry_set_scope
 from . import artifacts
 from . import file_stream
 from . import internal_api
-from . import tb_watcher
 from .file_pusher import FilePusher
-from .git_repo import GitRepo
 
 
 logger = logging.getLogger(__name__)
-
-
-DeferState = collections.namedtuple(  # type: ignore[attr-defined]
-    "DeferState", "begin flush_tb flush_dir flush_fp flush_fs end"
-)._make(range(6))
 
 
 def _config_dict_from_proto_list(obj_list):
@@ -55,17 +39,16 @@ def _config_dict_from_proto_list(obj_list):
 
 class SendManager(object):
     def __init__(
-        self, settings, process_q, notify_q, resp_q, run_meta=None, system_stats=None
+        self, settings, record_q, result_q, interface,
     ):
         self._settings = settings
-        self._resp_q = resp_q
-        self._run_meta = run_meta
-        self._system_stats = system_stats
+        self._record_q = record_q
+        self._result_q = result_q
+        self._interface = interface
 
         self._fs = None
         self._pusher = None
         self._dir_watcher = None
-        self._tb_watcher = None
 
         # State updated by login
         self._entity = None
@@ -96,38 +79,24 @@ class SendManager(object):
         # TODO(jhr): do something better, why do we need to send full lines?
         self._partial_output = dict()
 
-        self._interface = interface.BackendSender(
-            process_queue=process_q, notify_queue=notify_q,
-        )
-
-        self._defer_state = None
         self._exit_code = 0
-
-        # keep track of config and summary from key/val updates
-        # self._consolidated_config = dict()
-        self._consolidated_summary = dict()
 
     def send(self, record):
         record_type = record.WhichOneof("record_type")
-        if record_type is None:
-            print("unknown record")
-            return
-        handler = getattr(self, "handle_" + record_type, None)
-        if handler is None:
-            print("unknown handle", record_type)
-            return
-        handler(record)
+        assert record_type
+        handler_str = "send_" + record_type
+        send_handler = getattr(self, handler_str, None)
+        logger.debug("send: {}".format(record_type))
+        assert send_handler, "unknown send handler: {}".format(handler_str)
+        send_handler(record)
 
     def send_request(self, record):
         request_type = record.request.WhichOneof("request_type")
-        if request_type is None:
-            print("unknown request")
-            return
-        handler = getattr(self, "handle_request_" + request_type, None)
-        if handler is None:
-            print("unknown request handle", request_type)
-            return
-        handler(record)
+        assert request_type
+        handler_str = "send_request_" + request_type
+        send_handler = getattr(self, handler_str, None)
+        assert send_handler, "unknown handle: {}".format(handler_str)
+        send_handler(record)
 
     def _flatten(self, dictionary):
         if type(dictionary) == dict:
@@ -138,13 +107,12 @@ class SendManager(object):
                     for k2, v2 in v.items():
                         dictionary[k + "." + k2] = v2
 
-    def handle_request_status(self, data):
-        if not data.control.req_resp:
-            return
+    def send_request_status(self, record):
+        assert record.control.req_resp
 
-        result = wandb_internal_pb2.Result(uuid=data.uuid)
+        result = wandb_internal_pb2.Result(uuid=record.uuid)
         status_resp = result.response.status_response
-        if data.request.status.check_stop_req:
+        if record.request.status.check_stop_req:
             status_resp.run_should_stop = False
             if self._entity and self._project and self._run.run_id:
                 try:
@@ -153,30 +121,22 @@ class SendManager(object):
                     )
                 except Exception as e:
                     logger.warning("Failed to check stop requested status: %s", e)
-        self._resp_q.put(result)
+        self._result_q.put(result)
 
-    def handle_tbrecord(self, data):
-        logger.info("handling tbrecord: %s", data)
-        if self._tb_watcher:
-            tbrecord = data.tbrecord
-            self._tb_watcher.add(tbrecord.log_dir, tbrecord.save)
-
-    def handle_request(self, rec):
-        self.send_request(rec)
-
-    def handle_request_login(self, data):
+    def send_request_login(self, record):
         # TODO: do something with api_key or anonymous?
         # TODO: return an error if we aren't logged in?
         self._api.reauth()
         viewer = self._api.viewer()
-        self._flags = json.loads(viewer.get("flags", "{}"))
-        self._entity = viewer.get("entity")
-        if data.control.req_resp:
-            result = wandb_internal_pb2.Result(uuid=data.uuid)
-            result.response.login_response.active_entity = self._entity
-            self._resp_q.put(result)
+        # self._login_flags = json.loads(viewer.get("flags", "{}"))
+        # self._login_entity = viewer.get("entity")
+        login_entity = viewer.get("entity")
+        if record.control.req_resp:
+            result = wandb_internal_pb2.Result(uuid=record.uuid)
+            result.response.login_response.active_entity = login_entity
+            self._result_q.put(result)
 
-    def handle_exit(self, data):
+    def send_exit(self, data):
         exit = data.exit
         self._exit_code = exit.exit_code
 
@@ -188,43 +148,41 @@ class SendManager(object):
 
         # We need to give the request queue a chance to empty between states
         # so use handle_request_defer as a state machine.
-        self._defer_state = DeferState.begin
-        logger.info("send defer: {}".format(self._defer_state))
-        self._interface.send_defer()
+        logger.info("send defer")
+        self._interface.publish_defer()
 
-    def handle_request_defer(self, data):
-        logger.info("handle defer: {}".format(self._defer_state))
+    def send_request_defer(self, data):
+        defer = data.request.defer
+        state = defer.state
+        logger.info("handle sender defer: {}".format(state))
 
         done = False
-        state = self._defer_state
-        if state == DeferState.begin:
+        if state == defer.BEGIN:
             pass
-        elif state == DeferState.flush_tb:
-            # shutdown tensorboard workers so we get all metrics flushed
-            if self._tb_watcher:
-                self._tb_watcher.finish()
-                self._tb_watcher = None
-        elif state == DeferState.flush_dir:
+        elif state == defer.FLUSH_TB:
+            # NOTE: this is handled in handler.py:handle_request_defer()
+            pass
+        elif state == defer.FLUSH_DIR:
             if self._dir_watcher:
                 self._dir_watcher.finish()
                 self._dir_watcher = None
-        elif state == DeferState.flush_fp:
+        elif state == defer.FLUSH_FP:
             if self._pusher:
                 self._pusher.finish()
-        elif state == DeferState.flush_fs:
+        elif state == defer.FLUSH_FS:
             if self._fs:
                 # TODO(jhr): now is a good time to output pending output lines
                 self._fs.finish(self._exit_code)
                 self._fs = None
-        elif state == DeferState.end:
+        elif state == defer.END:
             done = True
         else:
             raise AssertionError("unknown state")
 
         if not done:
-            self._defer_state += 1
-            logger.info("send defer: {}".format(self._defer_state))
-            self._interface.send_defer()
+            state += 1
+            logger.info("send defer: {}".format(state))
+            self._interface.publish_defer(state)
             return
 
         exit_result = wandb_internal_pb2.RunExitResult()
@@ -240,16 +198,16 @@ class SendManager(object):
             resp = wandb_internal_pb2.Result(
                 exit_result=exit_result, uuid=self._exit_sync_uuid
             )
-            self._resp_q.put(resp)
+            self._result_q.put(resp)
 
         # mark exit done in case we are polling on exit
         self._exit_result = exit_result
 
-    def handle_request_poll_exit(self, data):
-        if not data.control.req_resp:
+    def send_request_poll_exit(self, record):
+        if not record.control.req_resp:
             return
 
-        result = wandb_internal_pb2.Result(uuid=data.uuid)
+        result = wandb_internal_pb2.Result(uuid=record.uuid)
 
         alive = False
         if self._pusher:
@@ -269,7 +227,7 @@ class SendManager(object):
             self._pusher.join()
             result.response.poll_exit_response.exit_result.CopyFrom(self._exit_result)
             result.response.poll_exit_response.done = True
-        self._resp_q.put(result)
+        self._result_q.put(result)
 
     def _maybe_setup_resume(self, run):
         """This maybe queries the backend for a run and fails if the settings are
@@ -321,7 +279,7 @@ class SendManager(object):
                     logger.info("configured resuming with: %s" % self._offsets)
         return error
 
-    def handle_run(self, data):
+    def send_run(self, data):
         run = data.run
         run_tags = run.tags[:]
         error = None
@@ -331,8 +289,8 @@ class SendManager(object):
         config_dict = None
         if run.HasField("config"):
             config_dict = _config_dict_from_proto_list(run.config.update)
-            config_path = os.path.join(self._settings.files_dir, CONFIG_FNAME)
-            save_config_file_from_dict(config_path, config_dict)
+            config_path = os.path.join(self._settings.files_dir, filenames.CONFIG_FNAME)
+            config_util.save_config_file_from_dict(config_path, config_dict)
 
         repo = GitRepo(remote=self._settings.git_remote)
 
@@ -345,7 +303,7 @@ class SendManager(object):
                 resp = wandb_internal_pb2.Result(uuid=data.uuid)
                 resp.run_result.run.CopyFrom(run)
                 resp.run_result.error.CopyFrom(error)
-                self._resp_q.put(resp)
+                self._result_q.put(resp)
             else:
                 logger.error("Got error in async mode: %s", error.message)
             return
@@ -392,11 +350,14 @@ class SendManager(object):
                 if entity_name:
                     self._run.entity = entity_name
                     self._entity = entity_name
+        sweep_id = ups.get("sweepName")
+        if sweep_id:
+            self._run.sweep_id = sweep_id
 
         if data.control.req_resp:
             resp = wandb_internal_pb2.Result(uuid=data.uuid)
             resp.run_result.run.CopyFrom(self._run)
-            self._resp_q.put(resp)
+            self._result_q.put(resp)
 
         if self._entity is not None:
             self._api_settings["entity"] = self._entity
@@ -427,9 +388,6 @@ class SendManager(object):
             self._fs.start()
             self._pusher = FilePusher(self._api)
             self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
-            self._tb_watcher = tb_watcher.TBWatcher(self._settings, sender=self)
-            if self._run_meta:
-                self._run_meta.write()
             sentry_set_scope("internal", run.entity, run.project)
             logger.info(
                 "run started: %s with start time %s", self._run.run_id, start_time
@@ -439,71 +397,25 @@ class SendManager(object):
 
     def _save_history(self, history_dict):
         if self._fs:
-            # print("\n\nABOUT TO SAVE:\n", history_dict, "\n\n")
-            self._fs.push(HISTORY_FNAME, json.dumps(history_dict))
-            # print("got", x)
-        # save history into summary
-        self._consolidated_summary.update(history_dict)
-        self._save_summary(self._consolidated_summary)
+            self._fs.push(filenames.HISTORY_FNAME, json.dumps(history_dict))
 
-    def handle_history(self, data):
+    def send_history(self, data):
         history = data.history
-        history_dict = dict_from_proto_list(history.item)
+        history_dict = proto_util.dict_from_proto_list(history.item)
         self._save_history(history_dict)
 
-    def _save_summary(self, summary_dict):
+    def send_summary(self, data):
+        summary_dict = proto_util.dict_from_proto_list(data.summary.update)
         json_summary = json.dumps(summary_dict)
         if self._fs:
-            self._fs.push(SUMMARY_FNAME, json_summary)
-        summary_path = os.path.join(self._settings.files_dir, SUMMARY_FNAME)
+            self._fs.push(filenames.SUMMARY_FNAME, json_summary)
+        # TODO(jhr): we should only write this at the end of the script
+        summary_path = os.path.join(self._settings.files_dir, filenames.SUMMARY_FNAME)
         with open(summary_path, "w") as f:
             f.write(json_summary)
-            self._save_file(SUMMARY_FNAME)
+            self._save_file(filenames.SUMMARY_FNAME)
 
-    def handle_summary(self, data):
-        summary = data.summary
-
-        for item in summary.update:
-            if len(item.nested_key) > 0:
-                # we use either key or nested_key -- not both
-                assert item.key == ""
-                key = tuple(item.nested_key)
-            else:
-                # no counter-assertion here, because technically
-                # summary[""] is valid
-                key = (item.key,)
-
-            target = self._consolidated_summary
-
-            # recurse down the dictionary structure:
-            for prop in key[:-1]:
-                target = target[prop]
-
-            # use the last element of the key to write the leaf:
-            target[key[-1]] = json.loads(item.value_json)
-
-        for item in summary.remove:
-            if len(item.nested_key) > 0:
-                # we use either key or nested_key -- not both
-                assert item.key == ""
-                key = tuple(item.nested_key)
-            else:
-                # no counter-assertion here, because technically
-                # summary[""] is valid
-                key = (item.key,)
-
-            target = self._consolidated_summary
-
-            # recurse down the dictionary structure:
-            for prop in key[:-1]:
-                target = target[prop]
-
-            # use the last element of the key to erase the leaf:
-            del target[key[-1]]
-
-        self._save_summary(self._consolidated_summary)
-
-    def handle_stats(self, data):
+    def send_stats(self, data):
         stats = data.stats
         if stats.stats_type != wandb_internal_pb2.StatsRecord.StatsType.SYSTEM:
             return
@@ -518,10 +430,10 @@ class SendManager(object):
         row["_wandb"] = True
         row["_timestamp"] = now
         row["_runtime"] = int(now - self._run.start_time.ToSeconds())
-        self._fs.push(EVENTS_FNAME, json.dumps(row))
+        self._fs.push(filenames.EVENTS_FNAME, json.dumps(row))
         # TODO(jhr): check fs.push results?
 
-    def handle_output(self, data):
+    def send_output(self, data):
         if not self._fs:
             return
         out = data.output
@@ -544,30 +456,34 @@ class SendManager(object):
             timestamp = datetime.utcfromtimestamp(cur_time).isoformat() + " "
             prev_str = self._partial_output.get(stream, "")
             line = u"{}{}{}{}".format(prepend, timestamp, prev_str, line)
-            self._fs.push(OUTPUT_FNAME, line)
+            self._fs.push(filenames.OUTPUT_FNAME, line)
             self._partial_output[stream] = ""
 
-    def handle_config(self, data):
+    def send_config(self, data):
         cfg = data.config
         config_dict = _config_dict_from_proto_list(cfg.update)
         self._api.upsert_run(
             name=self._run.run_id, config=config_dict, **self._api_settings
         )
         config_path = os.path.join(self._settings.files_dir, "config.yaml")
-        save_config_file_from_dict(config_path, config_dict)
+        config_util.save_config_file_from_dict(config_path, config_dict)
         # TODO(jhr): check result of upsert_run?
 
     def _save_file(self, fname, policy="end"):
         logger.info("saving file %s with policy %s", fname, policy)
         self._dir_watcher.update_policy(fname, policy)
 
-    def handle_files(self, data):
+    def send_files(self, data):
         files = data.files
         for k in files.files:
             # TODO(jhr): fix paths with directories
             self._save_file(k.path, interface.file_enum_to_policy(k.policy))
 
-    def handle_artifact(self, data):
+    def send_tbrecord(self, data):
+        # tbrecord watching threads are handled by handler.py
+        pass
+
+    def send_artifact(self, data):
         artifact = data.artifact
         saver = artifacts.ArtifactSaver(
             api=self._api,
@@ -586,33 +502,17 @@ class SendManager(object):
             use_after_commit=artifact.use_after_commit,
         )
 
-    def handle_request_get_summary(self, data):
-        result = wandb_internal_pb2.Result(uuid=data.uuid)
-        for key, value in six.iteritems(self._consolidated_summary):
-            item = wandb_internal_pb2.SummaryItem()
-            item.key = key
-            item.value_json = json.dumps(value)
-            result.response.get_summary_response.item.append(item)
-        self._resp_q.put(result)
-
-    def handle_request_resume(self, data):
-        if self._system_stats is not None:
-            logger.info("starting system metrics thread")
-            self._system_stats.start()
-
-    def handle_request_pause(self, data):
-        if self._system_stats is not None:
-            logger.info("stopping system metrics thread")
-            self._system_stats.shutdown()
-
     def finish(self):
         logger.info("shutting down sender")
-        if self._tb_watcher:
-            self._tb_watcher.finish()
+        # if self._tb_watcher:
+        #     self._tb_watcher.finish()
         if self._dir_watcher:
             self._dir_watcher.finish()
+            self._dir_watcher = None
         if self._pusher:
             self._pusher.finish()
             self._pusher.join()
+            self._pusher = None
         if self._fs:
             self._fs.finish(self._exit_code)
+            self._fs = None

@@ -2109,6 +2109,7 @@ class Artifact(object):
         
         raise ValueError('Unexpected API result.')
 
+<<<<<<< HEAD
     @property
     def aliases(self):
         if ":" not in self.artifact_name:
@@ -2135,7 +2136,7 @@ class Artifact(object):
         })
         return True
 
-    def new_file(self, name):
+    def new_file(self, name, mode=None):
         raise ValueError('Cannot add files to an artifact once it has been saved')
 
     def add_file(self, path, name=None):
@@ -2185,7 +2186,8 @@ class Artifact(object):
         if dirpath is None:
             dirpath = os.path.join('.', 'artifacts', self.name)
             if platform.system() == "Windows":
-                dirpath = dirpath.replace(":", "-")
+                head, tail = os.path.splitdrive(dirpath)
+                dirpath = head + tail.replace(":", "-")
 
         manifest = self._load_manifest()
         nfiles = len(manifest.entries)
@@ -2240,7 +2242,8 @@ class Artifact(object):
         target_path = os.path.join(dirpath, name)
         # can't have colons in Windows
         if platform.system() == "Windows":
-            target_path = target_path.replace(":", "-")
+            head, tail = os.path.splitdrive(target_path)
+            target_path = head + tail.replace(":", "-")
 
         need_copy = (not os.path.isfile(target_path)
             or os.stat(cache_path).st_mtime != os.stat(target_path).st_mtime)

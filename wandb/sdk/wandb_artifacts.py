@@ -115,14 +115,14 @@ class Artifact(object):
         if self._final:
             raise ValueError("Can't add to finalized artifact.")
 
-    def new_file(self, name):
+    def new_file(self, name, mode="w"):
         self._ensure_can_add()
         path = os.path.join(self._artifact_dir.name, name.lstrip("/"))
         if os.path.exists(path):
             raise ValueError('File with name "%s" already exists' % name)
         util.mkdir_exists_ok(os.path.dirname(path))
         self._added_new = True
-        return open(path, "w")
+        return open(path, mode)
 
     def add_file(self, local_path, name=None):
         self._ensure_can_add()
@@ -605,13 +605,16 @@ class LocalFileHandler(StorageHandler):
         url = urlparse(manifest_entry.ref)
         local_path = "%s%s" % (url.netloc, url.path)
         if not os.path.exists(local_path):
-            raise ValueError("Local file reference: Failed to find file at path %s" % local_path)
+            raise ValueError(
+                "Local file reference: Failed to find file at path %s" % local_path
+            )
 
         path, hit = self._cache.check_md5_obj_path(
             manifest_entry.digest, manifest_entry.size
         )
         if hit:
             return path
+
         md5 = md5_file_b64(local_path)
         if md5 != manifest_entry.digest:
             raise ValueError(

@@ -17,7 +17,7 @@ import psutil
 import atexit
 import wandb
 from wandb.lib.module import unset_globals
-from wandb.internal.git_repo import GitRepo
+from wandb.lib.git import GitRepo
 from wandb.util import mkdir_exists_ok
 from six.moves import urllib
 try:
@@ -298,7 +298,7 @@ def wandb_init_run(request, runner, mocker, mock_server):
         #  We want to run setup every time in tests
         wandb.wandb_sdk.wandb_setup._WandbSetup._instance = None
         mocker.patch('wandb.wandb_sdk.wandb_init.Backend', utils.BackendMock)
-        run = wandb.init(settings=wandb.Settings(console="off", offline=True),
+        run = wandb.init(settings=wandb.Settings(console="off", offline=True, _except_exit=False),
                          **args["wandb_init"])
         yield run
         wandb.join()

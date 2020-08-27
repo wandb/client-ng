@@ -30,7 +30,47 @@ class Unbuffered(object):
         return getattr(self.stream, attr)
 
 
-def _pipe_relay(stopped, fd, name, cb, tee):
+class StreamWrapper(object):
+    def __init__(self, name, cb, output_writer=None):
+        self.name = name
+        self.cb = cb
+        self.output_writer = output_writer
+        self.stream = getattr(sys, name)
+        self.installed = False
+
+    def install(self):
+        if self.installed:
+            return
+        # TODO(farizrahman4u): patch writelines too?
+        old_write = self.stream.write
+        name = self.name
+        cb = self.cb
+        output_writer = self.output_writer
+        if output_writer is None:
+
+            def new_write(data):
+                cb(name, data)
+                old_write(data)
+        else:
+
+            def new_write(data):
+                cb(name, data)
+                old_write(data)
+                try:
+                    output_writer.write(data.encode('utf-8'))
+                except Exception as e:
+                    logger.error("Error while writing to file :" + str(e))
+        self.stream.write = new_write
+        self._old_write = old_write
+        self.installed = True
+
+    def uninstall(self):
+        if self.installed:
+            self.stream.write = self._old_write
+            self.installed = False
+
+
+def _pipe_relay(stopped, fd, name, cb, tee, output_writer):
     while True:
         try:
             data = os.read(fd, 4096)
@@ -46,6 +86,8 @@ def _pipe_relay(stopped, fd, name, cb, tee):
                 break
         if tee:
             os.write(tee, data)
+        if output_writer:
+            output_writer.write(data)
         if cb:
             try:
                 cb(name, data)
@@ -107,10 +149,11 @@ class Redirect(object):
 
 
 class Capture(object):
-    def __init__(self, name, cb):
+    def __init__(self, name, cb, output_writer):
         self._started = False
         self._name = name
         self._cb = cb
+        self._output_writer = output_writer
         self._stopped = None
         self._thread = None
         self._tee = None
@@ -138,7 +181,8 @@ class Capture(object):
         read_thread = threading.Thread(
             name=self._name,
             target=_pipe_relay,
-            args=(self._stopped, self._pipe_rd, self._name, self._cb, self._tee),
+            args=(self._stopped, self._pipe_rd, self._name, self._cb, self._tee,
+                  self._output_writer),
         )
         read_thread.daemon = True
         read_thread.start()
