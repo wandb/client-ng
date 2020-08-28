@@ -48,10 +48,11 @@ if wandb.TYPE_CHECKING:  # type: ignore
         Optional,
         Union,
         Tuple,
+        Callable,
+        Set,
     )
 
 logger = logging.getLogger("wandb")
-
 
 defaults = dict(
     base_url="https://api.wandb.ai",
@@ -59,11 +60,12 @@ defaults = dict(
     summary_warnings=5,
     console="auto",
     git_remote="origin",
-    ignore_globs=[],
+    ignore_globs=(),
 )
 
 # env mapping?
 env_prefix = "WANDB_"
+env_override_suffix = "_OVERRIDE"
 env_settings = dict(
     entity=None,
     project=None,
@@ -75,7 +77,6 @@ env_settings = dict(
     job_type=None,
     problem=None,
     console=None,
-    disabled=None,
     config_paths=None,
     run_id=None,
     notebook_name=None,
@@ -91,7 +92,9 @@ env_settings = dict(
     run_tags="WANDB_TAGS",
 )
 
-env_convert = dict(run_tags=lambda s: s.split(","), ignore_globs=lambda s: s.split(","))
+env_convert = dict(
+    run_tags=lambda s: s.split(","), ignore_globs=lambda s: s.split(","),
+)
 
 
 def _build_inverse_map(prefix, d):
@@ -192,26 +195,37 @@ class Settings(object):
     settings_system_spec = None
     settings_workspace_spec = None
 
+    # __frozen: bool
+    # __defaults_dict: Dict[str, int]
+    # __override_dict: Dict[str, int]
+    # __lost_defaults: Dict[str, Set[int]]
+    # __lost_override: Dict[str, Set[int]]
+
     class Source(object):
+        BASE = 0
         ORG = 1
         ENTITY = 2
         PROJECT = 3
-        SYSTEM = 4
-        WORKSPACE = 5
-        ENV = 6
-        SETUP = 7
-        SETTINGS = 8
-        ARGS = 9
+        USER = 4
+        SYSTEM = 5
+        WORKSPACE = 6
+        ENV = 7
+        SETUP = 8
+        INIT = 9
+        SETTINGS = 10
+        ARGS = 11
 
     source_str = (
-        "none",
+        "base",
         "org",
         "entity",
         "project",
+        "user",
         "system",
         "workspace",
         "env",
         "setup",
+        "init",
         "settings",
         "args",
     )
@@ -318,10 +332,12 @@ class Settings(object):
         self.__dict__.update({k: None for k in kwargs})
         # setup private attributes
         object.__setattr__(self, "_Settings__frozen", False)
-        object.__setattr__(self, "_Settings__source_dict", dict())
+        object.__setattr__(self, "_Settings__defaults_dict", dict())
         object.__setattr__(self, "_Settings__override_dict", dict())
+        object.__setattr__(self, "_Settings__lost_defaults", dict())
+        object.__setattr__(self, "_Settings__lost_override", dict())
         self._apply_defaults(defaults)
-        self._update(kwargs)
+        self._update(kwargs, _source=self.Source.SETTINGS)
 
     @property
     def offline(self):
@@ -407,11 +423,11 @@ class Settings(object):
     def _apply_settings(self, settings, _logger=None):
         # TODO(jhr): make a more efficient version of this
         for k in settings._public_keys():
-            source = settings.__source_dict.get(k)
+            source = settings.__defaults_dict.get(k)
             self._update({k: settings[k]}, _source=source)
 
     def _apply_defaults(self, defaults):
-        self._update(defaults)
+        self._update(defaults, _source=self.Source.BASE)
 
     def _apply_configfiles(self, _logger=None):
         # TODO(jhr): permit setting of config in system and workspace
@@ -510,19 +526,21 @@ class Settings(object):
             for k, v in six.iteritems(data):
                 if v is None:
                     continue
-                if self._priority_failed(k, v, source=_source, override=_override):
+                if self._priority_failed(k, source=_source, override=_override):
                     continue
                 self.__dict__[k] = v
                 if _source:
-                    self.__source_dict[k] = _source
+                    self.__defaults_dict[k] = _source
                 if _override:
                     self.__override_dict[k] = _override
 
     def update(self, __d=None, **kwargs):
         self._update(__d, **kwargs)
 
-    def _priority_failed(self, k, v, source, override):
-        key_source = self.__source_dict.get(k)
+    def _priority_failed(
+        self, k, source, override
+    ):
+        key_source = self.__defaults_dict.get(k)
         key_override = self.__override_dict.get(k)
         if not key_source or not source:
             return False

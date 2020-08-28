@@ -48,23 +48,25 @@ if wandb.TYPE_CHECKING:  # type: ignore
         Optional,
         Union,
         Tuple,
+        Callable,
+        Set,
     )
 
 logger = logging.getLogger("wandb")
 
-
-defaults = dict(
+defaults: Dict[str, Union[str, int, Tuple]] = dict(
     base_url="https://api.wandb.ai",
     show_warnings=2,
     summary_warnings=5,
     console="auto",
     git_remote="origin",
-    ignore_globs=[],
+    ignore_globs=(),
 )
 
 # env mapping?
-env_prefix = "WANDB_"
-env_settings = dict(
+env_prefix: str = "WANDB_"
+env_override_suffix: str = "_OVERRIDE"
+env_settings: Dict[str, Optional[str]] = dict(
     entity=None,
     project=None,
     base_url=None,
@@ -75,7 +77,6 @@ env_settings = dict(
     job_type=None,
     problem=None,
     console=None,
-    disabled=None,
     config_paths=None,
     run_id=None,
     notebook_name=None,
@@ -91,10 +92,12 @@ env_settings = dict(
     run_tags="WANDB_TAGS",
 )
 
-env_convert = dict(run_tags=lambda s: s.split(","), ignore_globs=lambda s: s.split(","))
+env_convert: Dict[str, Callable[[str], List[str]]] = dict(
+    run_tags=lambda s: s.split(","), ignore_globs=lambda s: s.split(","),
+)
 
 
-def _build_inverse_map(prefix, d):
+def _build_inverse_map(prefix: str, d: Dict[str, str]) -> Dict[str, str]:
     inv_map = dict()
     for k, v in six.iteritems(d):
         v = v or prefix + k.upper()
@@ -102,14 +105,14 @@ def _build_inverse_map(prefix, d):
     return inv_map
 
 
-def _is_kaggle():
+def _is_kaggle() -> bool:
     return (
         os.getenv("KAGGLE_KERNEL_RUN_TYPE") is not None
         or "kaggle_environments" in sys.modules  # noqa: W503
     )
 
 
-def _error_choices(value, choices):
+def _error_choices(value: str, choices: List[str]) -> str:
     return "{} not in {}".format(value, ",".join(list(choices)))
 
 
@@ -192,26 +195,37 @@ class Settings(object):
     settings_system_spec: Optional[str] = None
     settings_workspace_spec: Optional[str] = None
 
+    __frozen: bool
+    __defaults_dict: Dict[str, int]
+    __override_dict: Dict[str, int]
+    __lost_defaults: Dict[str, Set[int]]
+    __lost_override: Dict[str, Set[int]]
+
     class Source(object):
+        BASE: int = 0
         ORG: int = 1
         ENTITY: int = 2
         PROJECT: int = 3
-        SYSTEM: int = 4
-        WORKSPACE: int = 5
-        ENV: int = 6
-        SETUP: int = 7
-        SETTINGS: int = 8
-        ARGS: int = 9
+        USER: int = 4
+        SYSTEM: int = 5
+        WORKSPACE: int = 6
+        ENV: int = 7
+        SETUP: int = 8
+        INIT: int = 9
+        SETTINGS: int = 10
+        ARGS: int = 11
 
     source_str: Tuple[str, ...] = (
-        "none",
+        "base",
         "org",
         "entity",
         "project",
+        "user",
         "system",
         "workspace",
         "env",
         "setup",
+        "init",
         "settings",
         "args",
     )
@@ -318,10 +332,12 @@ class Settings(object):
         self.__dict__.update({k: None for k in kwargs})
         # setup private attributes
         object.__setattr__(self, "_Settings__frozen", False)
-        object.__setattr__(self, "_Settings__source_dict", dict())
+        object.__setattr__(self, "_Settings__defaults_dict", dict())
         object.__setattr__(self, "_Settings__override_dict", dict())
+        object.__setattr__(self, "_Settings__lost_defaults", dict())
+        object.__setattr__(self, "_Settings__lost_override", dict())
         self._apply_defaults(defaults)
-        self._update(kwargs)
+        self._update(kwargs, _source=self.Source.SETTINGS)
 
     @property
     def offline(self) -> bool:
@@ -407,11 +423,11 @@ class Settings(object):
     def _apply_settings(self, settings, _logger=None):
         # TODO(jhr): make a more efficient version of this
         for k in settings._public_keys():
-            source = settings.__source_dict.get(k)
+            source = settings.__defaults_dict.get(k)
             self._update({k: settings[k]}, _source=source)
 
     def _apply_defaults(self, defaults):
-        self._update(defaults)
+        self._update(defaults, _source=self.Source.BASE)
 
     def _apply_configfiles(self, _logger=None):
         # TODO(jhr): permit setting of config in system and workspace
@@ -510,20 +526,22 @@ class Settings(object):
             for k, v in six.iteritems(data):
                 if v is None:
                     continue
-                if self._priority_failed(k, v, source=_source, override=_override):
+                if self._priority_failed(k, source=_source, override=_override):
                     continue
                 self.__dict__[k] = v
                 if _source:
-                    self.__source_dict[k] = _source
+                    self.__defaults_dict[k] = _source
                 if _override:
                     self.__override_dict[k] = _override
 
     def update(self, __d=None, **kwargs):
         self._update(__d, **kwargs)
 
-    def _priority_failed(self, k, v, source, override):
-        key_source = self.__source_dict.get(k)
-        key_override = self.__override_dict.get(k)
+    def _priority_failed(
+        self, k: str, source: Optional[int], override: Optional[int]
+    ) -> bool:
+        key_source: Optional[int] = self.__defaults_dict.get(k)
+        key_override: Optional[int] = self.__override_dict.get(k)
         if not key_source or not source:
             return False
         if key_override and not override:
