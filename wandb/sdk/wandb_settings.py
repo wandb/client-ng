@@ -65,7 +65,7 @@ defaults: Dict[str, Union[str, int, Tuple]] = dict(
 
 # env mapping?
 env_prefix: str = "WANDB_"
-env_override_suffix: str = "_OVERRIDE"
+# env_override_suffix: str = "_OVERRIDE"
 env_settings: Dict[str, Optional[str]] = dict(
     entity=None,
     project=None,
@@ -533,8 +533,10 @@ class Settings(object):
                 self.__dict__[k] = v
                 if _source:
                     self.__defaults_dict[k] = _source
+                    self.__defaults_dict_set.setdefault(k, set()).add(_source)
                 if _override:
                     self.__override_dict[k] = _override
+                    self.__override_dict_set.setdefault(k, set()).add(_override)
 
     def update(self, __d=None, **kwargs):
         self._update(__d, **kwargs)
@@ -547,25 +549,10 @@ class Settings(object):
         if not key_source or not source:
             return False
         if key_override and not override:
-            wandb.termwarn(
-                "Settings key '%s' already set by override from source %s"
-                % (k, self.source_str[key_source])
-            )
             return True
         if key_override and override and source > key_source:
-            wandb.termwarn(
-                (
-                    "Settings key '%s' already set by override from higher "
-                    "priority override source %s"
-                )
-                % (k, self.source_str[key_source])
-            )
             return True
         if not override and source < key_source:
-            wandb.termwarn(
-                "Settings key '%s' already set from higher priority source %s"
-                % (k, self.source_str[key_source])
-            )
             return True
         return False
 
