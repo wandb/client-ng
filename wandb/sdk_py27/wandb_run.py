@@ -846,6 +846,18 @@ class RunManaged(Run):
         console = self._settings.console
         logger.info("redirect: %s", console)
 
+        if os.name == "nt" and sys.version_info >= (3, 6):
+            legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
+            if legacy_env_var not in os.environ:
+                msg = (
+                    "Set %s environment variable to enable"
+                    " proper console logging on Windows. Falling "
+                    "back to monkey patching stdout/err." % legacy_env_var
+                )
+                print(msg)
+                logger.info(msg)
+                console = "notebook"
+
         if console == "redirect":
             logger.info("Redirecting console.")
             out_cap = redirect.Capture(
