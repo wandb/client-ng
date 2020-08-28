@@ -141,7 +141,6 @@ def test_settings(test_dir, mocker):
     settings = wandb.Settings(_start_time=time.time(),
                               base_url="http://localhost",
                               root_dir=os.getcwd(),
-                              wandb_dir=wandb_dir,
                               save_code=True,
                               project="test",
                               console="off",
@@ -149,7 +148,6 @@ def test_settings(test_dir, mocker):
                               run_id=wandb.util.generate_id(),
                               _start_datetime=datetime.datetime.now())
     settings.setdefaults()
-    settings.files_dir = settings._path_convert(settings.files_dir_spec)
     yield settings
     # Just incase someone forgets to join in tests
     if wandb.run is not None:
