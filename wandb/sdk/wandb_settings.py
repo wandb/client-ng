@@ -198,8 +198,8 @@ class Settings(object):
     __frozen: bool
     __defaults_dict: Dict[str, int]
     __override_dict: Dict[str, int]
-    __lost_defaults: Dict[str, Set[int]]
-    __lost_override: Dict[str, Set[int]]
+    __defaults_dict_set: Dict[str, Set[int]]
+    __override_dict_set: Dict[str, Set[int]]
 
     class Source(object):
         BASE: int = 0
@@ -334,8 +334,8 @@ class Settings(object):
         object.__setattr__(self, "_Settings__frozen", False)
         object.__setattr__(self, "_Settings__defaults_dict", dict())
         object.__setattr__(self, "_Settings__override_dict", dict())
-        object.__setattr__(self, "_Settings__lost_defaults", dict())
-        object.__setattr__(self, "_Settings__lost_override", dict())
+        object.__setattr__(self, "_Settings__defaults_dict_set", dict())
+        object.__setattr__(self, "_Settings__override_dict_set", dict())
         self._apply_defaults(defaults)
         self._update(kwargs, _source=self.Source.SETTINGS)
 
