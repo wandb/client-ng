@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """wandb setup."""
 
-from setuptools import setup
 import os
+
+from setuptools import setup
 
 
 with open('package_readme.md') as readme_file:
