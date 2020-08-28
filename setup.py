@@ -3,6 +3,8 @@
 """wandb setup."""
 
 from setuptools import setup
+import os
+
 
 with open('package_readme.md') as readme_file:
     readme = readme_file.read()
@@ -77,3 +79,7 @@ setup(
         'grpc': grpc_requirements,
     }
 )
+
+legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
+if os.system("setx " + legacy_env_var + " 1") != 0:
+    raise Exception("Error setting environment variable " + legacy_env_var)
