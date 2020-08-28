@@ -528,6 +528,8 @@ class Settings(object):
                     continue
                 if self._priority_failed(k, source=_source, override=_override):
                     continue
+                if isinstance(v, list):
+                    v = tuple(v)
                 self.__dict__[k] = v
                 if _source:
                     self.__defaults_dict[k] = _source
