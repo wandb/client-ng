@@ -277,45 +277,28 @@ class _WandbInit(object):
     def _log_setup(self, settings):
         """Setup logging from settings."""
 
-        settings.log_user = settings._path_convert(
-            settings.log_dir_spec, settings.log_user_spec
-        )
-        settings.log_internal = settings._path_convert(
-            settings.log_dir_spec, settings.log_internal_spec
-        )
-        settings._sync_dir = settings._path_convert(settings.sync_dir_spec)
-        settings.sync_file = settings._path_convert(
-            settings.sync_dir_spec, settings.sync_file_spec
-        )
-        settings.files_dir = settings._path_convert(settings.files_dir_spec)
         filesystem._safe_makedirs(os.path.dirname(settings.log_user))
         filesystem._safe_makedirs(os.path.dirname(settings.log_internal))
         filesystem._safe_makedirs(os.path.dirname(settings.sync_file))
         filesystem._safe_makedirs(settings.files_dir)
 
-        log_symlink_user = settings._path_convert(settings.log_symlink_user_spec)
-        log_symlink_internal = settings._path_convert(
-            settings.log_symlink_internal_spec
-        )
-        sync_symlink_latest = settings._path_convert(settings.sync_symlink_latest_spec)
-
         if settings.symlink:
             self._safe_symlink(
-                os.path.dirname(sync_symlink_latest),
+                os.path.dirname(settings.sync_symlink_latest),
                 os.path.dirname(settings.sync_file),
-                os.path.basename(sync_symlink_latest),
+                os.path.basename(settings.sync_symlink_latest),
                 delete=True,
             )
             self._safe_symlink(
-                os.path.dirname(log_symlink_user),
+                os.path.dirname(settings.log_symlink_user),
                 settings.log_user,
-                os.path.basename(log_symlink_user),
+                os.path.basename(settings.log_symlink_user),
                 delete=True,
             )
             self._safe_symlink(
-                os.path.dirname(log_symlink_internal),
+                os.path.dirname(settings.log_symlink_internal),
                 settings.log_internal,
-                os.path.basename(log_symlink_internal),
+                os.path.basename(settings.log_symlink_internal),
                 delete=True,
             )
 

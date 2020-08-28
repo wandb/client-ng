@@ -179,6 +179,18 @@ class Settings(object):
     console = None
     disabled = None
     resume_fname_spec = None
+    root_dir = None
+    log_dir_spec = None
+    log_user_spec = None
+    log_internal_spec = None
+    sync_file_spec = None
+    sync_dir_spec = None
+    files_dir_spec = None
+    log_symlink_user_spec = None
+    log_symlink_internal_spec = None
+    sync_symlink_latest_spec = None
+    settings_system_spec = None
+    settings_workspace_spec = None
 
     class Source(object):
         ORG = 1
@@ -234,29 +246,20 @@ class Settings(object):
         _config_dict=None,
         # directories and files
         root_dir=None,
-        wandb_dir=None,  # computed
         settings_system_spec="~/.config/wandb/settings",
         settings_workspace_spec="{wandb_dir}/settings",
-        settings_system=None,  # computed
-        settings_workspace=None,  # computed
         sync_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}",
         sync_file_spec="run-{timespec}-{run_id}.wandb",
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
         sync_symlink_latest_spec="{wandb_dir}/latest-run",
-        _sync_dir=None,  # computed
-        sync_file=None,  # computed
         log_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/logs",
         log_user_spec="debug-{timespec}-{run_id}.log",
         log_internal_spec="debug-internal-{timespec}-{run_id}.log",
         log_symlink_user_spec="{wandb_dir}/debug.log",
         log_symlink_internal_spec="{wandb_dir}/debug-internal.log",
-        log_user=None,  # computed
-        log_internal=None,  # computed
         resume_fname_spec="{wandb_dir}/wandb-resume.json",
-        resume_fname=None,  # computed
         files_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/files",
-        files_dir=None,  # computed
         symlink=None,  # probed
         # where files are temporary stored when saving
         # files_dir=None,
@@ -333,6 +336,50 @@ class Settings(object):
     def resume_fname(self):
         return self._path_convert(self.resume_fname_spec)
 
+    @property
+    def wandb_dir(self):
+        return get_wandb_dir(self.root_dir or "")
+
+    @property
+    def log_user(self):
+        return self._path_convert(self.log_dir_spec, self.log_user_spec)
+
+    @property
+    def log_internal(self):
+        return self._path_convert(self.log_dir_spec, self.log_internal_spec)
+
+    @property
+    def _sync_dir(self):
+        return self._path_convert(self.sync_dir_spec)
+
+    @property
+    def sync_file(self):
+        return self._path_convert(self.sync_dir_spec, self.sync_file_spec)
+
+    @property
+    def files_dir(self):
+        return self._path_convert(self.files_dir_spec)
+
+    @property
+    def log_symlink_user(self):
+        return self._path_convert(self.log_symlink_user_spec)
+
+    @property
+    def log_symlink_internal(self):
+        return self._path_convert(self.log_symlink_internal_spec)
+
+    @property
+    def sync_symlink_latest(self):
+        return self._path_convert(self.sync_symlink_latest_spec)
+
+    @property
+    def settings_system(self):
+        return self._path_convert(self.settings_system_spec)
+
+    @property
+    def settings_workspace(self):
+        return self._path_convert(self.settings_workspace_spec)
+
     def _validate_mode(self, value):
         choices = {"dryrun", "run", "offline", "online"}
         if value in choices:
@@ -368,11 +415,9 @@ class Settings(object):
 
     def _apply_configfiles(self, _logger=None):
         # TODO(jhr): permit setting of config in system and workspace
-        settings_system = self._path_convert(self.settings_system_spec)
-        self._update(self._load(settings_system), _source=self.Source.SYSTEM)
+        self._update(self._load(self.settings_system), _source=self.Source.SYSTEM)
 
-        settings_workspace = self._path_convert(self.settings_workspace_spec)
-        self._update(self._load(settings_workspace), _source=self.Source.WORKSPACE)
+        self._update(self._load(self.settings_workspace), _source=self.Source.WORKSPACE)
 
     def _apply_environ(self, environ, _logger=None):
         _logger = _logger or logger
@@ -662,7 +707,6 @@ class Settings(object):
             elif args["resume"] is True:
                 args["resume"] = "auto"
         self.update(args)
-        self.wandb_dir = get_wandb_dir(self.root_dir or "")
         # handle auto resume logic
         if self.resume == "auto":
             if os.path.exists(self.resume_fname):
