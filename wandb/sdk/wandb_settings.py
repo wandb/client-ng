@@ -233,22 +233,6 @@ class Settings(object):
 
     Console: Type[SettingsConsole] = SettingsConsole
 
-    # remove this (not needed, can use Source class)
-    _source_str: Tuple[str, ...] = (
-        "base",
-        "org",
-        "entity",
-        "project",
-        "user",
-        "system",
-        "workspace",
-        "env",
-        "setup",
-        "init",
-        "settings",
-        "args",
-    )
-
     def __init__(  # pylint: disable=unused-argument
         self,
         base_url: str = None,
