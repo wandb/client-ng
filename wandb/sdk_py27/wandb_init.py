@@ -158,7 +158,7 @@ class _WandbInit(object):
         d = dict(_start_time=time.time(), _start_datetime=datetime.datetime.now(),)
         settings.update(d)
 
-        if settings.jupyter:
+        if settings._jupyter:
             self._jupyter_setup(settings)
 
         self._log_setup(settings)
@@ -316,7 +316,7 @@ class _WandbInit(object):
         s = self.settings
         config = self.config
 
-        if s.reinit or (s.jupyter and s.reinit is not False):
+        if s.reinit or (s._jupyter and s.reinit is not False):
             if len(self._wl._global_run_stack) > 0:
                 if len(self._wl._global_run_stack) > 1:
                     wandb.termwarn(
@@ -369,8 +369,10 @@ class _WandbInit(object):
 
         backend._hack_set_run(run)
 
-        if s.offline:
-            backend.interface.publish_run(run)
+        if s._offline:
+            run_proto = backend.interface._make_run(run)
+            backend.interface._publish_run(run_proto)
+            run._set_run_obj_offline(run_proto)
         else:
             ret = backend.interface.communicate_check_version()
             message = ret.response.check_version_response.message
