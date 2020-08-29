@@ -52,6 +52,7 @@ if wandb.TYPE_CHECKING:  # type: ignore
         Tuple,
         Callable,
         Set,
+        Type,
     )
 
 logger = logging.getLogger("wandb")
@@ -168,7 +169,7 @@ def get_wandb_dir(root_dir):
 
 
 @enum.unique
-class Console(enum.Enum):
+class SettingsConsole(enum.Enum):
     OFF = 0
     NOTEBOOK = 1
     REDIRECT = 2
@@ -229,6 +230,8 @@ class Settings(object):
         INIT = 9
         SETTINGS = 10
         ARGS = 11
+
+    Console = SettingsConsole
 
     # remove this (not needed, can use Source class)
     _source_str = (
@@ -380,7 +383,9 @@ class Settings(object):
     @property
     def _console(self):
         convert_dict = dict(
-            off=Console.OFF, notebook=Console.NOTEBOOK, redirect=Console.REDIRECT,
+            off=SettingsConsole.OFF,
+            notebook=SettingsConsole.NOTEBOOK,
+            redirect=SettingsConsole.REDIRECT,
         )
         console = self.console
         if console == "auto":
@@ -448,7 +453,13 @@ class Settings(object):
         return _error_choices(value, choices)
 
     def _validate_console(self, value):
-        choices = {"auto", "redirect", "off", "file", "iowrap", "notebook"}
+        # choices = {"auto", "redirect", "off", "file", "iowrap", "notebook"}
+        choices = {
+            "auto",
+            "redirect",
+            "off",
+            "notebook",
+        }
         if value in choices:
             return
         return _error_choices(value, choices)
@@ -510,7 +521,10 @@ class Settings(object):
 
         path_parts = path_part.split(os.sep if os.sep in path_part else "/")
         for i in range(len(path_parts)):
-            path_parts[i] = path_parts[i].format(**format_dict)
+            try:
+                path_parts[i] = path_parts[i].format(**format_dict)
+            except KeyError:
+                return None
         return path_parts
 
     def _path_convert(self, *path):

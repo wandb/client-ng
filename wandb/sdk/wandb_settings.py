@@ -52,6 +52,7 @@ if wandb.TYPE_CHECKING:  # type: ignore
         Tuple,
         Callable,
         Set,
+        Type,
     )
 
 logger = logging.getLogger("wandb")
@@ -168,7 +169,7 @@ def get_wandb_dir(root_dir: str):
 
 
 @enum.unique
-class Console(enum.Enum):
+class SettingsConsole(enum.Enum):
     OFF = 0
     NOTEBOOK = 1
     REDIRECT = 2
@@ -230,7 +231,7 @@ class Settings(object):
         SETTINGS: int = 10
         ARGS: int = 11
 
-    Console = Console
+    Console: Type[SettingsConsole] = SettingsConsole
 
     # remove this (not needed, can use Source class)
     _source_str: Tuple[str, ...] = (
@@ -380,9 +381,11 @@ class Settings(object):
         return platform.system() == "Windows"
 
     @property
-    def _console(self) -> Console:
-        convert_dict: Dict[str, Console] = dict(
-            off=Console.OFF, notebook=Console.NOTEBOOK, redirect=Console.REDIRECT,
+    def _console(self) -> SettingsConsole:
+        convert_dict: Dict[str, SettingsConsole] = dict(
+            off=SettingsConsole.OFF,
+            notebook=SettingsConsole.NOTEBOOK,
+            redirect=SettingsConsole.REDIRECT,
         )
         console: str = self.console
         if console == "auto":
@@ -392,7 +395,7 @@ class Settings(object):
                 console = "notebook"
             else:
                 console = "redirect"
-        convert: Console = convert_dict[console]
+        convert: SettingsConsole = convert_dict[console]
         return convert
 
     @property
@@ -451,7 +454,12 @@ class Settings(object):
 
     def _validate_console(self, value):
         # choices = {"auto", "redirect", "off", "file", "iowrap", "notebook"}
-        choices = {"auto", "redirect", "off", "notebook",}
+        choices = {
+            "auto",
+            "redirect",
+            "off",
+            "notebook",
+        }
         if value in choices:
             return
         return _error_choices(value, choices)

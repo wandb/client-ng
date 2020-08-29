@@ -18,9 +18,7 @@ from wandb import trigger
 from wandb.backend.backend import Backend
 from wandb.errors.error import UsageError
 from wandb.integration.magic import magic_install
-from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
-from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
 from . import wandb_login
@@ -327,17 +325,9 @@ class _WandbInit(object):
             logger.info("wandb.init() called when a run is still active")
             return wandb.run
 
-        console = s.console
         use_redirect = True
         stdout_master_fd, stderr_master_fd = None, None
         stdout_slave_fd, stderr_slave_fd = None, None
-        if console == "iowrap":
-            stdout_master_fd, stdout_slave_fd = io_wrap.wandb_pty(resize=False)
-            stderr_master_fd, stderr_slave_fd = io_wrap.wandb_pty(resize=False)
-        elif console == "_win32":
-            # Not used right now
-            stdout_master_fd, stdout_slave_fd = lib_console.win32_create_pipe()
-            stderr_master_fd, stderr_slave_fd = lib_console.win32_create_pipe()
 
         backend = Backend()
         backend.ensure_launched(

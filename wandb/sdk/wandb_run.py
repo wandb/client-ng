@@ -877,7 +877,7 @@ class RunManaged(Run):
                 name="stderr", cb=self._redirect_cb, output_writer=self._output_writer
             )
         elif console == self._settings.Console.OFF:
-            pass
+            return
         else:
             raise ValueError("unhandled console")
         try:

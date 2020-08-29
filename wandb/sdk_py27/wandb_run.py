@@ -851,10 +851,10 @@ class RunManaged(Run):
                 wandb.termlog("Run `wandb off` to turn off syncing.")
 
     def _redirect(self, stdout_slave_fd, stderr_slave_fd):
-        console = self._settings.console
+        console = self._settings._console
         logger.info("redirect: %s", console)
 
-        if console == "redirect":
+        if console == self._settings.Console.REDIRECT:
             logger.info("Redirecting console.")
             out_cap = redirect.Capture(
                 name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
@@ -868,7 +868,7 @@ class RunManaged(Run):
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
-        elif console == "notebook":
+        elif console == self._settings.Console.NOTEBOOK:
             logger.info("Redirecting notebook output.")
             out_redir = redirect.StreamWrapper(
                 name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
@@ -876,8 +876,10 @@ class RunManaged(Run):
             err_redir = redirect.StreamWrapper(
                 name="stderr", cb=self._redirect_cb, output_writer=self._output_writer
             )
-        else:
+        elif console == self._settings.Console.OFF:
             return
+        else:
+            raise ValueError("unhandled console")
         try:
             out_redir.install()
             err_redir.install()

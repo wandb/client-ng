@@ -18,9 +18,7 @@ from wandb import trigger
 from wandb.backend.backend import Backend
 from wandb.errors.error import UsageError
 from wandb.integration.magic import magic_install
-from wandb.lib import console as lib_console
 from wandb.lib import filesystem, module, reporting
-from wandb.old import io_wrap
 from wandb.util import sentry_exc
 
 from . import wandb_login
