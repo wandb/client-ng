@@ -82,8 +82,8 @@ setup(
     }
 )
 
-if os.name == "nt" and sys.version_info >= (3, 6):
-    legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
-    if legacy_env_var not in os.environ:
-        if os.system("setx " + legacy_env_var + " 1") != 0:
-            raise Exception("Error setting environment variable " + legacy_env_var)
+# if os.name == "nt" and sys.version_info >= (3, 6):
+#     legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
+#     if legacy_env_var not in os.environ:
+#         if os.system("setx " + legacy_env_var + " 1") != 0:
+#             raise Exception("Error setting environment variable " + legacy_env_var)
