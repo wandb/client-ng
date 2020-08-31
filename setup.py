@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 """wandb setup."""
 
-import os
-import sys
-
 from setuptools import setup
 
 
