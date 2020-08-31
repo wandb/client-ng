@@ -376,7 +376,18 @@ class Settings(object):
             if self._jupyter:
                 console = "notebook"
             elif self._windows:
-                console = "notebook"
+                legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
+                if sys.version_info >= (3, 6) and legacy_env_var not in os.environ:
+                    msg = (
+                        "Set %s environment variable to enable"
+                        " proper console logging on Windows. Falling "
+                        "back to monkey patching stdout/err." % legacy_env_var
+                    )
+                    print(msg)
+                    logger.info(msg)
+                    console = "notebook"
+                else:
+                    console = "redirect"
             else:
                 console = "redirect"
         convert: SettingsConsole = convert_dict[console]
