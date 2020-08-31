@@ -73,7 +73,7 @@ def _login(
         return
 
     active_entity = None
-    logged_in = is_logged_in()
+    logged_in = is_logged_in(settings=settings)
     if logged_in:
         # TODO: do we want to move all login logic to the backend?
         if _backend:
@@ -114,6 +114,7 @@ def _login(
 
 
 def is_logged_in(settings=None):
-    wl = wandb.setup(settings=settings)
-    settings = wl.settings()
-    return apikey.api_key(settings=settings) is not None
+    wl = wandb.setup()
+    wl_settings = wl.settings()
+    wl_settings._apply_settings(settings=settings)
+    return apikey.api_key(settings=wl_settings) is not None
