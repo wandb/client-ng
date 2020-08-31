@@ -1,4 +1,4 @@
 cp ../requirements.txt ./requirements_main.txt
-docker build -t nicholasbardy/wandb-integration:$VERSION .
+docker build -t wandb/local-integration:$VERSION .
 rm ./requirements_main.txt
-docker push nicholasbardy/wandb-integration:$VERSION
+docker push wandb/local-integration:$VERSION

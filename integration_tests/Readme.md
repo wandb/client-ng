@@ -60,3 +60,12 @@ git add -p; git commit -m "BUMP"; sh integration_tests/scripts/test-integration-
 # Base command
 sh integration_tests/scripts/test-integration-local.sh
 ```
+
+## Updating the docker environment
+
+We build a docker image with all the local setup down to allow speed up for local dev testing times and for CI times in the future when we turn on layer cacheing.
+
+The Dockerfile is specified in integration_tests/Dockerfile
+
+A script for pushing a new version to dockerhub to use in CI is 
+`VERSION=1.0.1 sh scripts/update-docker.sh`

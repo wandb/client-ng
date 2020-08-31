@@ -116,7 +116,7 @@ jobs:
 
     integration:
         docker:
-            - image: nicholasbardy/wandb-integration:0.0.1
+            - image: wandb/local-integration:1.0.0
             - image: wandb/local:latest
               environment:
                 CI: "1"
