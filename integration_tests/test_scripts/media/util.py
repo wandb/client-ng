@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add current directory so we can run this as a module
+sys.path.append(os.path.dirname(__file__))
+
 import object3D
 import point_cloud_scene
 import molecule
@@ -7,10 +13,6 @@ import video
 import image_bounding_box
 import image_mask
 import image
-import sys
-import os
-# Add current directory so we can run this as a module
-sys.path.append(os.path.dirname(__file__))
 
 # This conflict with a local library with we aren't explicit about the
 # locak dir

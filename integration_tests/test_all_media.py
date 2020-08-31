@@ -1,12 +1,13 @@
-from test_scripts.media.util import all_tests, project_name
 import os
 import sys
+
+# Add current directory so we can run this as a module
+sys.path.append(os.path.dirname(__file__))
+from test_scripts.media.util import all_tests, project_name
 
 import setup
 import wandb
 
-# Add current directory so we can run this as a module
-sys.path.append(os.path.dirname(__file__))
 
 
 def test_all_media():
