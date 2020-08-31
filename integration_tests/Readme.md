@@ -68,4 +68,4 @@ We build a docker image with all the local setup down to allow speed up for loca
 The Dockerfile is specified in integration_tests/Dockerfile
 
 A script for pushing a new version to dockerhub to use in CI is 
-`VERSION=1.0.1 sh scripts/update-docker.sh`
+`VERSION=1.1.1 sh scripts/update-docker.sh`
