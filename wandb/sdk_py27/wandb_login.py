@@ -9,7 +9,6 @@ from __future__ import print_function
 import logging
 
 import click
-import requests
 import wandb
 from wandb.internal.internal_api import Api
 from wandb.lib import apikey
@@ -114,19 +113,7 @@ def _login(
     return
 
 
-def api_key(settings=None):
-    if not settings:
-        wl = wandb.setup()
-        settings = wl.settings()
-    if settings.api_key:
-        return settings.api_key
-    auth = requests.utils.get_netrc_auth(settings.base_url)
-    if auth:
-        return auth[-1]
-    return None
-
-
 def is_logged_in(settings=None):
     wl = wandb.setup(settings=settings)
     settings = wl.settings()
-    return api_key(settings=settings) is not None
+    return apikey.api_key(settings=settings) is not None
