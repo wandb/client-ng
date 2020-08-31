@@ -9,6 +9,7 @@ import stat
 import sys
 import textwrap
 
+import requests
 from six.moves import input
 import wandb
 from wandb.apis import InternalApi
@@ -61,7 +62,7 @@ def prompt_api_key(
     input_callback = input_callback or getpass.getpass
     api = api or InternalApi()
     anon_mode = _fixup_anon_mode(settings.anonymous)
-    jupyter = settings.jupyter or False
+    jupyter = settings._jupyter or False
     app_url = settings.base_url.replace("//api.", "//app.")
 
     choices = [choice for choice in LOGIN_CHOICES]
@@ -207,3 +208,15 @@ def write_key(settings, key):
         write_netrc(settings.base_url, "user", key)
         return
     raise ValueError("API key must be 40 characters long, yours was %s" % len(key))
+
+
+def api_key(settings=None):
+    if not settings:
+        wl = wandb.setup()
+        settings = wl.settings()
+    if settings.api_key:
+        return settings.api_key
+    auth = requests.utils.get_netrc_auth(settings.base_url)
+    if auth:
+        return auth[-1]
+    return None

@@ -1,3 +1,4 @@
+#
 # -*- coding: utf-8 -*-
 """
 login.
@@ -8,7 +9,6 @@ from __future__ import print_function
 import logging
 
 import click
-import requests
 import wandb
 from wandb.internal.internal_api import Api
 from wandb.lib import apikey
@@ -66,14 +66,14 @@ def _login(
     # wandb.setup was previously called. If wandb.setup is called further up,
     # you must make sure the anonymous setting (and any other settings) are
     # already properly set up there.
-    wl = wandb.setup(settings=settings, _warn=False)
+    wl = wandb.setup()
     settings = _settings or wl.settings()
 
-    if settings.offline:
+    if settings._offline:
         return
 
     active_entity = None
-    logged_in = is_logged_in()
+    logged_in = is_logged_in(settings=settings)
     if logged_in:
         # TODO: do we want to move all login logic to the backend?
         if _backend:
@@ -92,7 +92,7 @@ def _login(
         )
         return
 
-    jupyter = settings.jupyter or False
+    jupyter = settings._jupyter or False
     if key:
         if jupyter:
             wandb.termwarn(
@@ -113,19 +113,8 @@ def _login(
     return
 
 
-def api_key(settings=None):
-    if not settings:
-        wl = wandb.setup(_warn=False)
-        settings = wl.settings()
-    if settings.api_key:
-        return settings.api_key
-    auth = requests.utils.get_netrc_auth(settings.base_url)
-    if auth:
-        return auth[-1]
-    return None
-
-
 def is_logged_in(settings=None):
-    wl = wandb.setup(settings=settings, _warn=False)
-    settings = wl.settings()
-    return api_key(settings=settings) is not None
+    wl = wandb.setup()
+    wl_settings = wl.settings()
+    wl_settings._apply_settings(settings=settings)
+    return apikey.api_key(settings=wl_settings) is not None

@@ -722,7 +722,8 @@ class Runs(Paginator):
 
     def convert_objects(self):
         objs = []
-        # import ipdb; ipdb.set_trace()
+        if self.last_response is None or self.last_response.get('project') is None:
+            raise ValueError("Could not find project %s" % self.project)
         for run_response in self.last_response['project']['runs']['edges']:
             run = Run(self.client, self.entity, self.project, run_response["node"]["name"], run_response["node"])
             objs.append(run)
@@ -735,6 +736,8 @@ class Runs(Paginator):
                                       run.sweep_name, withRuns=False)
                     self._sweeps[run.sweep_name] = sweep
 
+                if sweep is None:
+                    continue
                 run.sweep = sweep
                 if run.id not in sweep.runs_by_id:
                     sweep.runs_by_id[run.id] = run
@@ -2110,6 +2113,32 @@ class Artifact(object):
         
         raise ValueError('Unexpected API result.')
 
+    @property
+    def aliases(self):
+        if ":" not in self.artifact_name:
+            # this is a digest lookup
+            return []
+        artifact_collection_name = self.artifact_name.split(':')[0]
+        return [a["alias"] for a in self._attrs["aliases"]
+            if not re.match(r"^v\d+$", a["alias"]) and
+                a["artifactCollectionName"] == artifact_collection_name]
+
+    def delete(self):
+        """Delete artifact and it's files."""
+        mutation = gql('''
+        mutation deleteArtifact($id: ID!) {
+            deleteArtifact(input: {artifactID: $id}) {
+                artifact {
+                    id
+                }
+            }
+        }
+        ''')
+        self.client.execute(mutation, variable_values={
+            "id": self.id,
+        })
+        return True
+
     def new_file(self, name, mode=None):
         raise ValueError('Cannot add files to an artifact once it has been saved')
 
@@ -2132,11 +2161,30 @@ class Artifact(object):
 
         class ArtifactEntry(object):
             @staticmethod
-            def download():
+            def copy(cache_path, target_path):
+                # can't have colons in Windows
+                if platform.system() == "Windows":
+                    head, tail = os.path.splitdrive(target_path)
+                    target_path = head + tail.replace(":", "-")
+
+                need_copy = (not os.path.isfile(target_path)
+                             or os.stat(cache_path).st_mtime != os.stat(target_path).st_mtime)
+                if need_copy:
+                    util.mkdir_exists_ok(os.path.dirname(target_path))
+                    # We use copy2, which preserves file metadata including modified
+                    # time (which we use above to check whether we should do the copy).
+                    shutil.copy2(cache_path, target_path)
+                return target_path
+
+            @staticmethod
+            def download(root=None):
                 if entry.ref is not None:
                     return storage_policy.load_reference(self, name, manifest.entries[name], local=True)
 
-                return storage_policy.load_file(self, name, manifest.entries[name])
+                cache_path = storage_policy.load_file(self, name, manifest.entries[name])
+                if root is not None:
+                    return ArtifactEntry().copy(cache_path, os.path.join(root, name))
+                return cache_path
 
             @staticmethod
             def ref():
@@ -2210,23 +2258,8 @@ class Artifact(object):
         return self._download_file(list(manifest.entries)[0], root)
 
     def _download_file(self, name, dirpath):
-        # download file into cache
-        cache_path = self.get_path(name).download()
-        # copy file into target dir
-        target_path = os.path.join(dirpath, name)
-        # can't have colons in Windows
-        if platform.system() == "Windows":
-            head, tail = os.path.splitdrive(target_path)
-            target_path = head + tail.replace(":", "-")
-
-        need_copy = (not os.path.isfile(target_path)
-            or os.stat(cache_path).st_mtime != os.stat(target_path).st_mtime)
-        if need_copy:
-            util.mkdir_exists_ok(os.path.dirname(target_path))
-            # We use copy2, which preserves file metadata including modified
-            # time (which we use above to check whether we should do the copy).
-            shutil.copy2(cache_path, target_path)
-        return target_path
+        # download file into cache and copy to target dir
+        return self.get_path(name).download(dirpath)
 
     @normalize_exceptions
     def save(self):
