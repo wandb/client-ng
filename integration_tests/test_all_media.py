@@ -1,16 +1,23 @@
 import wandb
-from test_scripts.media.all_media_types import run_tests, all_tests
 import setup
 import os
+import sys
+
+# Add current directory so we can run this as a module
+sys.path.append(os.path.dirname(__file__))
+from test_scripts.media.util import all_tests, project_name
+
 
 
 def test_all_media():
-    print(os.environ)
+    # run_path = run_tests()
+    # with open('data.txt', 'r') as file:
+    #     data = file.read().replace('\n', '')
 
-    run_path = run_tests()
     api = wandb.Api()
-    # run_path = "all-media-test/runs/lbabj5x4"
-    run = api.run(setup.test_user["username"] + "/" + run_path)
+    run_path = setup.test_user["username"] + "/" + project_name
+    runs = api.run(run_path)
+    run = runs[-1]
 
     # Test history Data
     history = run.history()

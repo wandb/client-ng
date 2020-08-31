@@ -139,17 +139,17 @@ jobs:
             #           - ~/.deps
             #       key: integration-test-pip-v2-{{ .Branch }}-{{ checksum "requirements_dev.txt" }}
             - run:
-                  name: Waiting for server to be ready
-                  command: python integration_tests/scripts/wait_for_server.py
-            - run:
                   name: Install local wandb as package
                   command: pip install .
             - run:
+                  name: Waiting for server to be ready
+                  command: python integration_tests/scripts/wait_for_server.py
+            - run:
                   name: Set environment variables
                   command: python integration_tests/setup.py >> $BASH_ENV
-            # - run:
-            #     name: Test command
-            #     command: sleep 1000000s
+            - run:
+                  name: Test command
+                  command: python integration_tests/test_scripts/media/all_media_types.py
             - run:
                   name: Run all test script for setup
                   command: python -m pytest integration_tests/
