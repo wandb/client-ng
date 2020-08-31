@@ -1,4 +1,3 @@
-import time
 import numpy as np
 import wandb
 
@@ -13,9 +12,10 @@ N = 2
 
 def gen_image(w=IMG_WIDTH, h=IMG_HEIGHT):
     return np.concatenate(
-        (np.random.rand(h//2, w),
-         np.zeros((h//2, w))),
+        (np.random.rand(h // 2, w),
+         np.zeros((h // 2, w))),
         axis=0)
+
 
 all_tests = {
     "test_image_file_single": wandb.Image("tests/fixtures/wb.jpeg"),

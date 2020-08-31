@@ -3,7 +3,8 @@ import plotly.graph_objs as go
 # import plotly.express as px
 
 # This fails in plotly for python 2
-fig = go.Figure(data=go.Scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16], mode="markers"))
+fig = go.Figure(data=go.Scatter(x=[0, 1, 2, 3, 4], y=[
+                0, 1, 4, 9, 16], mode="markers"))
 all_tests = {"plot": fig}
 
 if __name__ == "__main__":

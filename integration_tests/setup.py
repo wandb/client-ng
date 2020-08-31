@@ -11,6 +11,7 @@ test_user = {
     'api_key': 'FAKE_API_KEY'
 }
 
+
 def new_user(db, user_info):
     username = user_info['username']
     email = user_info['email']
@@ -110,23 +111,28 @@ def new_user(db, user_info):
     ''' % (api_key, user_id))
     db.commit()
 
+
 def get_user_id(db):
     cursor = db.cursor()
 
-    cursor.execute("SELECT id FROM users u WHERE u.email='local-integration-tests@wandb.com'")
+    cursor.execute(
+        "SELECT id FROM users u WHERE u.email='local-integration-tests@wandb.com'")
     row = cursor.fetchone()
-    if row == None:
+    if row is None:
         return None
     return row[0]
+
 
 def get_user_name(db):
     cursor = db.cursor()
 
-    cursor.execute("SELECT id FROM users u WHERE u.name='local-integration-tests@wandb.com'")
+    cursor.execute(
+        "SELECT id FROM users u WHERE u.name='local-integration-tests@wandb.com'")
     row = cursor.fetchone()
-    if row == None:
+    if row is None:
         return None
     return row[0]
+
 
 def db_connection():
     # mysql_uri = "mysql://wandb_local:wandb_local@127.0.0.1:3306/wandb_local"
@@ -150,10 +156,11 @@ def get_api_key(db, uid):
     api_key = row[0]
     return api_key
 
+
 def get_user_envs():
     db = db_connection()
     uid = get_user_id(db)
-    if uid == None:
+    if uid is None:
         new_user(db, test_user)
         uid = get_user_id(db)
     api_key = get_api_key(db, uid)
@@ -166,10 +173,10 @@ def set_user_envs():
     for k, v in get_user_envs().items():
         os.environ[k] = v
 
+
 # returns a bash string to evaluate
 if __name__ == "__main__":
     bash_str = "export"
-    for k,v in get_user_envs().items():
+    for k, v in get_user_envs().items():
         bash_str += (" " + k + "=" + '"' + v + '"')
     print(bash_str)
-

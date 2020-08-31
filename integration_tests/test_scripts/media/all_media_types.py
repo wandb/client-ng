@@ -10,6 +10,7 @@ IMG_COUNT = 2
 # Step coun
 N = 3
 
+
 def run_tests():
     wandb.init(project=project_name)
     for _ in range(0, N):
@@ -18,6 +19,7 @@ def run_tests():
     run_path = project_name + "/" + wandb.run.id
     wandb.join()
     return run_path
+
 
 if __name__ == "__main__":
     run_tests()

@@ -1,8 +1,8 @@
+import wandb
+import numpy as np
+import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import wandb
 
 
 plot_x = [5, 50, 60, 75, 90]
@@ -18,4 +18,3 @@ N = 2
 if __name__ == "__main__":
     wandb.init(project='matplotlib-test')
     wandb.log(all_tests)
-

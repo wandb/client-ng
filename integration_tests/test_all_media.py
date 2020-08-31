@@ -1,3 +1,4 @@
+from test_scripts.media.util import all_tests, project_name
 import os
 import sys
 
@@ -6,8 +7,6 @@ import wandb
 
 # Add current directory so we can run this as a module
 sys.path.append(os.path.dirname(__file__))
-from test_scripts.media.util import all_tests, project_name
-
 
 
 def test_all_media():
@@ -21,16 +20,14 @@ def test_all_media():
 
     run = list(runs)[-1]
 
-
     # Test history Data
     history = run.history()
     for index, row in history.iterrows():
         # print(row)
         for k, v in all_tests.items():
             history_object = row[k]
-            # TODO: Test file data 
+            # TODO: Test file data
             # SOLUTION: Add an assert that compares the sha of a file downloading via the path variable in history
             #           and the local files
 
-            assert history_object != None
-
+            assert history_object is not None

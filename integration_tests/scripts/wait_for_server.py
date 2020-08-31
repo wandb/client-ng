@@ -9,8 +9,11 @@ TIMEOUT_SECONDS = 2000
 RETRY_RATE = 0.8
 
 # Checks if the script should timeout
+
+
 def is_timeout():
     return (time.time() - start_time) > TIMEOUT_SECONDS
+
 
 while not is_timeout():
     try:
@@ -21,5 +24,6 @@ while not is_timeout():
     except Exception as e:
         print("Pinging server failed. Retrying")
     time.sleep(RETRY_RATE)
+
 
 sys.exit("Server failed to respond with a 200.")

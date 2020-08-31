@@ -1,13 +1,18 @@
 import wandb
 import pandas as pd
 
+
 def gen_table(n=1):
     data = [["I love my phone", n, n], ["My phone sucks", n, n]]
-    return wandb.Table(data=data, columns=["Text", "Predicted Label", "True Label"])
+    return wandb.Table(data=data, columns=[
+                       "Text", "Predicted Label", "True Label"])
+
 
 def gen_df_table():
-    df = pd.DataFrame(columns=["Foo", "Bar"], data=[["So", "Cool"], ["&", "Rad"]])
+    df = pd.DataFrame(columns=["Foo", "Bar"], data=[
+                      ["So", "Cool"], ["&", "Rad"]])
     return wandb.Table(dataframe=df)
+
 
 all_tests = {
     "table_single": gen_table(1),
