@@ -82,8 +82,11 @@ class _WandbInit(object):
 
         sm_config = sagemaker.parse_sm_config()
         if sm_config:
+            sm_api_key = sm_config.get("wandb_api_key", None)
             sm_run, sm_env = sagemaker.parse_sm_resources()
             if sm_env:
+                if sm_api_key:
+                    sm_env["WANDB_API_KEY"] = sm_api_key
                 settings._apply_environ(sm_env)
             for k, v in six.iteritems(sm_run):
                 kwargs.setdefault(k, v)
