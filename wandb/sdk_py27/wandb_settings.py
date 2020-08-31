@@ -383,7 +383,6 @@ class Settings(object):
                         " proper console logging on Windows. Falling "
                         "back to monkey patching stdout/err." % legacy_env_var
                     )
-                    print(msg)
                     logger.info(msg)
                     console = "notebook"
                 else:
