@@ -26,8 +26,6 @@ def test_all_media():
         # print(row)
         for k, v in all_tests.items():
             history_object = row[k]
-            # TODO: Test file data
-            # SOLUTION: Add an assert that compares the sha of a file downloading via the path variable in history
-            #           and the local files
+            # TODO: Download file and check sha's
 
             assert history_object is not None

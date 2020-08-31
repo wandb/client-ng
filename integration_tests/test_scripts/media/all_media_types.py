@@ -1,4 +1,3 @@
-import numpy as np
 import wandb
 
 from util import all_tests, project_name
