@@ -1,8 +1,8 @@
 # Description
 
-This directory contains integration tests for testing the client libraries various integrated systems.
+This directory contains integration tests for testing the client libraries various integrations.
 
-The tests in this repository are also useful for logging. 
+The tests in this repository are also useful for testing one off features as scripts.
 
 # Standalone tests
 
@@ -46,20 +46,17 @@ pip3 install -r integration_tests/requirements.txt
 
 # Run all tests
 python3 -m pytest integration_tests
-
-
 ```
 
-2. Run the full test suite using. This requires install CircleCI's local test runner.
+2. Run the full test suite using Circle's local test runner. 
+
+[Install CircleCI's local installer here](https://circleci.com/docs/2.0/local-cli/)
 
 NOTE: The circeci tests checkout the github. So you will not get updates unless you commit. This is a little frustrating as you get a long tail of commit messages, but is faster than waiting on CI.
 
 ```bash
-
-### You must add to git for the local circle runner to pick up changes
 git add -p; git commit -m "BUMP"; sh integration_tests/scripts/test-integration-local.sh
 
 # Base command
 sh integration_tests/scripts/test-integration-local.sh
-
 ```
