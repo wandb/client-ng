@@ -2,9 +2,11 @@ import wandb
 
 N = 1
 
+caption = "Structure of 2019-nCoV with its receptor human ACE2"
+
 all_tests = {
     "6vw1": wandb.Molecule(open("tests/fixtures/3EVP.pdb"),
-                           caption="Structure of 2019-nCoV chimeric receptor-binding domain complexed with its receptor human ACE2")
+                           caption=caption)
 }
 
 if __name__ == "__main__":
