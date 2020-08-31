@@ -84,7 +84,7 @@ class _WandbInit(object):
         if sm_config:
             sm_run, sm_env = sagemaker.parse_sm_resources()
             if sm_env:
-                settings._apply_env(sm_env)
+                settings._apply_environ(sm_env)
             for k, v in six.iteritems(sm_run):
                 kwargs.setdefault(k, v)
 
