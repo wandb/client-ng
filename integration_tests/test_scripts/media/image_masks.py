@@ -1,7 +1,6 @@
 # Test for:
 # - Semantic segmentation
 import wandb
-import random
 import numpy as np
 
 wandb.init(project="test-image-masks")

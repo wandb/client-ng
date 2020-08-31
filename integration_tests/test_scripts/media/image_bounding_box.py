@@ -81,7 +81,6 @@ def balanced_corners_portrait():
          "class_labels": class_id_to_label
          }})
 
-    id = random.randint(0, 10)
     img_min_max_pixel = wandb.Image(image, boxes={
         "predctions":
         {"box_data": [
