@@ -16,8 +16,10 @@ def test_all_media():
 
     api = wandb.Api()
     run_path = setup.test_user["username"] + "/" + project_name
-    runs = api.run(run_path)
-    run = runs[-1]
+    runs = api.runs(run_path)
+
+    run = list(runs)[-1]
+
 
     # Test history Data
     history = run.history()

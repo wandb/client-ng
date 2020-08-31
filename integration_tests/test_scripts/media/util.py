@@ -8,7 +8,7 @@ import image_mask
 import image_bounding_box
 import video
 # This conflict with a local library with we aren't explicit about the locak dir
-from . import html
+import html_script
 import table
 import molecule
 import point_cloud_scene
@@ -25,7 +25,7 @@ all_tests.update(image.all_tests)
 all_tests.update(image_mask.all_tests)
 all_tests.update(image_bounding_box.all_tests)
 all_tests.update(video.all_tests)
-all_tests.update(html.all_tests)
+all_tests.update(html_script.all_tests)
 all_tests.update(table.all_tests)
 all_tests.update(molecule.all_tests)
 all_tests.update(point_cloud_scene.all_tests)
