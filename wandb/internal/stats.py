@@ -7,7 +7,7 @@ from numbers import Number
 import threading
 import wandb
 from wandb import util
-from wandb.lib.tpu import TPUProfiler
+from wandb.lib.tpu import is_tpu_available, TPUProfiler
 from wandb.vendor.pynvml import pynvml  # type: ignore[import]
 
 from wandb.interface import interface
@@ -76,7 +76,7 @@ class SystemStats(object):
             wandb.termlog(
                 "psutil not installed, only GPU stats will be reported.  Install with pip install psutil")
         self._thread = None
-        if "TPU_NAME" in os.environ:
+        if is_tpu_available():
             self._tpu_profiler = TPUProfiler()
             self._tpu_profiler.start()
         else:

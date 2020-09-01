@@ -85,3 +85,7 @@ class TPUProfiler(object):
 
     def is_running(self):
         return self._running
+
+
+def is_tpu_available():
+    return 'TPU_NAME' in os.environ
