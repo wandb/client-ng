@@ -77,6 +77,7 @@ class SystemStats(object):
                 "psutil not installed, only GPU stats will be reported.  Install with pip install psutil")
         self._thread = None
         if "TPU_NAME" in os.environ:
+            print("TPU detected. Starting TPU profiler...")
             self._tpu_profiler = TPUProfiler()
         else:
             self._tpu_profiler = None
@@ -207,5 +208,6 @@ class SystemStats(object):
             except psutil.NoSuchProcess:
                 pass
         if self._tpu_profiler:
+            print(self._tpu_profiler.get_tpu_utilization())
             stats["tpu"] = self._tpu_profiler.get_tpu_utilization()
         return stats
