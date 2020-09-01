@@ -377,7 +377,14 @@ def init(ctx, project, entity, reset):
 def sync(ctx, path, id, project, entity, ignore, all, view, verbose):
     if ignore:
         ignore = ignore.split(",")
-    sm = SyncManager(project=project, entity=entity, run_id=id, ignore=ignore, view=view, verbose=verbose,)
+    sm = SyncManager(
+        project=project,
+        entity=entity,
+        run_id=id,
+        ignore=ignore,
+        view=view,
+        verbose=verbose,
+    )
     if not path:
         # Show listing of possible paths to sync
         # (if interactive, allow user to pick run to sync)

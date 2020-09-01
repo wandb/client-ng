@@ -21,7 +21,15 @@ from wandb.proto import wandb_internal_pb2  # type: ignore
 
 
 class SyncThread(threading.Thread):
-    def __init__(self, sync_list, project=None, entity=None, run_id=None, view=None, verbose=None,):
+    def __init__(
+        self,
+        sync_list,
+        project=None,
+        entity=None,
+        run_id=None,
+        view=None,
+        verbose=None,
+    ):
         threading.Thread.__init__(self)
         # mark this process as internal
         wandb._IS_INTERNAL_PROCESS = True
@@ -36,29 +44,33 @@ class SyncThread(threading.Thread):
         for sync_item in self._sync_list:
             dirname = os.path.dirname(sync_item)
             files_dir = os.path.join(dirname, "files")
-            sd = dict(files_dir=files_dir,
-                      _start_time=0,
-                      git_remote=None,
-                      resume=None,
-                      program=None,
-                      ignore_globs=[],
-                      run_id=None,
-                      entity=None,
-                      project=None,
-                      run_group=None,
-                      job_type=None,
-                      run_tags=None,
-                      run_name=None,
-                      run_notes=None,
-                      save_code=None,
-                      )
+            sd = dict(
+                files_dir=files_dir,
+                _start_time=0,
+                git_remote=None,
+                resume=None,
+                program=None,
+                ignore_globs=[],
+                run_id=None,
+                entity=None,
+                project=None,
+                run_group=None,
+                job_type=None,
+                run_tags=None,
+                run_name=None,
+                run_notes=None,
+                save_code=None,
+            )
             settings = settings_static.SettingsStatic(sd)
             record_q = queue.Queue()
             result_q = queue.Queue()
             publish_interface = interface.BackendSender(record_q=record_q)
             sm = sender.SendManager(
-                settings=settings, record_q=record_q, result_q=result_q,
-                interface=publish_interface)
+                settings=settings,
+                record_q=record_q,
+                result_q=result_q,
+                interface=publish_interface,
+            )
             ds = datastore.DataStore()
             ds.open_for_scan(sync_item)
             while True:
@@ -97,7 +109,7 @@ class SyncThread(threading.Thread):
                             app_url,
                             url_quote(r.entity),
                             url_quote(r.project),
-                            url_quote(r.run_id)
+                            url_quote(r.run_id),
                         )
                         print("Syncing: %s ..." % url, end="")
                         sys.stdout.flush()
@@ -106,7 +118,15 @@ class SyncThread(threading.Thread):
 
 
 class SyncManager:
-    def __init__(self, project=None, entity=None, run_id=None, ignore=None, view=None, verbose=None,):
+    def __init__(
+        self,
+        project=None,
+        entity=None,
+        run_id=None,
+        ignore=None,
+        view=None,
+        verbose=None,
+    ):
         self._sync_list = []
         self._thread = None
         self._project = project
@@ -152,7 +172,7 @@ class SyncManager:
             run_id=self._run_id,
             view=self._view,
             verbose=self._verbose,
-            )
+        )
         self._thread.start()
 
     def is_done(self):
