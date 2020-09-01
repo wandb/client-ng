@@ -348,18 +348,3 @@ def test_add_reference_unknown_handler(runner):
         manifest = artifact.manifest.to_manifest_json()
         assert manifest['contents']['ref'] == {
             'digest': 'ref://example.com/somefile.txt', 'ref': 'ref://example.com/somefile.txt'}
-
-def test_log_artifact_simple(runner, wandb_init_run):
-    util.mkdir_exists_ok("artsy")
-    open("artsy/file1.txt", "w").write("hello")
-    open("artsy/file2.txt", "w").write("goodbye")
-    with pytest.raises(ValueError):
-        wandb.log_artifact("artsy")
-    art = wandb.log_artifact("artsy", type="dataset")
-    assert art.name == "run-"+wandb_init_run.id+"-artsy"
-
-def test_use_artifact_simple(runner, wandb_init_run):
-    art = wandb.use_artifact("mnist:v0", type="dataset")
-    assert art.name == "mnist:v0"
-    path = art.download()
-    assert os.path.exists(path)
