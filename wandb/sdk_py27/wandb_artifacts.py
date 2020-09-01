@@ -20,7 +20,7 @@ from wandb.errors.term import termwarn, termlog
 _REQUEST_RETRY_STRATEGY = requests.packages.urllib3.util.retry.Retry(
     backoff_factor=1,
     total=16,
-    status_forcelist=(308, 408, 409, 429, 500, 502, 503, 504)
+    status_forcelist=(308, 408, 409, 429, 500, 502, 503, 504),
 )
 
 _REQUEST_POOL_CONNECTIONS = 64
@@ -379,9 +379,10 @@ class WandbStoragePolicy(StoragePolicy):
         adapter = requests.adapters.HTTPAdapter(
             max_retries=_REQUEST_RETRY_STRATEGY,
             pool_connections=_REQUEST_POOL_CONNECTIONS,
-            pool_maxsize=_REQUEST_POOL_MAXSIZE)
-        self._session.mount('http://', adapter)
-        self._session.mount('https://', adapter)
+            pool_maxsize=_REQUEST_POOL_MAXSIZE,
+        )
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
 
         s3 = S3Handler()
         gcs = GCSHandler()
@@ -391,7 +392,8 @@ class WandbStoragePolicy(StoragePolicy):
 
         self._api = InternalApi()
         self._handler = MultiHandler(
-            handlers=[s3, gcs, file_handler,], default_handler=TrackingHandler()
+            handlers=[s3, gcs, http, https, file_handler,],
+            default_handler=TrackingHandler(),
         )
 
     def config(self):
@@ -1035,7 +1037,9 @@ class HTTPHandler(StorageHandler):
         if not local:
             return manifest_entry.ref
 
-        path, hit = self._cache.check_etag_obj_path(manifest_entry.digest, manifest_entry.size)
+        path, hit = self._cache.check_etag_obj_path(
+            manifest_entry.digest, manifest_entry.size
+        )
         if hit:
             return path
 
@@ -1044,8 +1048,10 @@ class HTTPHandler(StorageHandler):
 
         digest, size, extra = self._entry_from_headers(response.headers)
         if manifest_entry.digest != digest:
-            raise ValueError('Digest mismatch for url %s: expected %s but found %s' %
-                             (manifest_entry.ref, manifest_entry.digest, digest))
+            raise ValueError(
+                "Digest mismatch for url %s: expected %s but found %s"
+                % (manifest_entry.ref, manifest_entry.digest, digest)
+            )
 
         with open(path, "wb") as file:
             for data in response.iter_content(chunk_size=16 * 1024):
@@ -1060,7 +1066,9 @@ class HTTPHandler(StorageHandler):
         with self._session.get(path, stream=True) as response:
             response.raise_for_status()
             digest, size, extra = self._entry_from_headers(response.headers)
-        return [ArtifactManifestEntry(name, path, digest=digest, size=size, extra=extra)]
+        return [
+            ArtifactManifestEntry(name, path, digest=digest, size=size, extra=extra)
+        ]
 
     def _entry_from_headers(self, headers):
         response_headers = {k.lower(): v for k, v in headers.items()}

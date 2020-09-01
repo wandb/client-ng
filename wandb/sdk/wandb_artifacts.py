@@ -392,13 +392,8 @@ class WandbStoragePolicy(StoragePolicy):
 
         self._api = InternalApi()
         self._handler = MultiHandler(
-            handlers=[
-                s3,
-                gcs,
-                http,
-                https,
-                file_handler,
-            ], default_handler=TrackingHandler()
+            handlers=[s3, gcs, http, https, file_handler,],
+            default_handler=TrackingHandler(),
         )
 
     def config(self):
