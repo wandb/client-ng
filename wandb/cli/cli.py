@@ -371,11 +371,13 @@ def init(ctx, project, entity, reset):
     "--ignore", help="A comma seperated list of globs to ignore syncing with wandb."
 )
 @click.option("--all", is_flag=True, default=False, help="Sync all runs")
+@click.option("--view", is_flag=True, default=False, help="View runs", hidden=True)
+@click.option("--verbose", is_flag=True, default=False, help="Verbose", hidden=True)
 @display_error
-def sync(ctx, path, id, project, entity, ignore, all):
+def sync(ctx, path, id, project, entity, ignore, all, view, verbose):
     if ignore:
         ignore = ignore.split(",")
-    sm = SyncManager(project=project, entity=entity, run_id=id, ignore=ignore)
+    sm = SyncManager(project=project, entity=entity, run_id=id, ignore=ignore, view=view, verbose=verbose,)
     if not path:
         # Show listing of possible paths to sync
         # (if interactive, allow user to pick run to sync)

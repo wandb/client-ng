@@ -21,7 +21,7 @@ from wandb.proto import wandb_internal_pb2  # type: ignore
 
 
 class SyncThread(threading.Thread):
-    def __init__(self, sync_list, project=None, entity=None, run_id=None):
+    def __init__(self, sync_list, project=None, entity=None, run_id=None, view=None, verbose=None,):
         threading.Thread.__init__(self)
         # mark this process as internal
         wandb._IS_INTERNAL_PROCESS = True
@@ -29,6 +29,8 @@ class SyncThread(threading.Thread):
         self._project = project
         self._entity = entity
         self._run_id = run_id
+        self._view = view
+        self._verbose = verbose
 
     def run(self):
         for sync_item in self._sync_list:
@@ -66,6 +68,12 @@ class SyncThread(threading.Thread):
                 pb = wandb_internal_pb2.Record()
                 pb.ParseFromString(data)
                 record_type = pb.WhichOneof("record_type")
+                if self._view:
+                    if self._verbose:
+                        print("Record:", pb)
+                    else:
+                        print("Record:", record_type)
+                    continue
                 if record_type == "run":
                     if self._run_id:
                         pb.run.run_id = self._run_id
@@ -98,13 +106,15 @@ class SyncThread(threading.Thread):
 
 
 class SyncManager:
-    def __init__(self, project=None, entity=None, run_id=None, ignore=None):
+    def __init__(self, project=None, entity=None, run_id=None, ignore=None, view=None, verbose=None,):
         self._sync_list = []
         self._thread = None
         self._project = project
         self._entity = entity
         self._run_id = run_id
         self._ignore = ignore
+        self._view = view
+        self._verbose = verbose
 
     def status(self):
         pass
@@ -136,10 +146,13 @@ class SyncManager:
     def start(self):
         # create a thread for each file?
         self._thread = SyncThread(
-            self._sync_list,
+            sync_list=self._sync_list,
             project=self._project,
             entity=self._entity,
-            run_id=self._run_id)
+            run_id=self._run_id,
+            view=self._view,
+            verbose=self._verbose,
+            )
         self._thread.start()
 
     def is_done(self):
