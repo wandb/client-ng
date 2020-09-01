@@ -7,6 +7,7 @@ from numbers import Number
 import threading
 import wandb
 from wandb import util
+from wandb.lib.tpu import TPUProfiler
 from wandb.vendor.pynvml import pynvml  # type: ignore[import]
 
 from wandb.interface import interface
@@ -75,6 +76,10 @@ class SystemStats(object):
             wandb.termlog(
                 "psutil not installed, only GPU stats will be reported.  Install with pip install psutil")
         self._thread = None
+        if "TPU_NAME" in os.environ:
+            self._tpu_profiler = TPUProfiler()
+        else:
+            self._tpu_profiler = None
 
     def start(self):
         if self._thread is None:
@@ -125,6 +130,8 @@ class SystemStats(object):
                 self._thread.join()
         finally:
             self._thread = None
+        if self._tpu_profiler:
+            self._tpu_profiler.stop()
 
     def flush(self):
         stats = self.stats()
@@ -199,4 +206,6 @@ class SystemStats(object):
                 stats["proc.cpu.threads"] = self.proc.num_threads()
             except psutil.NoSuchProcess:
                 pass
+        if self._tpu_profiler:
+            stats["tpu"] = self._tpu_profiler.get_tpu_utilization()
         return stats
