@@ -116,7 +116,8 @@ def test_network_fault_files(live_mock_server, test_settings):
     run.join()
     ctx = live_mock_server.get_ctx()
     print(ctx)
-    assert sorted(ctx["storage"]) == sorted(['wandb-metadata.json', 'requirements.txt', 'config.yaml', 'diff.patch'])
+    assert [f for f in sorted(ctx["storage"]) if f != "diff.patch"] == sorted(
+        ['wandb-metadata.json', 'requirements.txt', 'config.yaml'])
 
 
 def test_network_fault_graphql(live_mock_server, test_settings):
@@ -126,4 +127,5 @@ def test_network_fault_graphql(live_mock_server, test_settings):
     run.join()
     ctx = live_mock_server.get_ctx()
     print(ctx)
-    assert sorted(ctx["storage"]) == sorted(['wandb-metadata.json', 'requirements.txt', 'config.yaml', 'diff.patch'])
+    assert [f for f in sorted(ctx["storage"]) if f != "diff.patch"] == sorted(
+        ['wandb-metadata.json', 'requirements.txt', 'config.yaml'])
