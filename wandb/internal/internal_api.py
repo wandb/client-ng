@@ -128,7 +128,8 @@ class Api(object):
 
         if 'errors' in data and isinstance(data['errors'], list):
             for err in data['errors']:
-                if isinstance(err, str):
+                # Our tests and potentially some api endpoints return a string error?
+                if isinstance(err, six.string_types):
                     err = {"message": err}
                 if not err.get('message'):
                     continue
