@@ -1,5 +1,3 @@
-# Test for:
-# - Semantic segmentation
 import wandb
 import numpy as np
 
