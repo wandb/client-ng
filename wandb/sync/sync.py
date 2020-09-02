@@ -73,6 +73,10 @@ class SyncThread(threading.Thread):
             )
             ds = datastore.DataStore()
             ds.open_for_scan(sync_item)
+
+            # save exit for final send
+            exit_pb = None
+
             while True:
                 data = ds.scan_data()
                 if data is None:
@@ -94,10 +98,19 @@ class SyncThread(threading.Thread):
                     if self._entity:
                         pb.run.entity = self._entity
                     pb.control.req_resp = True
+                elif record_type == "exit":
+                    exit_pb = pb
+                    continue
+                elif record_type == "final":
+                    assert exit_pb, "final seen without exit"
+                    pb = exit_pb
+                    exit_pb = None
                 sm.send(pb)
+                # send any records that were added in previous send
                 while not record_q.empty():
                     data = record_q.get(block=True)
                     sm.send(data)
+
                 if pb.control.req_resp:
                     result = result_q.get(block=True)
                     result_type = result.WhichOneof("result_type")
@@ -149,7 +162,12 @@ class SyncManager:
 
     def list(self):
         # TODO(jhr): grab dir info from settings
-        base = os.path.join("wandb")
+        base = "wandb"
+        if os.path.exists(".wandb"):
+            base = ".wandb"
+        if not os.path.exists(base):
+            return ()
+
         dirs = os.listdir(base)
         dirs = [d for d in dirs if d.startswith("offline-run-")]
         # find run file in each dir

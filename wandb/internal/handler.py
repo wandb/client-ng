@@ -57,8 +57,8 @@ class HandleManager(object):
         assert handler, "unknown handle: {}".format(handler_str)
         handler(record)
 
-    def _dispatch_record(self, record):
-        if not self._settings._offline:
+    def _dispatch_record(self, record, always_send=False):
+        if not self._settings._offline or always_send:
             self._sender_q.put(record)
         if not record.control.local:
             self._writer_q.put(record)
@@ -77,7 +77,8 @@ class HandleManager(object):
         elif state == defer.FLUSH_SUM:
             self._save_summary(self._consolidated_summary, flush=True)
 
-        self._dispatch_record(record)
+        # defer is used to drive the sender finish state machine
+        self._dispatch_record(record, always_send=True)
 
     def handle_request_login(self, record):
         self._dispatch_record(record)
@@ -108,7 +109,6 @@ class HandleManager(object):
             update.value_json = json.dumps(v)
         record = wandb_internal_pb2.Record(summary=summary)
         if flush:
-            print("flush dispatch sum")
             self._dispatch_record(record)
         elif not self._settings._offline:
             self._sender_q.put(record)
@@ -173,6 +173,15 @@ class HandleManager(object):
         self._save_summary(self._consolidated_summary)
 
     def handle_exit(self, record):
+        self._dispatch_record(record, always_send=True)
+
+    def handle_final(self, record):
+        self._dispatch_record(record, always_send=True)
+
+    def handle_header(self, record):
+        self._dispatch_record(record)
+
+    def handle_footer(self, record):
         self._dispatch_record(record)
 
     def handle_request_check_version(self, record):
@@ -216,7 +225,7 @@ class HandleManager(object):
             self._system_stats.shutdown()
 
     def handle_request_poll_exit(self, record):
-        self._dispatch_record(record)
+        self._dispatch_record(record, always_send=True)
 
     def handle_request_status(self, record):
         self._dispatch_record(record)

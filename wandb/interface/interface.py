@@ -380,6 +380,9 @@ class BackendSender(object):
         exit=None,
         artifact=None,
         tbrecord=None,
+        final=None,
+        header=None,
+        footer=None,
         request=None,
     ):
         record = wandb_internal_pb2.Record()
@@ -401,6 +404,12 @@ class BackendSender(object):
             record.artifact.CopyFrom(artifact)
         elif tbrecord:
             record.tbrecord.CopyFrom(tbrecord)
+        elif final:
+            record.final.CopyFrom(final)
+        elif header:
+            record.header.CopyFrom(header)
+        elif footer:
+            record.footer.CopyFrom(footer)
         elif request:
             record.request.CopyFrom(request)
         else:
@@ -436,6 +445,21 @@ class BackendSender(object):
         rec = wandb_internal_pb2.Record()
         rec.request.defer.CopyFrom(wandb_internal_pb2.DeferRequest(state=state))
         self._publish(rec, local=True)
+
+    def publish_header(self):
+        header = wandb_internal_pb2.HeaderRecord()
+        rec = self._make_record(header=header)
+        self._publish(rec)
+
+    def publish_footer(self):
+        footer = wandb_internal_pb2.FooterRecord()
+        rec = self._make_record(footer=footer)
+        self._publish(rec)
+
+    def publish_final(self):
+        final = wandb_internal_pb2.FinalRecord()
+        rec = self._make_record(final=final)
+        self._publish(rec)
 
     def publish_login(self, api_key=None, anonymous=None):
         login = self._make_login(api_key, anonymous)
