@@ -1,6 +1,5 @@
 import sys
 import os
-
 # Add current directory so we can run this as a module
 sys.path.append(os.path.dirname(__file__))
 
