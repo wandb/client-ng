@@ -19,6 +19,7 @@ from wandb.internal import sender
 from wandb.internal import settings_static
 from wandb.proto import wandb_internal_pb2  # type: ignore
 
+WANDB_SUFFIX = ".wandb"
 SYNCED_SUFFIX = ".synced"
 
 
@@ -46,6 +47,13 @@ class SyncThread(threading.Thread):
 
     def run(self):
         for sync_item in self._sync_list:
+            if os.path.isdir(sync_item):
+                files = os.listdir(sync_item)
+                files = list(filter(lambda f: f.endswith(WANDB_SUFFIX), files))
+                if len(files) != 1:
+                    print("Skipping directory: {}", format(sync_item))
+                    continue
+                sync_item = os.path.join(sync_item, files[0])
             dirname = os.path.dirname(sync_item)
             files_dir = os.path.join(dirname, "files")
             sd = dict(
@@ -171,7 +179,6 @@ class SyncManager:
         pass
 
     def add(self, p):
-        # print("adding", p)
         self._sync_list.append(p)
 
     def list(self):
@@ -204,7 +211,7 @@ class SyncManager:
                     new_paths = new_paths.union(fnmatch.filter(paths, g))
                 paths = list(new_paths)
             for f in paths:
-                if f.endswith(".wandb"):
+                if f.endswith(WANDB_SUFFIX):
                     fnames.append(os.path.join(base, d, f))
 
         # filter out synced
@@ -214,7 +221,11 @@ class SyncManager:
                 if not os.path.exists("{}{}".format(f, SYNCED_SUFFIX)):
                     filtered.append(f)
             fnames = filtered
-        return fnames
+
+        # return dirnames
+        dnames = tuple(os.path.dirname(f) for f in fnames)
+
+        return dnames
 
     def start(self):
         # create a thread for each file?
