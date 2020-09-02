@@ -123,8 +123,10 @@ class SyncManager:
         project=None,
         entity=None,
         run_id=None,
-        exclude=None,
-        include=None,
+        exclude_globs=None,
+        include_globs=None,
+        include_offline=None,
+        include_online=None,
         view=None,
         verbose=None,
     ):
@@ -133,8 +135,8 @@ class SyncManager:
         self._project = project
         self._entity = entity
         self._run_id = run_id
-        self._exclude = exclude
-        self._include = include
+        self._exclude = exclude_globs
+        self._include = include_globs
         self._view = view
         self._verbose = verbose
 

@@ -326,10 +326,11 @@ message DeferRequest {
   enum DeferState {
     BEGIN = 0;
     FLUSH_TB = 1;
-    FLUSH_DIR = 2;
-    FLUSH_FP = 3;
-    FLUSH_FS = 4;
-    END = 5;
+    FLUSH_SUM = 2;
+    FLUSH_DIR = 3;
+    FLUSH_FP = 4;
+    FLUSH_FS = 5;
+    END = 6;
   }
   DeferState state = 1;
 }

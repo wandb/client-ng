@@ -413,8 +413,10 @@ def sync(
         project=project,
         entity=entity,
         run_id=run_id,
-        include=include_globs,
-        exclude=exclude_globs,
+        include_globs=include_globs,
+        exclude_globs=exclude_globs,
+        include_online=include_online,
+        include_offline=include_offline,
         view=view,
         verbose=verbose,
     )

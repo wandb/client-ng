@@ -84,9 +84,10 @@ class MessageRouter(object):
                 continue
             self._handle_msg_rcv(msg)
 
-    def send_and_receive(self, rec, local=False):
+    def send_and_receive(self, rec, local=None):
         rec.control.req_resp = True
-        rec.control.local = local
+        if local:
+            rec.control.local = local
         rec.uuid = uuid.uuid4().hex
         future = self._Future()
         with self._lock:
@@ -406,14 +407,16 @@ class BackendSender(object):
             raise Exception("Invalid record")
         return record
 
-    def _publish(self, record):
+    def _publish(self, record, local=None):
         if self._process and not self._process.is_alive():
             raise Exception("The wandb backend process has shutdown")
+        if local:
+            record.control.local = local
         self.record_q.put(record)
 
-    def _communicate(self, rec, timeout=5, local=False):
+    def _communicate(self, rec, timeout=5, local=None):
         assert self._router
-        future = self._router.send_and_receive(rec, local)
+        future = self._router.send_and_receive(rec, local=local)
         return future.get(timeout)
 
     def communicate_login(self, api_key=None, anonymous=None, timeout=5):
@@ -432,7 +435,7 @@ class BackendSender(object):
     def publish_defer(self, state=0):
         rec = wandb_internal_pb2.Record()
         rec.request.defer.CopyFrom(wandb_internal_pb2.DeferRequest(state=state))
-        self._publish(rec)
+        self._publish(rec, local=True)
 
     def publish_login(self, api_key=None, anonymous=None):
         login = self._make_login(api_key, anonymous)

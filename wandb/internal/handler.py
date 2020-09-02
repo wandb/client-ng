@@ -60,7 +60,8 @@ class HandleManager(object):
     def _dispatch_record(self, record):
         if not self._settings._offline:
             self._sender_q.put(record)
-        self._writer_q.put(record)
+        if not record.control.local:
+            self._writer_q.put(record)
 
     def handle_request_defer(self, record):
         defer = record.request.defer
@@ -73,6 +74,8 @@ class HandleManager(object):
                 # shutdown tensorboard workers so we get all metrics flushed
                 self._tb_watcher.finish()
                 self._tb_watcher = None
+        elif state == defer.FLUSH_SUM:
+            self._save_summary(self._consolidated_summary, flush=True)
 
         self._dispatch_record(record)
 
@@ -97,14 +100,17 @@ class HandleManager(object):
     def handle_artifact(self, record):
         self._dispatch_record(record)
 
-    def _save_summary(self, summary_dict):
+    def _save_summary(self, summary_dict, flush=False):
         summary = wandb_internal_pb2.SummaryRecord()
         for k, v in six.iteritems(summary_dict):
             update = summary.update.add()
             update.key = k
             update.value_json = json.dumps(v)
         record = wandb_internal_pb2.Record(summary=summary)
-        if not self._settings._offline:
+        if flush:
+            print("flush dispatch sum")
+            self._dispatch_record(record)
+        elif not self._settings._offline:
             self._sender_q.put(record)
 
     def _save_history(self, record):

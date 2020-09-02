@@ -163,6 +163,9 @@ class SendManager(object):
         elif state == defer.FLUSH_TB:
             # NOTE: this is handled in handler.py:handle_request_defer()
             pass
+        elif state == defer.FLUSH_SUM:
+            # NOTE: this is handled in handler.py:handle_request_defer()
+            pass
         elif state == defer.FLUSH_DIR:
             if self._dir_watcher:
                 self._dir_watcher.finish()
