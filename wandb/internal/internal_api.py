@@ -128,6 +128,8 @@ class Api(object):
 
         if 'errors' in data and isinstance(data['errors'], list):
             for err in data['errors']:
+                if isinstance(err, str):
+                    err = {"message": err}
                 if not err.get('message'):
                     continue
                 wandb.termerror('Error while calling W&B API: {} ({})'.format(err['message'], res))
@@ -1001,15 +1003,19 @@ class Api(object):
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             status_code = e.response.status_code if e.response != None else 0
+            # We need to rewind the file for the next retry
+            progress.rewind()
             # Retry errors from cloud storage or local network issues
-            if status_code in (308, 409, 429, 500, 502, 503, 504) or isinstance(e, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+            if status_code in (308, 408, 409, 429, 500, 502, 503, 504) or isinstance(e, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
                 util.sentry_reraise(retry.TransientException(exc=e))
             else:
                 util.sentry_reraise(e)
 
         return response
 
-    upload_file_retry = normalize_exceptions(retry.retriable(num_retries=5)(upload_file))
+    # This Retry class is initialized once for each Api instance, so this
+    # defaults to retrying 1 million times per process, or 30 days from
+    upload_file_retry = normalize_exceptions(retry.retriable()(upload_file))
 
     @normalize_exceptions
     def register_agent(self, host, sweep_id=None, project_name=None, entity=None):
