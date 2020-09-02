@@ -71,7 +71,7 @@ class Retry(object):
 
         retry_timedelta = kwargs.pop('retry_timedelta', self._retry_timedelta)
         if retry_timedelta is None:
-            retry_timedelta = datetime.timedelta(days=30)
+            retry_timedelta = datetime.timedelta(days=365)
 
         num_retries = kwargs.pop('num_retries', self._num_retries)
         if num_retries is None:

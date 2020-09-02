@@ -1015,7 +1015,7 @@ class Api(object):
         return response
 
     # This Retry class is initialized once for each Api instance, so this
-    # defaults to retrying 1 million times per process, or 30 days from
+    # defaults to retrying 1 million times per process or 365 days
     upload_file_retry = normalize_exceptions(retry.retriable()(upload_file))
 
     @normalize_exceptions
