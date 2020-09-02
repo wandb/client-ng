@@ -1,8 +1,9 @@
+# Test for:
+# - Semantic segmentation
 import wandb
 import numpy as np
 
-wandb.init(project="test-image-masks")
-
+N = 1
 
 n = 40
 m = 40
@@ -42,6 +43,7 @@ def gen_mask_img():
     mask_img = wandb.Image(np.array(image), masks={
         "predictions":
         {"mask_data": mask_data,
+            "class_labels": class_labels
          }})
     return mask_img
 
@@ -65,8 +67,14 @@ def gen_mask_img_classless():
     return mask_img
 
 
-wandb.log({
-    "mask_img_single": gen_mask_img(),
-    "mask_img_no_class": gen_mask_img_classless(),
+all_tests = {
+    "mask_img_single_0": gen_mask_img(),
+    "mask_img_single_2": gen_mask_img(),
     "mask_img_list": [gen_mask_img(), gen_mask_img()],
-})
+    "mask_img_no_class": gen_mask_img_classless(),
+}
+
+if __name__ == "__main__":
+    wandb.init(project="test-image-masks")
+    for i in range(N):
+        wandb.log(all_tests)
