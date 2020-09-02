@@ -33,7 +33,7 @@ def test_all_media():
             if not 'path' in history_object:
                 continue
 
-            file = run.file(history_object['path']).download(WANDB_TEST_TEMP_DIR)
+            file = run.file(history_object['path']).download(WANDB_TEST_TEMP_DIR, replace=True)
             with open(file.name, 'rb') as f:
                 # This asserts we don't corrupt the file in upload or download.
                 # The sha256 in the metadata is created from the file before it

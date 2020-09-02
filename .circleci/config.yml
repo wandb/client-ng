@@ -137,5 +137,8 @@ jobs:
                   name: Test command
                   command: python integration_tests/test_scripts/media/all_media_types.py
             - run:
+                  name: Test command
+                  command: sleep 4
+            - run:
                   name: Run all test script for setup
                   command: python -m pytest integration_tests/
