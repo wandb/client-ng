@@ -364,24 +364,57 @@ def init(ctx, project, entity, reset):
 )
 @click.pass_context
 @click.argument("path", nargs=-1, type=click.Path(exists=True))
-@click.option("--id", help="The run you want to upload to.")
-@click.option("--project", "-p", help="The project you want to upload to.")
-@click.option("--entity", "-e", help="The entity to scope to.")
-@click.option(
-    "--ignore", help="A comma seperated list of globs to ignore syncing with wandb."
-)
-@click.option("--all", is_flag=True, default=False, help="Sync all runs")
 @click.option("--view", is_flag=True, default=False, help="View runs", hidden=True)
 @click.option("--verbose", is_flag=True, default=False, help="Verbose", hidden=True)
+@click.option("--id", "run_id", help="The run you want to upload to.")
+@click.option("--project", "-p", help="The project you want to upload to.")
+@click.option("--entity", "-e", help="The entity to scope to.")
+@click.option("--include-globs", help="Comma seperated list of globs to include.")
+@click.option("--exclude-globs", help="Comma seperated list of globs to exclude.")
+@click.option(
+    "--include-online/--no-include-online",
+    is_flag=True,
+    default=False,
+    help="Include online runs",
+)
+@click.option(
+    "--include-offline/--no-include-offline",
+    is_flag=True,
+    default=True,
+    help="Include offline runs",
+)
+@click.option("--sync-all", is_flag=True, default=False, help="Sync all runs")
+@click.option("--ignore", hidden=True)
+@click.option("--show", default=5, help="Number of runs to show")
 @display_error
-def sync(ctx, path, id, project, entity, ignore, all, view, verbose):
+def sync(
+    ctx,
+    path=None,
+    view=None,
+    verbose=None,
+    run_id=None,
+    project=None,
+    entity=None,
+    include_globs=None,
+    exclude_globs=None,
+    include_online=None,
+    include_offline=None,
+    sync_all=None,
+    ignore=None,
+    show=None,
+):
     if ignore:
-        ignore = ignore.split(",")
+        exclude_globs = ignore
+    if include_globs:
+        include_globs = include_globs.split(",")
+    if exclude_globs:
+        exclude_globs = exclude_globs.split(",")
     sm = SyncManager(
         project=project,
         entity=entity,
-        run_id=id,
-        ignore=ignore,
+        run_id=run_id,
+        include=include_globs,
+        exclude=exclude_globs,
         view=view,
         verbose=verbose,
     )
@@ -392,17 +425,16 @@ def sync(ctx, path, id, project, entity, ignore, all, view, verbose):
         if not sync_items:
             wandb.termerror("Nothing to sync")
             return
-        if not all:
-            wandb.termlog("NOTE: use sync --all to sync all unsynced runs")
+        if not sync_all:
+            wandb.termlog("NOTE: use sync --sync-all to sync all unsynced runs")
             wandb.termlog("Number of runs to be synced: {}".format(len(sync_items)))
-            some_runs = 5
-            if some_runs < len(sync_items):
-                wandb.termlog("Showing {} runs".format(some_runs))
-            for item in sync_items[:some_runs]:
+            if show and show < len(sync_items):
+                wandb.termlog("Showing {} runs:".format(show))
+            for item in sync_items[: show or len(sync_items)]:
                 wandb.termlog("  {}".format(item))
             return
         path = sync_items
-    if id and len(path) > 1:
+    if run_id and len(path) > 1:
         wandb.termerror("id can only be set for a single run")
         sys.exit(1)
     for p in path:

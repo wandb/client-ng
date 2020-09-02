@@ -50,7 +50,7 @@ class SyncThread(threading.Thread):
                 git_remote=None,
                 resume=None,
                 program=None,
-                ignore_globs=[],
+                ignore_globs=(),
                 run_id=None,
                 entity=None,
                 project=None,
@@ -123,7 +123,8 @@ class SyncManager:
         project=None,
         entity=None,
         run_id=None,
-        ignore=None,
+        exclude=None,
+        include=None,
         view=None,
         verbose=None,
     ):
@@ -132,7 +133,8 @@ class SyncManager:
         self._project = project
         self._entity = entity
         self._run_id = run_id
-        self._ignore = ignore
+        self._exclude = exclude
+        self._include = include
         self._view = view
         self._verbose = verbose
 
@@ -152,12 +154,16 @@ class SyncManager:
         fnames = []
         for d in dirs:
             paths = os.listdir(os.path.join(base, d))
-            if self._ignore:
+            if self._exclude:
                 paths = set(paths)
-                for g in self._ignore:
+                for g in self._exclude:
                     paths = paths - set(fnmatch.filter(paths, g))
                 paths = list(paths)
-
+            if self._include:
+                new_paths = set()
+                for g in self._include:
+                    new_paths = new_paths.union(fnmatch.filter(paths, g))
+                paths = list(new_paths)
             for f in paths:
                 if f.endswith(".wandb"):
                     fnames.append(os.path.join(base, d, f))
