@@ -7,4 +7,4 @@ Pillow==5.4.1
 imageio==2.6.0
 moviepy==1.0.3
 plotly==4.9.0
-pytest
+pytest==4.6.2
