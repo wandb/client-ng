@@ -19,6 +19,8 @@ from wandb.internal import sender
 from wandb.internal import settings_static
 from wandb.proto import wandb_internal_pb2  # type: ignore
 
+SYNCED_SUFFIX = ".synced"
+
 
 class SyncThread(threading.Thread):
     def __init__(
@@ -29,6 +31,7 @@ class SyncThread(threading.Thread):
         run_id=None,
         view=None,
         verbose=None,
+        mark_synced=None,
     ):
         threading.Thread.__init__(self)
         # mark this process as internal
@@ -39,6 +42,7 @@ class SyncThread(threading.Thread):
         self._run_id = run_id
         self._view = view
         self._verbose = verbose
+        self._mark_synced = mark_synced
 
     def run(self):
         for sync_item in self._sync_list:
@@ -127,6 +131,10 @@ class SyncThread(threading.Thread):
                         print("Syncing: %s ..." % url, end="")
                         sys.stdout.flush()
             sm.finish()
+            if self._mark_synced:
+                synced_file = "{}{}".format(sync_item, SYNCED_SUFFIX)
+                with open(synced_file, "w"):
+                    pass
             print("done.")
 
 
@@ -140,6 +148,8 @@ class SyncManager:
         include_globs=None,
         include_offline=None,
         include_online=None,
+        include_synced=None,
+        mark_synced=None,
         view=None,
         verbose=None,
     ):
@@ -148,8 +158,12 @@ class SyncManager:
         self._project = project
         self._entity = entity
         self._run_id = run_id
-        self._exclude = exclude_globs
-        self._include = include_globs
+        self._exclude_globs = exclude_globs
+        self._include_globs = include_globs
+        self._include_offline = include_offline
+        self._include_online = include_online
+        self._include_synced = include_synced
+        self._mark_synced = mark_synced
         self._view = view
         self._verbose = verbose
 
@@ -168,25 +182,38 @@ class SyncManager:
         if not os.path.exists(base):
             return ()
 
-        dirs = os.listdir(base)
-        dirs = [d for d in dirs if d.startswith("offline-run-")]
+        all_dirs = os.listdir(base)
+        dirs = []
+        if self._include_offline:
+            dirs += filter(lambda d: d.startswith("offline-run-"), all_dirs)
+        if self._include_online:
+            dirs += filter(lambda d: d.startswith("run-"), all_dirs)
+
         # find run file in each dir
         fnames = []
         for d in dirs:
             paths = os.listdir(os.path.join(base, d))
-            if self._exclude:
+            if self._exclude_globs:
                 paths = set(paths)
-                for g in self._exclude:
+                for g in self._exclude_globs:
                     paths = paths - set(fnmatch.filter(paths, g))
                 paths = list(paths)
-            if self._include:
+            if self._include_globs:
                 new_paths = set()
-                for g in self._include:
+                for g in self._include_globs:
                     new_paths = new_paths.union(fnmatch.filter(paths, g))
                 paths = list(new_paths)
             for f in paths:
                 if f.endswith(".wandb"):
                     fnames.append(os.path.join(base, d, f))
+
+        # filter out synced
+        if not self._include_synced:
+            filtered = []
+            for f in fnames:
+                if not os.path.exists("{}{}".format(f, SYNCED_SUFFIX)):
+                    filtered.append(f)
+            fnames = filtered
         return fnames
 
     def start(self):
@@ -198,6 +225,7 @@ class SyncManager:
             run_id=self._run_id,
             view=self._view,
             verbose=self._verbose,
+            mark_synced=self._mark_synced,
         )
         self._thread.start()
 

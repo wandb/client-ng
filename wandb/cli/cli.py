@@ -383,6 +383,18 @@ def init(ctx, project, entity, reset):
     default=True,
     help="Include offline runs",
 )
+@click.option(
+    "--include-synced/--no-include-synced",
+    is_flag=True,
+    default=False,
+    help="Include synced runs",
+)
+@click.option(
+    "--mark-synced/--no-mark-synced",
+    is_flag=True,
+    default=True,
+    help="Mark runs as synced",
+)
 @click.option("--sync-all", is_flag=True, default=False, help="Sync all runs")
 @click.option("--ignore", hidden=True)
 @click.option("--show", default=5, help="Number of runs to show")
@@ -399,6 +411,8 @@ def sync(
     exclude_globs=None,
     include_online=None,
     include_offline=None,
+    include_synced=None,
+    mark_synced=None,
     sync_all=None,
     ignore=None,
     show=None,
@@ -417,6 +431,8 @@ def sync(
         exclude_globs=exclude_globs,
         include_online=include_online,
         include_offline=include_offline,
+        include_synced=include_synced,
+        mark_synced=mark_synced,
         view=view,
         verbose=verbose,
     )
