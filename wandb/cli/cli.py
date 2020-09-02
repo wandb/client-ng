@@ -188,7 +188,8 @@ def projects(entity, display=True):
 )
 @click.option("--anonymously", default=False, is_flag=True, help="Log in anonymously")
 @display_error
-def login(key, host, cloud, relogin, anonymously):
+def login(key, host, cloud, relogin, anonymously, no_offline=False):
+    # TODO: handle no_offline
     anon_mode = "must" if anonymously else "never"
     wandb.setup(settings=wandb.Settings(_cli_only_mode=True, anonymous=anon_mode))
     api = _get_cling_api()
@@ -417,6 +418,11 @@ def sync(
     ignore=None,
     show=None,
 ):
+    api = InternalApi()
+    if api.api_key is None:
+        wandb.termlog("Login to W&B to sync offline runs")
+        ctx.invoke(login, no_offline=True)
+
     if ignore:
         exclude_globs = ignore
     if include_globs:
@@ -433,6 +439,7 @@ def sync(
         include_offline=include_offline,
         include_synced=include_synced,
         mark_synced=mark_synced,
+        app_url=api.app_url,
         view=view,
         verbose=verbose,
     )

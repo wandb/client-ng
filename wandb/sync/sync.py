@@ -33,6 +33,7 @@ class SyncThread(threading.Thread):
         view=None,
         verbose=None,
         mark_synced=None,
+        app_url=None,
     ):
         threading.Thread.__init__(self)
         # mark this process as internal
@@ -44,6 +45,7 @@ class SyncThread(threading.Thread):
         self._view = view
         self._verbose = verbose
         self._mark_synced = mark_synced
+        self._app_url = app_url
 
     def run(self):
         for sync_item in self._sync_list:
@@ -129,9 +131,8 @@ class SyncThread(threading.Thread):
                     if result_type == "run_result":
                         r = result.run_result.run
                         # TODO(jhr): hardcode until we have settings in sync
-                        app_url = "https://app.wandb.ai"
                         url = "{}/{}/{}/runs/{}".format(
-                            app_url,
+                            self._app_url,
                             url_quote(r.entity),
                             url_quote(r.project),
                             url_quote(r.run_id),
@@ -158,6 +159,7 @@ class SyncManager:
         include_online=None,
         include_synced=None,
         mark_synced=None,
+        app_url=None,
         view=None,
         verbose=None,
     ):
@@ -172,6 +174,7 @@ class SyncManager:
         self._include_online = include_online
         self._include_synced = include_synced
         self._mark_synced = mark_synced
+        self._app_url = app_url
         self._view = view
         self._verbose = verbose
 
@@ -237,6 +240,7 @@ class SyncManager:
             view=self._view,
             verbose=self._verbose,
             mark_synced=self._mark_synced,
+            app_url=self._app_url,
         )
         self._thread.start()
 
