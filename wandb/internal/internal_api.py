@@ -1004,7 +1004,7 @@ class Api(object):
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             status_code = e.response.status_code if e.response != None else 0
-            # We need to rewind the file for the next retry
+            # We need to rewind the file for the next retry (the file passed in is seeked to 0)
             progress.rewind()
             # Retry errors from cloud storage or local network issues
             if status_code in (308, 408, 409, 429, 500, 502, 503, 504) or isinstance(e, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
