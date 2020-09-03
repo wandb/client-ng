@@ -76,7 +76,7 @@ class TPUProfiler(object):
     def stop(self):
         if self._enabled and self._running:
             self._stop_thread = True
-            self._thread.join()
+            # self._thread.join()
             self._kill_capture_process()
             self._running = False
 
