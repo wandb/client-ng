@@ -18,13 +18,15 @@ from gql.client import RetryError
 
 def get_history_file(run, history_object):
     file = run.file(history_object['path'])
-    r = requests.get(file.url)
-    max_retry = 50
+    r = requests.get(file.url, timeout=20)
+    max_retry = 7
     i = 0
     timeout = 2
     # Gorilla is returning 404 for a bit after upload
-    while r.status_code == 404:
-        print("Retrying Status Code: " + r.status_code)
+    while r.status_code != 200:
+        print("Retrying Status Code: " + str(r.status_code))
+        print("--- Content ---")
+        print(r.content)
         r = requests.get(file.url)
         time.sleep(timeout)
 
