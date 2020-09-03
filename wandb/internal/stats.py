@@ -78,7 +78,6 @@ class SystemStats(object):
         self._thread = None
         if is_tpu_available():
             self._tpu_profiler = TPUProfiler()
-            self._tpu_profiler.start()
         else:
             self._tpu_profiler = None
 
@@ -131,8 +130,6 @@ class SystemStats(object):
                 self._thread.join()
         finally:
             self._thread = None
-        if self._tpu_profiler:
-            self._tpu_profiler.stop()
 
     def flush(self):
         stats = self.stats()
