@@ -31,10 +31,17 @@ class TPUProfiler(object):
                                 "arguments to specify zone and project for your TPU.")
         service_addr = service_addr.replace('grpc://', '').replace(':8470', ':8466')
         self.service_addr = service_addr
+        self._tpu_utilization = 0.0
 
     def get_tpu_utilization(self):
-        res = profiler_client.monitor(self.service_addr, duration_ms=500, level=2)
-        return float(res.split("Utilization ")[1].split(': ')[1].split('%')[0])
+        try:
+            res = profiler_client.monitor(self.service_addr, duration_ms=500, level=2)
+            val = float(res.split("Utilization ")[1].split(': ')[1].split('%')[0])
+            self._tpu_utilization = val
+            return val
+        except Exception:
+            # Happens when previous profiler session is still active.
+            return self._tpu_utilization
 
 
 def is_tpu_available():
