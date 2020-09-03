@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import time
 
 # Add current directory so we can run this as a module
 sys.path.append(os.path.dirname(__file__))
@@ -15,11 +16,18 @@ import requests
 from wandb.old.retry import retriable
 from gql.client import RetryError
 
-# Gorilla is returning permissions errors for a bit after upload 
-@retriable(retry_timedelta=datetime.timedelta(
-    seconds=30))
 def get_history_file(run, history_object):
-    return run.file(history_object['path']).download(WANDB_TEST_TEMP_DIR, replace=True)
+    file = run.file(history_object['path'])
+    r = requests.get(file.url)
+    max_retry = 50
+    i = 0
+    timeout = 1
+    # Gorilla is returning 404 for a bit after upload
+    while r.status_code != 200:
+        r = requests.get(file.url)
+        time.sleep(timeout)
+
+    return file.download(WANDB_TEST_TEMP_DIR, replace=True)
 
 
 WANDB_TEST_TEMP_DIR = '/tmp/wandb_media_test'
