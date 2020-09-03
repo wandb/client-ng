@@ -1,6 +1,6 @@
 version: 2.1
 
-orbs: 
+orbs:
     win: circleci/windows@2.2.0
 
 workflows:
@@ -28,6 +28,7 @@ workflows:
          toxenv: "py38"
       - integration:
           name: "Integration"
+
       - win:
          name: "Windows (Python 3.7)"
       - mac:
