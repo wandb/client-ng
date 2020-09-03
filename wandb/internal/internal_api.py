@@ -326,6 +326,7 @@ class Api(object):
                     }
                 }
             }
+            cliVersionInfo
         }
         ''')
         res = self.gql(query)
