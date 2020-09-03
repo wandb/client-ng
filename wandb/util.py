@@ -451,29 +451,6 @@ def parse_tfjob_config():
         return False
 
 
-def parse_sm_config():
-    """Attempts to parse SageMaker configuration returning False if it can't find it"""
-    sagemaker_config = "/opt/ml/input/config/hyperparameters.json"
-    resource_config = "/opt/ml/input/config/resourceconfig.json"
-    if os.path.exists(sagemaker_config) and os.path.exists(resource_config):
-        conf = {}
-        conf["sagemaker_training_job_name"] = os.getenv('TRAINING_JOB_NAME')
-        # Hyper-parameter searchs quote configs...
-        for k, v in six.iteritems(json.load(open(sagemaker_config))):
-            cast = v.strip('"')
-            if os.getenv("WANDB_API_KEY") is None and k == "wandb_api_key":
-                os.environ["WANDB_API_KEY"] = cast
-            else:
-                if re.match(r'^[-\d]+$', cast):
-                    cast = int(cast)
-                elif re.match(r'^[-.\d]+$', cast):
-                    cast = float(cast)
-                conf[k] = cast
-        return conf
-    else:
-        return False
-
-
 class WandBJSONEncoder(json.JSONEncoder):
     """A JSON Encoder that handles some extra types."""
 
@@ -705,8 +682,10 @@ def get_log_file_path():
     It would probably be better if this pointed to a log file in a
     run directory.
     """
-    # return wandb.GLOBAL_LOG_FNAME # TODO(jhr): refactor
-    return "TODO_refactor.txt"
+    # TODO(jhr, cvp): refactor
+    if wandb.run:
+        return wandb.run._settings.log_internal
+    return os.path.join("wandb", "debug-internal.log")
 
 
 def docker_image_regex(image):

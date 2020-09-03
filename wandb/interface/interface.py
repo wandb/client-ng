@@ -84,9 +84,10 @@ class MessageRouter(object):
                 continue
             self._handle_msg_rcv(msg)
 
-    def send_and_receive(self, rec, local=False):
+    def send_and_receive(self, rec, local=None):
         rec.control.req_resp = True
-        rec.control.local = local
+        if local:
+            rec.control.local = local
         rec.uuid = uuid.uuid4().hex
         future = self._Future()
         with self._lock:
@@ -196,7 +197,7 @@ class BackendSender(object):
         proto_manifest.version = artifact_manifest.version()
         proto_manifest.storage_policy = artifact_manifest.storage_policy.name()
 
-        for k, v in artifact_manifest.storage_policy.config() or {}:
+        for k, v in artifact_manifest.storage_policy.config().items() or {}.items():
             cfg = proto_manifest.storage_policy_config.add()
             cfg.key = k
             cfg.value_json = json.dumps(v)
@@ -206,6 +207,8 @@ class BackendSender(object):
             proto_entry.path = entry.path
             proto_entry.digest = entry.digest
             proto_entry.size = entry.size
+            if entry.birth_artifact_id:
+                proto_entry.birth_artifact_id = entry.birth_artifact_id
             if entry.ref:
                 proto_entry.ref = entry.ref
             if entry.local_path:
@@ -377,6 +380,9 @@ class BackendSender(object):
         exit=None,
         artifact=None,
         tbrecord=None,
+        final=None,
+        header=None,
+        footer=None,
         request=None,
     ):
         record = wandb_internal_pb2.Record()
@@ -398,20 +404,28 @@ class BackendSender(object):
             record.artifact.CopyFrom(artifact)
         elif tbrecord:
             record.tbrecord.CopyFrom(tbrecord)
+        elif final:
+            record.final.CopyFrom(final)
+        elif header:
+            record.header.CopyFrom(header)
+        elif footer:
+            record.footer.CopyFrom(footer)
         elif request:
             record.request.CopyFrom(request)
         else:
             raise Exception("Invalid record")
         return record
 
-    def _publish(self, record):
+    def _publish(self, record, local=None):
         if self._process and not self._process.is_alive():
             raise Exception("The wandb backend process has shutdown")
+        if local:
+            record.control.local = local
         self.record_q.put(record)
 
-    def _communicate(self, rec, timeout=5, local=False):
+    def _communicate(self, rec, timeout=5, local=None):
         assert self._router
-        future = self._router.send_and_receive(rec, local)
+        future = self._router.send_and_receive(rec, local=local)
         return future.get(timeout)
 
     def communicate_login(self, api_key=None, anonymous=None, timeout=5):
@@ -430,6 +444,21 @@ class BackendSender(object):
     def publish_defer(self, state=0):
         rec = wandb_internal_pb2.Record()
         rec.request.defer.CopyFrom(wandb_internal_pb2.DeferRequest(state=state))
+        self._publish(rec, local=True)
+
+    def publish_header(self):
+        header = wandb_internal_pb2.HeaderRecord()
+        rec = self._make_record(header=header)
+        self._publish(rec)
+
+    def publish_footer(self):
+        footer = wandb_internal_pb2.FooterRecord()
+        rec = self._make_record(footer=footer)
+        self._publish(rec)
+
+    def publish_final(self):
+        final = wandb_internal_pb2.FinalRecord()
+        rec = self._make_record(final=final)
         self._publish(rec)
 
     def publish_login(self, api_key=None, anonymous=None):
@@ -447,10 +476,13 @@ class BackendSender(object):
         rec = self._make_request(resume=resume)
         self._publish(rec)
 
-    def publish_run(self, run_obj):
-        run = self._make_run(run_obj)
+    def _publish_run(self, run):
         rec = self._make_record(run=run)
         self._publish(rec)
+
+    def publish_run(self, run_obj):
+        run = self._make_run(run_obj)
+        self._publish_run(run)
 
     def publish_config(self, config_dict):
         cfg = self._make_config(config_dict)

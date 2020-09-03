@@ -1,3 +1,4 @@
+#
 # -*- coding: utf-8 -*-
 """Run - Run object.
 
@@ -183,6 +184,7 @@ class RunManaged(Run):
 
         # Returned from backend request_run(), set from wandb_init?
         self._run_obj = None
+        self._run_obj_offline = None
 
         # Created when the run "starts".
         self._run_status_checker = None
@@ -196,7 +198,7 @@ class RunManaged(Run):
         wandb_data = dict()
         wandb_data["cli_version"] = wandb.__version__
         wandb_data["python_version"] = platform.python_version()
-        wandb_data["is_jupyter_run"] = settings.jupyter or False
+        wandb_data["is_jupyter_run"] = settings._jupyter or False
         wandb_data["is_kaggle_kernel"] = settings._kaggle or False
         hf_version = huggingface_version()
         if hf_version:
@@ -248,8 +250,8 @@ class RunManaged(Run):
             self._project = settings.project
         if settings.run_group is not None:
             self._group = settings.run_group
-        if settings.job_type is not None:
-            self._job_type = settings.job_type
+        if settings.run_job_type is not None:
+            self._job_type = settings.run_job_type
         if settings.run_name is not None:
             self._name = settings.run_name
         if settings.run_notes is not None:
@@ -296,6 +298,8 @@ class RunManaged(Run):
 
     @property
     def name(self):
+        if self._name:
+            return self._name
         if not self._run_obj:
             return None
         return self._run_obj.display_name
@@ -308,6 +312,8 @@ class RunManaged(Run):
 
     @property
     def notes(self):
+        if self._notes:
+            return self._notes
         if not self._run_obj:
             return None
         return self._run_obj.notes
@@ -315,6 +321,20 @@ class RunManaged(Run):
     @notes.setter
     def notes(self, notes):
         self._notes = notes
+        if self._backend:
+            self._backend.interface.publish_run(self)
+
+    @property
+    def tags(self):
+        if self._tags:
+            return self._tags
+        if not self._run_obj:
+            return None
+        return self._run_obj.tags
+
+    @tags.setter
+    def tags(self, tags):
+        self._tags = tags
         if self._backend:
             self._backend.interface.publish_run(self)
 
@@ -353,10 +373,18 @@ class RunManaged(Run):
         return self.history._step
 
     def project_name(self, api=None):
+        run_obj = self._run_obj or self._run_obj_offline
+        return run_obj.project
+
+    def get_url(self):
         if not self._run_obj:
-            wandb.termwarn("Project name not available in offline run")
+            wandb.termwarn("URL not available in offline run")
             return
-        return self._run_obj.project
+        return self._get_run_url()
+
+    @property
+    def url(self):
+        return self.get_url()
 
     @property
     def entity(self):
@@ -442,6 +470,9 @@ class RunManaged(Run):
         self.history._update_step()
         # TODO: It feels weird to call this twice..
         sentry_set_scope("user", run_obj.entity, run_obj.project, self._get_run_url())
+
+    def _set_run_obj_offline(self, run_obj):
+        self._run_obj_offline = run_obj
 
     def _add_singleton(self, type, key, value):
         """Stores a singleton item to wandb config.
@@ -787,7 +818,7 @@ class RunManaged(Run):
         project_url = self._get_project_url()
         run_url = self._get_run_url()
         sweep_url = self._get_sweep_url()
-        if self._settings.jupyter:
+        if self._settings._jupyter:
             from IPython.core.display import display, HTML  # type: ignore
 
             sweep_line = (
@@ -838,37 +869,48 @@ class RunManaged(Run):
                     click.style(run_url, underline=True, fg="blue"),
                 )
             )
-            if not self._settings.offline:
+            if not self._settings._offline:
                 wandb.termlog("Run `wandb off` to turn off syncing.")
 
     def _redirect(self, stdout_slave_fd, stderr_slave_fd):
-        console = self._settings.console
+        console = self._settings._console
         logger.info("redirect: %s", console)
 
-        if console == "redirect":
-            logger.info("redirect1")
+        if console == self._settings.Console.REDIRECT:
+            logger.info("Redirecting console.")
             out_cap = redirect.Capture(
                 name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
-            )
-            out_redir = redirect.Redirect(
-                src="stdout", dest=out_cap, unbuffered=True, tee=True
             )
             err_cap = redirect.Capture(
                 name="stderr", cb=self._redirect_cb, output_writer=self._output_writer
             )
+            out_redir = redirect.Redirect(
+                src="stdout", dest=out_cap, unbuffered=True, tee=True
+            )
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
-            try:
-                out_redir.install()
-                err_redir.install()
-                self._out_redir = out_redir
-                self._err_redir = err_redir
-                logger.info("redirect2")
-            except (OSError, AttributeError) as e:
-                logger.error("failed to redirect", exc_info=e)
+        elif console == self._settings.Console.NOTEBOOK:
+            logger.info("Redirecting notebook output.")
+            out_redir = redirect.StreamWrapper(
+                name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
+            )
+            err_redir = redirect.StreamWrapper(
+                name="stderr", cb=self._redirect_cb, output_writer=self._output_writer
+            )
+        elif console == self._settings.Console.OFF:
             return
-
+        else:
+            raise ValueError("unhandled console")
+        try:
+            out_redir.install()
+            err_redir.install()
+            self._out_redir = out_redir
+            self._err_redir = err_redir
+            logger.info("Redirects installed.")
+        except Exception as e:
+            print(e)
+            logger.error("Failed to redirect.", exc_info=e)
         return
 
         # TODO(jhr): everything below here is not executed as we only support redir mode
@@ -962,10 +1004,10 @@ class RunManaged(Run):
         self._output_writer = None
 
     def _on_start(self):
-        if self._settings.offline:
+        if self._settings._offline:
             wandb.termlog("Offline run mode, not syncing to the cloud.")
         wandb.termlog("Tracking run with wandb version {}".format(wandb.__version__))
-        if self._settings.offline:
+        if self._settings._offline:
             wandb.termlog(
                 (
                     "W&B is disabled in this directory.  "
@@ -986,11 +1028,13 @@ class RunManaged(Run):
             )
             self._display_run()
         print("")
-        if self._backend and not self._settings.offline:
+        if self._backend and not self._settings._offline:
             self._run_status_checker = RunStatusChecker(self._backend.interface)
         self._console_start()
 
     def _pusher_print_status(self, progress, prefix=True, done=False):
+        if self._settings._offline:
+            return
         spinner_states = ["-", "\\", "|", "/"]
         line = " %.2fMB of %.2fMB uploaded (%.2fMB deduped)\r" % (
             progress.uploaded_bytes / 1048576.0,
@@ -1051,28 +1095,25 @@ class RunManaged(Run):
             wandb.termlog("Program ended successfully.")
         else:
             msg = "Program failed with code {}. ".format(self._exit_code)
-            if not self._settings.offline:
+            if not self._settings._offline:
                 msg += " Press ctrl-c to abort syncing."
             wandb.termlog(msg)
 
-        if self._settings.offline:
-            self._backend.interface.publish_exit(self._exit_code)
-        else:
-            # TODO: we need to handle catastrophic failure better
-            # some tests were timing out on sending exit for reasons not clear to me
-            self._backend.interface.publish_exit(self._exit_code)
+        # TODO: we need to handle catastrophic failure better
+        # some tests were timing out on sending exit for reasons not clear to me
+        self._backend.interface.publish_exit(self._exit_code)
 
-            # Wait for data to be synced
-            ret = self._wait_for_finish()
+        # Wait for data to be synced
+        ret = self._wait_for_finish()
 
-            self._poll_exit_response = ret.response.poll_exit_response
+        self._poll_exit_response = ret.response.poll_exit_response
 
-            ret = self._backend.interface.communicate_summary()
-            self._final_summary = proto_util.dict_from_proto_list(ret.item)
+        ret = self._backend.interface.communicate_summary()
+        self._final_summary = proto_util.dict_from_proto_list(ret.item)
 
-            ret = self._backend.interface.communicate_sampled_history()
-            d = {item.key: item.values_float or item.values_int for item in ret.item}
-            self._sampled_history = d
+        ret = self._backend.interface.communicate_sampled_history()
+        d = {item.key: item.values_float or item.values_int for item in ret.item}
+        self._sampled_history = d
 
         self._backend.cleanup()
 
@@ -1110,14 +1151,6 @@ class RunManaged(Run):
                     self._settings.log_internal
                 )
             )
-        if self._settings.offline:
-            wandb.termlog("You can sync this run to the cloud by running:")
-            wandb.termlog(
-                click.style(
-                    "wandb sync {}".format(self._settings.sync_file), fg="yellow"
-                )
-            )
-
         self._show_summary()
         self._show_history()
         self._show_files()
@@ -1128,6 +1161,14 @@ class RunManaged(Run):
             wandb.termlog(
                 "\nSynced {}: {}".format(
                     click.style(run_name, fg="yellow"), click.style(run_url, fg="blue")
+                )
+            )
+
+        if self._settings._offline:
+            wandb.termlog("You can sync this run to the cloud by running:")
+            wandb.termlog(
+                click.style(
+                    "wandb sync {}".format(self._settings._sync_dir), fg="yellow"
                 )
             )
 
@@ -1153,10 +1194,8 @@ class RunManaged(Run):
         # Only print sparklines if the terminal is utf-8
         # In some python 2.7 tests sys.stdout is a 'cStringIO.StringO' object
         #   which doesn't have the attribute 'encoding'
-        if not hasattr(sys.stdout, "encoding") or sys.stdout.encoding not in (
-            "UTF_8",
-            "UTF-8",
-        ):
+        encoding = getattr(sys.stdout, "encoding", None)
+        if not encoding or encoding.upper() not in ("UTF_8", "UTF-8",):
             return
 
         logger.info("rendering history")
@@ -1172,6 +1211,8 @@ class RunManaged(Run):
 
     def _show_files(self):
         if not self._poll_exit_response or not self._poll_exit_response.file_counts:
+            return
+        if self._settings._offline:
             return
         logger.info("logging synced files")
         wandb.termlog(

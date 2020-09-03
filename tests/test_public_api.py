@@ -86,7 +86,7 @@ def test_run_from_path(mock_server, api):
 
 
 def test_run_retry(mock_server, api):
-    mock_server.set_context("fail_times", 2)
+    mock_server.set_context("fail_graphql_times", 2)
     run = api.run("test/test/test")
     assert run.summary_metrics == {"acc": 100, "loss": 0}
 
@@ -218,6 +218,14 @@ def test_artifact_get_path(runner, mock_server, api):
         path = os.path.join(os.path.expanduser("~"), ".cache", "wandb", "artifacts",
                             "obj", "md5", "4d", "e489e31c57834a21b8be7111dab613")
         assert res == path
+
+
+def test_artifact_get_path_download(runner, mock_server, api):
+    with runner.isolated_filesystem():
+        art = api.artifact("entity/project/mnist:v0", type="dataset")
+        path = art.get_path("digits.h5").download(os.getcwd())
+        assert os.path.exists("./digits.h5")
+        assert path == os.path.join(os.getcwd(), "digits.h5")
 
 
 def test_artifact_file(runner, mock_server, api):

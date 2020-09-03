@@ -3,7 +3,7 @@
 from flask import Flask, request, g
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import yaml
 import wandb
@@ -15,7 +15,8 @@ from tests.utils.mock_requests import RequestsMock
 
 def default_ctx():
     return {
-        "fail_count": 0,
+        "fail_graphql_count": 0,  # used via "fail_graphql_times"
+        "fail_storage_count": 0,  # used via "fail_storage_times"
         "page_count": 0,
         "page_times": 2,
         "files": {},
@@ -44,7 +45,7 @@ def mock_server(mocker):
 def run(ctx):
     if ctx["resume"]:
         now = datetime.now()
-        created_at = now.replace(day=now.day - 1).isoformat()
+        created_at = (now - timedelta(days=1)).isoformat()
     else:
         created_at = datetime.now().isoformat()
 
@@ -109,6 +110,9 @@ def artifact(ctx, collection_name="mnist"):
                 "alias": "v%i" % ctx["page_count"],
             }
         ],
+        "artifactSequence": {
+            "name": collection_name,
+        }
     }
 
 
@@ -229,9 +233,9 @@ def create_app(user_ctx=None):
         ctx = get_ctx()
         test_name = request.headers.get("X-WANDB-USERNAME")
         app.logger.info("Test request from: %s", test_name)
-        if "fail_times" in ctx:
-            if ctx["fail_count"] < ctx["fail_times"]:
-                ctx["fail_count"] += 1
+        if "fail_graphql_times" in ctx:
+            if ctx["fail_graphql_count"] < ctx["fail_graphql_times"]:
+                ctx["fail_graphql_count"] += 1
                 return json.dumps({"errors": ["Server down"]}), 500
         body = request.get_json()
         if body["variables"].get("files"):
@@ -268,7 +272,7 @@ def create_app(user_ctx=None):
                                     "historyLineCount": 15,
                                     "eventsLineCount": 0,
                                     "historyTail": hist_tail,
-                                    "eventsTail": '["{\\"_runtime\\": 70}"}"]',
+                                    "eventsTail": '["{\\"_runtime\\": 70}"]',
                                 }
                             }
                         }
@@ -442,7 +446,11 @@ def create_app(user_ctx=None):
         if "mutation CreateArtifact(" in body["query"]:
             collection_name = body["variables"]["artifactCollectionNames"][0]
             return {
-                "data": {"createArtifact": {"artifact": artifact(ctx, collection_name)}}
+                "data": {
+                    "createArtifact": {
+                        "artifact": artifact(ctx, collection_name)
+                    }
+                }
             }
         if "mutation UseArtifact(" in body["query"]:
             return {"data": {"useArtifact": {"artifact": artifact(ctx)}}}
@@ -545,7 +553,13 @@ def create_app(user_ctx=None):
     @app.route("/storage", methods=["PUT", "GET"])
     def storage():
         ctx = get_ctx()
+        if "fail_storage_times" in ctx:
+            if ctx["fail_storage_count"] < ctx["fail_storage_times"]:
+                ctx["fail_storage_count"] += 1
+                return json.dumps({"errors": ["Server down"]}), 500
         file = request.args.get("file")
+        ctx["storage"] = ctx.get("storage", [])
+        ctx["storage"].append(request.args.get("file"))
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
             return os.urandom(size), 200

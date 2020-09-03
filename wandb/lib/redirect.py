@@ -30,6 +30,46 @@ class Unbuffered(object):
         return getattr(self.stream, attr)
 
 
+class StreamWrapper(object):
+    def __init__(self, name, cb, output_writer=None):
+        self.name = name
+        self.cb = cb
+        self.output_writer = output_writer
+        self.stream = getattr(sys, name)
+        self.installed = False
+
+    def install(self):
+        if self.installed:
+            return
+        # TODO(farizrahman4u): patch writelines too?
+        old_write = self.stream.write
+        name = self.name
+        cb = self.cb
+        output_writer = self.output_writer
+        if output_writer is None:
+
+            def new_write(data):
+                cb(name, data)
+                old_write(data)
+        else:
+
+            def new_write(data):
+                cb(name, data)
+                old_write(data)
+                try:
+                    output_writer.write(data.encode('utf-8'))
+                except Exception as e:
+                    logger.error("Error while writing to file :" + str(e))
+        self.stream.write = new_write
+        self._old_write = old_write
+        self.installed = True
+
+    def uninstall(self):
+        if self.installed:
+            self.stream.write = self._old_write
+            self.installed = False
+
+
 def _pipe_relay(stopped, fd, name, cb, tee, output_writer):
     while True:
         try:
@@ -84,6 +124,17 @@ class Redirect(object):
             setattr(sys, self._stream, Unbuffered(getattr(sys, self._stream)))
 
     def install(self):
+        if self._installed:
+            return
+
+        if os.name == 'nt' and sys.version_info >= (3, 6):
+            legacy_env_var = 'PYTHONLEGACYWINDOWSSTDIO'
+            if legacy_env_var not in os.environ:
+                msg = "Set %s environment variable to enable"\
+                    " console logging on Windows." % legacy_env_var
+                logger.error(msg)
+                raise Exception(msg)
+
         logger.info("install start")
 
         fp = getattr(sys, self._stream)
@@ -102,10 +153,12 @@ class Redirect(object):
         logger.info("install stop")
 
     def uninstall(self):
-        logger.info("uninstall start")
-        self._redirect(to_fd=self._old_fp.fileno(), close=True)
-        self._dest._stop()
-        logger.info("uninstall done")
+        if self._installed:
+            logger.info("uninstall start")
+            self._redirect(to_fd=self._old_fp.fileno(), close=True)
+            self._dest._stop()
+            self._installed = False
+            logger.info("uninstall done")
 
 
 class Capture(object):
