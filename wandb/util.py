@@ -977,3 +977,11 @@ def add_import_hook(fullname, on_import):
         _import_hook = ImportMetaHook()
         _import_hook.install()
     _import_hook.add(fullname, on_import)
+
+def get_nested(dict_, *keys, default=None):
+    if not isinstance(dict_, dict):
+        return default
+    elem = dict_.get(keys[0], default)
+    if len(keys) == 1:
+        return elem
+    return get_nested(elem, *keys[1:], default=default)

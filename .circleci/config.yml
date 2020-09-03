@@ -137,9 +137,9 @@ jobs:
                   name: Test command
                   command: python integration_tests/test_scripts/media/all_media_types.py
             # Gorilla is returning permissions errors for a bit after upload 
-            - run:
-                  name: Wait for data to finish uploading
-                  command: sleep 15
+            # - run:
+            #       name: Wait for data to finish uploading
+            #       command: sleep 15
             - run:
                   name: Run all test script for setup
                   command: python -m pytest integration_tests/

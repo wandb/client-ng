@@ -9,6 +9,18 @@ from test_scripts.media.util import all_tests, project_name
 import setup
 import wandb
 import hashlib
+import datetime
+import requests
+
+from wandb.old.retry import retriable
+from gql.client import RetryError
+
+@retriable(retry_timedelta=datetime.timedelta(
+    seconds=30),
+    retryable_exceptions=(RetryError, requests.RequestException))
+# Gorilla is returning permissions errors for a bit after upload 
+def get_history_file(run, history_object):
+    return run.file(history_object['path']).download(WANDB_TEST_TEMP_DIR, replace=True)
 
 
 WANDB_TEST_TEMP_DIR = '/tmp/wandb_media_test'
@@ -33,7 +45,8 @@ def test_all_media():
             if not 'path' in history_object:
                 continue
 
-            file = run.file(history_object['path']).download(WANDB_TEST_TEMP_DIR, replace=True)
+            file = get_history_file(run, history_object)
+
             with open(file.name, 'rb') as f:
                 # This asserts we don't corrupt the file in upload or download.
                 # The sha256 in the metadata is created from the file before it
