@@ -129,18 +129,14 @@ jobs:
                   name: Install local wandb as package
                   command: pip install .
             - run:
-                  name: Waiting for server to be ready
+                  name: Waiting for wandb/local server to be ready
                   command: python integration_tests/scripts/wait_for_server.py
             - run:
                   name: Set environment variables
                   command: python integration_tests/setup.py >> $BASH_ENV
             - run:
-                  name: Test command
+                  name: Run training jobs(Media)
                   command: python integration_tests/test_scripts/media/all_media_types.py
-            # Gorilla is returning permissions errors for a bit after upload 
-            # - run:
-            #       name: Wait for data to finish uploading
-            #       command: sleep 15
             - run:
-                  name: Run all test script for setup
+                  name: Check test asserts
                   command: python -m pytest integration_tests/
