@@ -61,6 +61,12 @@ git add -p; git commit -m "BUMP"; sh integration_tests/scripts/test-integration-
 sh integration_tests/scripts/test-integration-local.sh
 ```
 
+3. Soak Circle
+
+```
+CIRCLE_API_USER_TOKEN=YOUR_TOKEN sh integration_tests/scripts/soak-circle.sh
+```
+
 ## Updating the docker environment
 
 We build a docker image with all the local setup down to allow speed up for local dev testing times and for CI times in the future when we turn on layer cacheing.
