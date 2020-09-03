@@ -1,8 +1,13 @@
 import logging
 import os
 
-from tensorflow.python.distribute.cluster_resolver import tpu_cluster_resolver
-from tensorflow.python.profiler import profiler_client
+try:
+    from tensorflow.python.distribute.cluster_resolver import tpu_cluster_resolver
+    from tensorflow.python.profiler import profiler_client
+except ImportError:
+    tpu_cluster_resolver = None
+    profiler_client = None
+    pass
 
 
 logger = logging.getLogger(__name__)
@@ -45,4 +50,4 @@ class TPUProfiler(object):
 
 
 def is_tpu_available():
-    return 'TPU_NAME' in os.environ
+    return profiler_client is not None and 'TPU_NAME' in os.environ
