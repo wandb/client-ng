@@ -1,6 +1,6 @@
 BRANCH=$(git branch --show-current);
 
-for run in {1..20}
+for run in {1..N}
 do
 curl -u ${CIRCLE_API_USER_TOKEN}: \
      -d build_parameters[CIRCLE_JOB]=integration \

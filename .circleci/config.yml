@@ -139,7 +139,7 @@ jobs:
                   command: python integration_tests/test_scripts/media/all_media_types.py
             - run:
                   name: Wait for server to process upload
-                  command: sleep 10
+                  command: sleep 20
             - run:
                   name: Check test asserts
                   command: python -m pytest integration_tests/

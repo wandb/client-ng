@@ -64,8 +64,10 @@ sh integration_tests/scripts/test-integration-local.sh
 3. Soak Circle
 
 ```
-CIRCLE_API_USER_TOKEN=YOUR_TOKEN sh integration_tests/scripts/soak-circle.sh
+N=10 CIRCLE_API_USER_TOKEN=YOUR_TOKEN sh integration_tests/scripts/soak-circle.sh
 ```
+
+Use the circle Ci to view these. Check the branch page to see a list of pass fails
 
 ## Updating the docker environment
 
