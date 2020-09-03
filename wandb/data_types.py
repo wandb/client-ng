@@ -46,6 +46,7 @@ _glob_datatypes_callback = None
 def _datatypes_set_callback(cb):
     global _glob_datatypes_callback
     _glob_datatypes_callback = cb
+
 def _datatypes_callback(fname):
     if _glob_datatypes_callback:
         _glob_datatypes_callback(fname)
@@ -1746,8 +1747,7 @@ def val_to_json(run, key, val, namespace=None):
             items = prune_max_seq(val)
 
             for i, item in enumerate(items):
-                if not item.is_bound():
-                    item.bind_to_run(run, key, namespace, id_=i)
+                item.bind_to_run(run, key, namespace, id_=i)
 
             return items[0].seq_to_json(items, run, key, namespace)
         else:
