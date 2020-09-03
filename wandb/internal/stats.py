@@ -77,7 +77,12 @@ class SystemStats(object):
                 "psutil not installed, only GPU stats will be reported.  Install with pip install psutil")
         self._thread = None
         if is_tpu_available():
-            self._tpu_profiler = TPUProfiler()
+            try:
+                self._tpu_profiler = TPUProfiler()
+            except Exception as e:
+                wandb.termlog(
+                    "Error initializing TPUProfiler: " + str(e)
+                )
         else:
             self._tpu_profiler = None
 
