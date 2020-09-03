@@ -21,9 +21,10 @@ def get_history_file(run, history_object):
     r = requests.get(file.url)
     max_retry = 50
     i = 0
-    timeout = 1
+    timeout = 2
     # Gorilla is returning 404 for a bit after upload
-    while r.status_code != 200:
+    while r.status_code == 404:
+        print("Retrying Status Code: " + r.status_code)
         r = requests.get(file.url)
         time.sleep(timeout)
 
