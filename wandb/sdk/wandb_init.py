@@ -231,7 +231,7 @@ class _WandbInit(object):
             self.backend.interface.publish_resume()
 
     def _jupyter_teardown(self):
-        """Teardown hooks and display saving, called with wandb.join"""
+        """Teardown hooks and display saving, called with wandb.finish"""
         logger.info("cleaning up jupyter logic")
         ipython = self.notebook.shell
         self.notebook.save_history()
@@ -317,6 +317,7 @@ class _WandbInit(object):
                 config=run.config,
                 log=run.log,
                 join=run.join,
+                finish=run.finish,
                 summary=run.summary,
                 save=run.save,
                 restore=run.restore,
@@ -331,7 +332,7 @@ class _WandbInit(object):
                     wandb.termwarn(
                         "If you want to track multiple runs concurrently in wandb you should use multi-processing not threads"  # noqa: E501
                     )
-                self._wl._global_run_stack[-1].join()
+                self._wl._global_run_stack[-1].finish()
         elif wandb.run:
             logger.info("wandb.init() called when a run is still active")
             return wandb.run
@@ -402,6 +403,7 @@ class _WandbInit(object):
             config=run.config,
             log=run.log,
             join=run.join,
+            finish=run.finish,
             summary=run.summary,
             save=run.save,
             restore=run.restore,

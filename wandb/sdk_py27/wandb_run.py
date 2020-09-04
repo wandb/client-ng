@@ -187,6 +187,9 @@ class RunDummy(RunBase):
     def join(self, exit_code=None):
         pass
 
+    def finish(self, exit_code=None):
+        pass
+
     def save(
         self,
         glob_str = None,
@@ -848,19 +851,22 @@ class Run(RunBase):
             return None
         return files[0].download(root=root, replace=True)
 
-    def join(self, exit_code=None):
+    def finish(self, exit_code=None):
         """Marks a run as finished, and finishes uploading all data.  This is
         used when creating multiple runs in the same process.  We automatically
         call this method when your script exits.
         """
         # detach logger, other setup cleanup
-        logger.info("joining run %s", self.path)
+        logger.info("finishing run %s", self.path)
         for hook in self._teardown_hooks:
             hook()
         self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
         module.unset_globals()
+
+    def join(self, exit_code=None):
+        self.finish(exit_code=None)
 
     def _get_project_url(self):
         s = self._settings
@@ -1467,7 +1473,7 @@ class Run(RunBase):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         exit_code = 0 if exc_type is None else 1
-        self.join(exit_code)
+        self.finish(exit_code)
         return exc_type is None
 
 

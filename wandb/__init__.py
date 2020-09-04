@@ -114,6 +114,9 @@ log = _preinit.PreInitCallable(
 join = _preinit.PreInitCallable(
     "wandb.join", wandb_sdk.wandb_run.Run.join
 )
+finish = _preinit.PreInitCallable(
+    "wandb.finish", wandb_sdk.wandb_run.Run.finish
+)
 save = _preinit.PreInitCallable(
     "wandb.save", wandb_sdk.wandb_run.Run.save
 )
