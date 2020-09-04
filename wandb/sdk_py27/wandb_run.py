@@ -866,7 +866,7 @@ class Run(RunBase):
         module.unset_globals()
 
     def join(self, exit_code=None):
-        self.finish(exit_code=None)
+        self.finish(exit_code=exit_code)
 
     def _get_project_url(self):
         s = self._settings
