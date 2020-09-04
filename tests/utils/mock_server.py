@@ -68,7 +68,7 @@ def run(ctx):
             "md5": "XXX",
             "url": request.url_root + "/storage?file=weights.h5",
         }
-        
+      
     return {
         "id": "test",
         "name": "wild-test",
@@ -90,7 +90,7 @@ def run(ctx):
             "edges": [
                 {
                     "node": fileNode,
-                },
+                }
             ]
         },
         "sampledHistory": ['{"loss": 0, "acc": 100}'],
