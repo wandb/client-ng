@@ -853,7 +853,6 @@ class Run(RunBase):
         # if the file does not exist, the file has an md5 of 0
         if files[0].md5 == "0":
             raise ValueError("File {} not found.".format(path))
-            return None
         return files[0].download(root=root, replace=True)
 
     def finish(self, exit_code=None):
