@@ -54,7 +54,7 @@ def run(ctx):
     # for wandb_tests::wandb_restore_name_not_found
     # if there is a fileName query, and this query is for nofile.h5
     # return an empty file. otherwise, return the usual weights.h5
-    if ctx.get('graphql') and len(ctx['graphql']) != 0:
+    if ctx.get('graphql'):
         fileNames = ctx['graphql'][-1]['variables'].get('fileNames')
     else:
         fileNames = None
