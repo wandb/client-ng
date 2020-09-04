@@ -50,10 +50,14 @@ def run(ctx):
         created_at = datetime.now().isoformat()
 
     stopped = ctx.get("stopped", False)
+
     # for wandb_tests::wandb_restore_name_not_found
     # if there is a fileName query, and this query is for nofile.h5
     # return an empty file. otherwise, return the usual weights.h5
-    fileNames = ctx['graphql'][-1]['variables'].get('fileNames')
+    if ctx.get('graphql') and len(ctx['graphql']) != 0:
+        fileNames = ctx['graphql'][-1]['variables'].get('fileNames')
+    else:
+        fileNames = None
     if fileNames == ["nofile.h5"]:
         fileNode = {
             "name": "nofile.h5",
