@@ -850,6 +850,7 @@ class Run(RunBase):
         files = api_run.files([name])
         if len(files) == 0:
             return None
+        # if the file does not exist, the file has an md5 of 0
         if files[0].md5 == "0":
             raise ValueError("File {} not found.".format(path))
             return None
