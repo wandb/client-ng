@@ -12,6 +12,7 @@ import socket
 import time
 
 import wandb
+from wandb import util
 from wandb.apis import InternalApi
 from wandb.lib import config_util
 
@@ -33,7 +34,8 @@ class Job(object):
 
 class Agent(object):
     def __init__(self, sweep_id, project=None, entity=None, function=None, count=None):
-        self._sweep_id = sweep_id
+        self._sweep_path = sweep_id
+        self._sweep_id = None
         self._project = project
         self._entity = entity
         self._function = function
@@ -58,18 +60,23 @@ class Agent(object):
         return job
 
     def run_job(self, job):
-        sweep_id = self._sweep_id
         run_id = job.run_id
 
         config_file = os.path.join(
-            "wandb", "sweep-" + sweep_id, "config-" + run_id + ".yaml"
+            "wandb", "sweep-" + self._sweep_id, "config-" + run_id + ".yaml"
         )
         config_util.save_config_file_from_dict(config_file, job.config)
         os.environ[wandb.env.RUN_ID] = run_id
         os.environ[wandb.env.CONFIG_PATHS] = config_file
-        os.environ[wandb.env.SWEEP_ID] = sweep_id
+        os.environ[wandb.env.SWEEP_ID] = self._sweep_id
         wandb.setup(_reset=True)
 
+        print(
+            "wandb: Agent Starting Run: {} with config:\n".format(run_id)
+            + "\n".join(
+                ["\t{}: {}".format(k, v["value"]) for k, v in job.config.items()]
+            )
+        )
         try:
             self._function()
             wandb.join()
@@ -78,9 +85,29 @@ class Agent(object):
             return True
         except Exception as e:
             print("Problem", e)
+            return True
+
+    def setup(self):
+        parts = dict(entity=self._entity, project=self._project, name=self._sweep_path)
+        err = util.parse_sweep_id(parts)
+        if err:
+            wandb.termerror(err)
+            return
+        entity = parts.get("entity") or self._entity
+        project = parts.get("project") or self._project
+        sweep_id = parts.get("name") or self._sweep_id
+
+        if entity:
+            wandb.env.set_entity(entity)
+        if project:
+            wandb.env.set_project(project)
+        if sweep_id:
+            self._sweep_id = sweep_id
+        self.register()
 
     def loop(self):
-        self.register()
+        self.setup()
+        count = 0
         while True:
             job = self.check_queue()
             if not job:
@@ -88,8 +115,11 @@ class Agent(object):
                 continue
             if job.done():
                 break
+            count += 1
             stop = self.run_job(job)
             if stop:
+                break
+            if self._count and count >= self._count:
                 break
             time.sleep(5)
 
@@ -109,6 +139,6 @@ def agent(sweep_id, function=None, entity=None, project=None, count=None):
     if not callable(function):
         raise Exception("function paramter must be callable")
     agent = Agent(
-        sweep_id, function=function, entity=entity, project=project, count=count
+        sweep_id, function=function, entity=entity, project=project, count=count,
     )
     agent.loop()
