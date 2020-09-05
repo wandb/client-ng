@@ -7,6 +7,18 @@ class Media(object):
     pass
 
 
+class ClassSet(Media):
+    def __init__(self, class_set):
+        self._class_set = class_set
+        # TODO: validate
+
+    def to_json(self, artifact):
+        return {
+            'type': 'class-set',
+            'class_set': self._class_set
+        }
+
+
 class Image(Media):
     def __init__(self, path, boxes=None, masks=None, classes=None, present_classes=None):
         if not os.path.isfile(path):

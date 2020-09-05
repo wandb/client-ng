@@ -1,5 +1,6 @@
 import re
 import os
+import tempfile
 import time
 import shutil
 import string
@@ -215,6 +216,10 @@ class Artifact(object):
             with self.new_file(name) as f:
                 import json
                 f.write(json.dumps(obj.to_json(self)))
+            # Note, we add the file from our temp diretory.
+            # It will be added again later on finalize, but succeed since
+            # the checksum should match
+            self.add_file(os.path.join(self._artifact_dir.name, name), name)
         else:
             raise ValueError('Can\'t add obj to artifact')
 
