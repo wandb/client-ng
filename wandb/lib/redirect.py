@@ -151,7 +151,7 @@ class Redirect(object):
             if unbuffered:
                 setattr(sys, self._stream, Unbuffered(getattr(sys, self._stream)))
         else:
-            if close:
+            if close and isinstance(getattr(sys, self._stream), StreamFork):
                 setattr(sys, self._stream, getattr(sys, self._stream).output_streams[0])
             else:
                 setattr(sys, self._stream, StreamFork([getattr(sys, self._stream),
