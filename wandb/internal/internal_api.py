@@ -312,7 +312,12 @@ class Api(object):
 
     @normalize_exceptions
     def viewer(self):
-        query = gql('''
+        cli_query = '''
+            serverInfo {
+                cliVersionInfo
+            }
+        '''
+        query_str = '''
         query Viewer{
             viewer {
                 id
@@ -326,11 +331,26 @@ class Api(object):
                     }
                 }
             }
-            cliVersionInfo
+            _CLI_QUERY_
         }
-        ''')
-        res = self.gql(query)
-        return res.get('viewer') or {}
+        '''
+        query_new = gql(query_str.replace("_CLI_QUERY_", cli_query))
+        query_old = gql(query_str.replace("_CLI_QUERY_", ""))
+
+        for query in query_new, query_old:
+            try:
+                res = self.gql(query)
+            except UsageError as e:
+                raise(e)
+            except Exception as e:
+                # graphql schema exception is generic
+                err = e
+                continue
+            err = None
+            break
+        if err:
+            raise(err)
+        return res.get('viewer') or {}, res.get('serverInfo') or {}
 
     @normalize_exceptions
     def list_projects(self, entity=None):
