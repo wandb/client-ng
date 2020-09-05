@@ -53,6 +53,7 @@ if wandb.TYPE_CHECKING:  # type: ignore
         Callable,
         Set,
         Type,
+        Sequence,
     )
 
 logger = logging.getLogger("wandb")
@@ -190,6 +191,7 @@ class Settings(object):
     mode = "online"
     console = "auto"
     disabled = False
+    run_tags = None
 
     resume_fname_spec = None
     root_dir = None
@@ -248,7 +250,7 @@ class Settings(object):
         run_notes = None,
         resume = None,
         magic = False,
-        run_tags=None,
+        run_tags = None,
         sweep_id=None,
         # compatibility / error handling
         # compat_version=None,  # set to "0.8" for safer defaults for older users
@@ -265,13 +267,13 @@ class Settings(object):
         settings_system_spec="~/.config/wandb/settings",
         settings_workspace_spec="{wandb_dir}/settings",
         sync_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}",
-        sync_file_spec="run-{timespec}-{run_id}.wandb",
+        sync_file_spec="run-{run_id}.wandb",
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
         sync_symlink_latest_spec="{wandb_dir}/latest-run",
         log_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/logs",
-        log_user_spec="debug-{timespec}-{run_id}.log",
-        log_internal_spec="debug-internal-{timespec}-{run_id}.log",
+        log_user_spec="debug.log",
+        log_internal_spec="debug-internal.log",
         log_symlink_user_spec="{wandb_dir}/debug.log",
         log_symlink_internal_spec="{wandb_dir}/debug-internal.log",
         resume_fname_spec="{wandb_dir}/wandb-resume.json",
@@ -351,6 +353,10 @@ class Settings(object):
         if self.mode in ("dryrun", "offline"):
             ret = True
         return ret
+
+    @property
+    def _noop(self):
+        return self.mode == "noop"
 
     @property
     def _jupyter(self):
@@ -439,7 +445,13 @@ class Settings(object):
         return self._path_convert(self.settings_workspace_spec)
 
     def _validate_mode(self, value):
-        choices = {"dryrun", "run", "offline", "online"}
+        choices = {
+            "dryrun",
+            "run",
+            "offline",
+            "online",
+            "noop",
+        }
         if value in choices:
             return
         return _error_choices(value, choices)

@@ -3,7 +3,7 @@
 from flask import Flask, request, g
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import yaml
 import wandb
@@ -15,7 +15,8 @@ from tests.utils.mock_requests import RequestsMock
 
 def default_ctx():
     return {
-        "fail_count": 0,
+        "fail_graphql_count": 0,  # used via "fail_graphql_times"
+        "fail_storage_count": 0,  # used via "fail_storage_times"
         "page_count": 0,
         "page_times": 2,
         "files": {},
@@ -44,12 +45,34 @@ def mock_server(mocker):
 def run(ctx):
     if ctx["resume"]:
         now = datetime.now()
-        created_at = now.replace(day=now.day - 1).isoformat()
+        created_at = (now - timedelta(days=1)).isoformat()
     else:
         created_at = datetime.now().isoformat()
 
     stopped = ctx.get("stopped", False)
 
+    # for wandb_tests::wandb_restore_name_not_found
+    # if there is a fileName query, and this query is for nofile.h5
+    # return an empty file. otherwise, return the usual weights.h5
+    if ctx.get('graphql'):
+        fileNames = ctx['graphql'][-1]['variables'].get('fileNames')
+    else:
+        fileNames = None
+    if fileNames == ["nofile.h5"]:
+        fileNode = {
+            "name": "nofile.h5",
+            "sizeBytes": 0,
+            "md5": "0",
+            "url": request.url_root + "/storage?file=nofile.h5",
+        }
+    else:
+        fileNode = {
+            "name": "weights.h5",
+            "sizeBytes": 20,
+            "md5": "XXX",
+            "url": request.url_root + "/storage?file=weights.h5",
+        }
+      
     return {
         "id": "test",
         "name": "wild-test",
@@ -70,12 +93,7 @@ def run(ctx):
             # Special weights url meant to be used with api_mocks#download_url
             "edges": [
                 {
-                    "node": {
-                        "name": "weights.h5",
-                        "sizeBytes": 20,
-                        "md5": "XXX",
-                        "url": request.url_root + "/storage?file=weights.h5",
-                    }
+                    "node": fileNode,
                 }
             ]
         },
@@ -232,9 +250,9 @@ def create_app(user_ctx=None):
         ctx = get_ctx()
         test_name = request.headers.get("X-WANDB-USERNAME")
         app.logger.info("Test request from: %s", test_name)
-        if "fail_times" in ctx:
-            if ctx["fail_count"] < ctx["fail_times"]:
-                ctx["fail_count"] += 1
+        if "fail_graphql_times" in ctx:
+            if ctx["fail_graphql_count"] < ctx["fail_graphql_times"]:
+                ctx["fail_graphql_count"] += 1
                 return json.dumps({"errors": ["Server down"]}), 500
         body = request.get_json()
         if body["variables"].get("files"):
@@ -271,7 +289,7 @@ def create_app(user_ctx=None):
                                     "historyLineCount": 15,
                                     "eventsLineCount": 0,
                                     "historyTail": hist_tail,
-                                    "eventsTail": '["{\\"_runtime\\": 70}"}"]',
+                                    "eventsTail": '["{\\"_runtime\\": 70}"]',
                                 }
                             }
                         }
@@ -552,7 +570,13 @@ def create_app(user_ctx=None):
     @app.route("/storage", methods=["PUT", "GET"])
     def storage():
         ctx = get_ctx()
+        if "fail_storage_times" in ctx:
+            if ctx["fail_storage_count"] < ctx["fail_storage_times"]:
+                ctx["fail_storage_count"] += 1
+                return json.dumps({"errors": ["Server down"]}), 500
         file = request.args.get("file")
+        ctx["storage"] = ctx.get("storage", [])
+        ctx["storage"].append(request.args.get("file"))
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
             return os.urandom(size), 200
