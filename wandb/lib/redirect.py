@@ -3,6 +3,7 @@
 util/redirect.
 """
 
+import io
 import logging
 import os
 import sys
@@ -139,6 +140,19 @@ class Redirect(object):
         self._old_fd = None
         self._old_fp = None
 
+        _src = getattr(sys, src)
+        if _src != getattr(sys, "__%s__" % src):
+            if hasattr(_src, "fileno"):
+                try:
+                    _src.fileno()
+                    self._io_wrapped = False
+                except io.UnsupportedOperation:
+                    self._io_wrapped = True
+            else:
+                self._io_wrapped = True
+        else:
+            self._io_wrapped = False
+
     def _redirect(self, to_fd, unbuffered=False, close=False):
         if close:
             fp = getattr(sys, self._stream)
@@ -146,17 +160,17 @@ class Redirect(object):
             # Do not close old filedescriptor as others might be using it
             fp.close()
         os.dup2(to_fd, self._old_fd)
-        if getattr(sys, self._stream) == getattr(sys, "__%s__" % self._stream):
-            setattr(sys, self._stream, os.fdopen(self._old_fd, "w"))
-            if unbuffered:
-                setattr(sys, self._stream, Unbuffered(getattr(sys, self._stream)))
-        else:
-            if close and isinstance(getattr(sys, self._stream), StreamFork):
+        if self._io_wrapped:
+            if close:
                 setattr(sys, self._stream, getattr(sys, self._stream).output_streams[0])
             else:
                 setattr(sys, self._stream, StreamFork([getattr(sys, self._stream),
                                                       os.fdopen(self._old_fd, "w")],
                                                       unbuffered=unbuffered))
+        else:
+            setattr(sys, self._stream, os.fdopen(self._old_fd, "w"))
+            if unbuffered:
+                setattr(sys, self._stream, Unbuffered(getattr(sys, self._stream)))
 
     def install(self):
         if self._installed:

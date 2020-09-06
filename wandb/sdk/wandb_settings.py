@@ -385,8 +385,18 @@ class Settings(object):
                     msg = (
                         "Set %s environment variable to enable"
                         " proper console logging on Windows. Falling "
-                        "back to monkey patching stdout/err." % legacy_env_var
+                        "back to wrapping stdout/err." % legacy_env_var
                     )
+                    wandb.termwarn(msg)
+                    logger.info(msg)
+                    console = "wrap"
+                if "tensorflow" in sys.modules:
+                    msg = (
+                        "Tensorflow detected. Stream redirection is not supported "
+                        "on Windows when tensorflow is imported. Falling back to "
+                        "wrapping stdout/err."
+                    )
+                    wandb.termlog(msg)
                     logger.info(msg)
                     console = "wrap"
                 else:
