@@ -390,8 +390,6 @@ class Settings(object):
                     wandb.termwarn(msg)
                     logger.info(msg)
                     console = "wrap"
-<<<<<<< HEAD
-=======
                 if "tensorflow" in sys.modules:
                     msg = (
                         "Tensorflow detected. Stream redirection is not supported "
@@ -401,7 +399,6 @@ class Settings(object):
                     wandb.termlog(msg)
                     logger.info(msg)
                     console = "wrap"
->>>>>>> fr_console_fix_dev
                 else:
                     console = "redirect"
             else:
