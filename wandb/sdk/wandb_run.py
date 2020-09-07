@@ -1018,8 +1018,8 @@ class Run(RunBase):
         else:
             raise ValueError("unhandled console")
         try:
-            out_redir.install()
-            err_redir.install()
+            # out_redir.install()
+            # err_redir.install()
             self._out_redir = out_redir
             self._err_redir = err_redir
             logger.info("Redirects installed.")
