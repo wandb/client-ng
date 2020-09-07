@@ -32,7 +32,7 @@ from wandb.data_types import _datatypes_set_callback
 from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import filenames, module, proto_util, redirect, sparkline
-from wandb.util import sentry_set_scope, to_forward_slash_path
+from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
 from wandb.viz import Visualize
 
 from . import wandb_config
@@ -40,20 +40,10 @@ from . import wandb_history
 from . import wandb_summary
 
 if wandb.TYPE_CHECKING:  # type: ignore
-    from typing import Optional
+    from typing import Optional, Sequence, Tuple
 
 logger = logging.getLogger("wandb")
 EXIT_TIMEOUT = 60
-
-
-class Run(object):
-    def __init__(self):
-        pass
-
-
-class RunDummy(Run):
-    def __init__(self):
-        pass
 
 
 class ExitHooks(object):
@@ -126,7 +116,102 @@ class RunStatusChecker(object):
         self._thread.join()
 
 
-class RunManaged(Run):
+class RunBase(object):
+    pass
+
+
+class ConfigDummy(object):
+    def __init__(self):
+        pass
+
+    def __getitem__(self, key):
+        pass
+
+    def __setitem__(self, key, val):
+        pass
+
+    __setattr__ = __setitem__
+
+    def __getattr__(self, key):
+        pass
+
+
+class SummaryDummy(object):
+    def __init__(self):
+        pass
+
+    def __getitem__(self, key):
+        pass
+
+    def __setitem__(self, key, val):
+        pass
+
+
+class RunDummy(RunBase):
+    def __init__(self):
+        self._config = ConfigDummy()
+        self.summary = SummaryDummy()
+
+    @property
+    def id(self):
+        pass
+
+    def get_url(self):
+        pass
+
+    def project_name(self):
+        pass
+
+    @property
+    def config(self):
+        return self._config
+
+    @property
+    def dir(self):
+        return ""
+
+    @property
+    def resumed(self):
+        pass
+
+    @property
+    def step(self):
+        pass
+
+    def log(self, data, step=None, commit=None, sync=None):
+        pass
+
+    def log_artifact(self, artifact_or_path, name=None, type=None, aliases=None):
+        pass
+
+    def join(self, exit_code=None):
+        pass
+
+    def finish(self, exit_code=None):
+        pass
+
+    def save(
+        self,
+        glob_str: Optional[str] = None,
+        base_path: Optional[str] = None,
+        policy: str = "live",
+    ):
+        pass
+
+    def restore(
+        self,
+        name: str,
+        run_path: Optional[str] = None,
+        replace: bool = False,
+        root: Optional[str] = None,
+    ):
+        pass
+
+    def use_artifact(self, artifact_or_name, type=None, aliases=None):
+        pass
+
+
+class Run(RunBase):
     def __init__(self, config=None, settings=None):
         self._config = wandb_config.Config()
         self._config._set_callback(self._config_callback)
@@ -217,6 +302,14 @@ class RunManaged(Run):
         self._use_redirect = True
         self._progress_step = 0
 
+    def _freeze(self):
+        self._frozen = True
+
+    def __setattr__(self, attr, value):
+        if getattr(self, "_frozen", None) and not hasattr(self, attr):
+            raise Exception("Attribute {} is not supported on Run object.".format(attr))
+        super(Run, self).__setattr__(attr, value)
+
     def _telemetry_get_framework(self):
         """Get telemetry data for internal config structure."""
         # detect framework by checking what is loaded
@@ -298,6 +391,8 @@ class RunManaged(Run):
 
     @property
     def name(self):
+        if self._name:
+            return self._name
         if not self._run_obj:
             return None
         return self._run_obj.display_name
@@ -310,6 +405,8 @@ class RunManaged(Run):
 
     @property
     def notes(self):
+        if self._notes:
+            return self._notes
         if not self._run_obj:
             return None
         return self._run_obj.notes
@@ -317,6 +414,20 @@ class RunManaged(Run):
     @notes.setter
     def notes(self, notes):
         self._notes = notes
+        if self._backend:
+            self._backend.interface.publish_run(self)
+
+    @property
+    def tags(self) -> Optional[Tuple]:
+        if self._tags:
+            return self._tags
+        if not self._run_obj:
+            return None
+        return self._run_obj.tags
+
+    @tags.setter
+    def tags(self, tags: Sequence):
+        self._tags = tuple(tags)
         if self._backend:
             self._backend.interface.publish_run(self)
 
@@ -360,9 +471,13 @@ class RunManaged(Run):
 
     def get_url(self):
         if not self._run_obj:
-            wandb.termwarn("Project name not available in offline run")
+            wandb.termwarn("URL not available in offline run")
             return
         return self._get_run_url()
+
+    @property
+    def url(self):
+        return self.get_url()
 
     @property
     def entity(self):
@@ -721,6 +836,7 @@ class RunManaged(Run):
 
         Raises:
             wandb.CommError if it can't find the run
+            ValueError if the file is not found
         """
 
         #  TODO: handle restore outside of a run context?
@@ -734,21 +850,27 @@ class RunManaged(Run):
         files = api_run.files([name])
         if len(files) == 0:
             return None
+        # if the file does not exist, the file has an md5 of 0
+        if files[0].md5 == "0":
+            raise ValueError("File {} not found.".format(path))
         return files[0].download(root=root, replace=True)
 
-    def join(self, exit_code=None):
+    def finish(self, exit_code=None):
         """Marks a run as finished, and finishes uploading all data.  This is
         used when creating multiple runs in the same process.  We automatically
         call this method when your script exits.
         """
         # detach logger, other setup cleanup
-        logger.info("joining run %s", self.path)
+        logger.info("finishing run %s", self.path)
         for hook in self._teardown_hooks:
             hook()
         self._atexit_cleanup(exit_code=exit_code)
         if len(self._wl._global_run_stack) > 0:
             self._wl._global_run_stack.pop()
         module.unset_globals()
+
+    def join(self, exit_code=None):
+        self.finish(exit_code=exit_code)
 
     def _get_project_url(self):
         s = self._settings
@@ -850,8 +972,9 @@ class RunManaged(Run):
             if not self._settings._offline:
                 wandb.termlog("Run `wandb off` to turn off syncing.")
 
-    def _redirect(self, stdout_slave_fd, stderr_slave_fd):
-        console = self._settings._console
+    def _redirect(self, stdout_slave_fd, stderr_slave_fd, console=None):
+        if console is None:
+            console = self._settings._console
         logger.info("redirect: %s", console)
 
         if console == self._settings.Console.REDIRECT:
@@ -868,8 +991,22 @@ class RunManaged(Run):
             err_redir = redirect.Redirect(
                 src="stderr", dest=err_cap, unbuffered=True, tee=True
             )
-        elif console == self._settings.Console.NOTEBOOK:
-            logger.info("Redirecting notebook output.")
+            if os.name == "nt":
+
+                def wrap_fallback():
+                    self._out_redir.uninstall()
+                    self._err_redir.uninstall()
+                    msg = (
+                        "Tensorflow detected. Stream redirection is not supported "
+                        "on Windows when tensorflow is imported. Falling back to "
+                        "wrapping stdout/err."
+                    )
+                    wandb.termlog(msg)
+                    self._redirect(None, None, console=self._settings.Console.WRAP)
+
+                add_import_hook("tensorflow", wrap_fallback)
+        elif console == self._settings.Console.WRAP:
+            logger.info("Wrapping output streams.")
             out_redir = redirect.StreamWrapper(
                 name="stdout", cb=self._redirect_cb, output_writer=self._output_writer
             )
@@ -1011,6 +1148,8 @@ class RunManaged(Run):
         self._console_start()
 
     def _pusher_print_status(self, progress, prefix=True, done=False):
+        if self._settings._offline:
+            return
         spinner_states = ["-", "\\", "|", "/"]
         line = " %.2fMB of %.2fMB uploaded (%.2fMB deduped)\r" % (
             progress.uploaded_bytes / 1048576.0,
@@ -1075,24 +1214,21 @@ class RunManaged(Run):
                 msg += " Press ctrl-c to abort syncing."
             wandb.termlog(msg)
 
-        if self._settings._offline:
-            self._backend.interface.publish_exit(self._exit_code)
-        else:
-            # TODO: we need to handle catastrophic failure better
-            # some tests were timing out on sending exit for reasons not clear to me
-            self._backend.interface.publish_exit(self._exit_code)
+        # TODO: we need to handle catastrophic failure better
+        # some tests were timing out on sending exit for reasons not clear to me
+        self._backend.interface.publish_exit(self._exit_code)
 
-            # Wait for data to be synced
-            ret = self._wait_for_finish()
+        # Wait for data to be synced
+        ret = self._wait_for_finish()
 
-            self._poll_exit_response = ret.response.poll_exit_response
+        self._poll_exit_response = ret.response.poll_exit_response
 
-            ret = self._backend.interface.communicate_summary()
-            self._final_summary = proto_util.dict_from_proto_list(ret.item)
+        ret = self._backend.interface.communicate_summary()
+        self._final_summary = proto_util.dict_from_proto_list(ret.item)
 
-            ret = self._backend.interface.communicate_sampled_history()
-            d = {item.key: item.values_float or item.values_int for item in ret.item}
-            self._sampled_history = d
+        ret = self._backend.interface.communicate_sampled_history()
+        d = {item.key: item.values_float or item.values_int for item in ret.item}
+        self._sampled_history = d
 
         self._backend.cleanup()
 
@@ -1130,14 +1266,6 @@ class RunManaged(Run):
                     self._settings.log_internal
                 )
             )
-        if self._settings._offline:
-            wandb.termlog("You can sync this run to the cloud by running:")
-            wandb.termlog(
-                click.style(
-                    "wandb sync {}".format(self._settings.sync_file), fg="yellow"
-                )
-            )
-
         self._show_summary()
         self._show_history()
         self._show_files()
@@ -1148,6 +1276,14 @@ class RunManaged(Run):
             wandb.termlog(
                 "\nSynced {}: {}".format(
                     click.style(run_name, fg="yellow"), click.style(run_url, fg="blue")
+                )
+            )
+
+        if self._settings._offline:
+            wandb.termlog("You can sync this run to the cloud by running:")
+            wandb.termlog(
+                click.style(
+                    "wandb sync {}".format(self._settings._sync_dir), fg="yellow"
                 )
             )
 
@@ -1173,9 +1309,8 @@ class RunManaged(Run):
         # Only print sparklines if the terminal is utf-8
         # In some python 2.7 tests sys.stdout is a 'cStringIO.StringO' object
         #   which doesn't have the attribute 'encoding'
-        if not hasattr(sys.stdout, "encoding") or (
-            sys.stdout.encoding.upper() not in ("UTF_8", "UTF-8",)
-        ):
+        encoding = getattr(sys.stdout, "encoding", None)
+        if not encoding or encoding.upper() not in ("UTF_8", "UTF-8",):
             return
 
         logger.info("rendering history")
@@ -1191,6 +1326,8 @@ class RunManaged(Run):
 
     def _show_files(self):
         if not self._poll_exit_response or not self._poll_exit_response.file_counts:
+            return
+        if self._settings._offline:
             return
         logger.info("logging synced files")
         wandb.termlog(
@@ -1355,7 +1492,7 @@ class RunManaged(Run):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         exit_code = 0 if exc_type is None else 1
-        self.join(exit_code)
+        self.finish(exit_code)
         return exc_type is None
 
 

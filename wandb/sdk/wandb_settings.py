@@ -53,6 +53,7 @@ if wandb.TYPE_CHECKING:  # type: ignore
         Callable,
         Set,
         Type,
+        Sequence,
     )
 
 logger = logging.getLogger("wandb")
@@ -171,7 +172,7 @@ def get_wandb_dir(root_dir: str):
 @enum.unique
 class SettingsConsole(enum.Enum):
     OFF = 0
-    NOTEBOOK = 1
+    WRAP = 1
     REDIRECT = 2
 
 
@@ -190,6 +191,7 @@ class Settings(object):
     mode: str = "online"
     console: str = "auto"
     disabled: bool = False
+    run_tags: Optional[Tuple] = None
 
     resume_fname_spec: Optional[str] = None
     root_dir: Optional[str] = None
@@ -248,7 +250,7 @@ class Settings(object):
         run_notes: str = None,
         resume: str = None,
         magic: Union[Dict, str, bool] = False,
-        run_tags=None,
+        run_tags: Sequence = None,
         sweep_id=None,
         # compatibility / error handling
         # compat_version=None,  # set to "0.8" for safer defaults for older users
@@ -265,13 +267,13 @@ class Settings(object):
         settings_system_spec="~/.config/wandb/settings",
         settings_workspace_spec="{wandb_dir}/settings",
         sync_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}",
-        sync_file_spec="run-{timespec}-{run_id}.wandb",
+        sync_file_spec="run-{run_id}.wandb",
         # sync_symlink_sync_spec="{wandb_dir}/sync",
         # sync_symlink_offline_spec="{wandb_dir}/offline",
         sync_symlink_latest_spec="{wandb_dir}/latest-run",
         log_dir_spec="{wandb_dir}/{run_mode}-{timespec}-{run_id}/logs",
-        log_user_spec="debug-{timespec}-{run_id}.log",
-        log_internal_spec="debug-internal-{timespec}-{run_id}.log",
+        log_user_spec="debug.log",
+        log_internal_spec="debug-internal.log",
         log_symlink_user_spec="{wandb_dir}/debug.log",
         log_symlink_internal_spec="{wandb_dir}/debug-internal.log",
         resume_fname_spec="{wandb_dir}/wandb-resume.json",
@@ -353,6 +355,10 @@ class Settings(object):
         return ret
 
     @property
+    def _noop(self) -> bool:
+        return self.mode == "noop"
+
+    @property
     def _jupyter(self) -> bool:
         return _get_python_type() != "python"
 
@@ -368,23 +374,31 @@ class Settings(object):
     def _console(self) -> SettingsConsole:
         convert_dict: Dict[str, SettingsConsole] = dict(
             off=SettingsConsole.OFF,
-            notebook=SettingsConsole.NOTEBOOK,
+            wrap=SettingsConsole.WRAP,
             redirect=SettingsConsole.REDIRECT,
         )
         console: str = self.console
         if console == "auto":
-            if self._jupyter:
-                console = "notebook"
-            elif self._windows:
+            if self._windows:
                 legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
                 if sys.version_info >= (3, 6) and legacy_env_var not in os.environ:
                     msg = (
                         "Set %s environment variable to enable"
                         " proper console logging on Windows. Falling "
-                        "back to monkey patching stdout/err." % legacy_env_var
+                        "back to wrapping stdout/err." % legacy_env_var
                     )
+                    wandb.termwarn(msg)
                     logger.info(msg)
-                    console = "notebook"
+                    console = "wrap"
+                if "tensorflow" in sys.modules:
+                    msg = (
+                        "Tensorflow detected. Stream redirection is not supported "
+                        "on Windows when tensorflow is imported. Falling back to "
+                        "wrapping stdout/err."
+                    )
+                    wandb.termlog(msg)
+                    logger.info(msg)
+                    console = "wrap"
                 else:
                     console = "redirect"
             else:
@@ -441,7 +455,13 @@ class Settings(object):
         return self._path_convert(self.settings_workspace_spec)
 
     def _validate_mode(self, value):
-        choices = {"dryrun", "run", "offline", "online"}
+        choices = {
+            "dryrun",
+            "run",
+            "offline",
+            "online",
+            "noop",
+        }
         if value in choices:
             return
         return _error_choices(value, choices)
@@ -452,7 +472,7 @@ class Settings(object):
             "auto",
             "redirect",
             "off",
-            "notebook",
+            "wrap",
         }
         if value in choices:
             return
