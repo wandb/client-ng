@@ -312,6 +312,27 @@ class Api(object):
 
     @normalize_exceptions
     def viewer(self):
+        query = gql('''
+        query Viewer{
+            viewer {
+                id
+                entity
+                flags
+                teams {
+                    edges {
+                        node {
+                            name
+                        }
+                    }
+                }
+            }
+        }
+        ''')
+        res = self.gql(query)
+        return res.get('viewer') or {}
+
+    @normalize_exceptions
+    def viewer_server_info(self):
         cli_query = '''
             serverInfo {
                 cliVersionInfo

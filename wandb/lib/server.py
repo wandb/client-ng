@@ -21,7 +21,7 @@ class Server(object):
 
     def query_with_timeout(self, timeout=None):
         timeout = timeout or 5
-        async_viewer = util.async_call(self._api.viewer, timeout=timeout)
+        async_viewer = util.async_call(self._api.viewer_server_info, timeout=timeout)
         viewer_tuple, viewer_thread = async_viewer()
         if viewer_thread.is_alive():
             self._error_network = True
