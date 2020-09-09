@@ -1037,8 +1037,6 @@ class Api(object):
         """
         extra_headers = extra_headers.copy()
         response = None
-        logger.error("DEBUG: upload_file {} {}".format(url, extra_headers))
-        logger.error("DEBUG: upload_file2 {} {}".format(url, file))
         progress = Progress(file, callback=callback)
         if progress.len == 0:
             raise CommError("%s is an empty file" % file.name)
@@ -1047,7 +1045,7 @@ class Api(object):
                 url, data=progress, headers=extra_headers)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            logger.error("DEBUG: upload_file exc {} {}".format(url, e))
+            logger.error("upload_file exception {} {}".format(url, e))
             status_code = e.response.status_code if e.response != None else 0
             # We need to rewind the file for the next retry (the file passed in is seeked to 0)
             progress.rewind()
