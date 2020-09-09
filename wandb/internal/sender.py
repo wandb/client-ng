@@ -164,6 +164,9 @@ class SendManager(object):
         done = False
         if state == defer.BEGIN:
             pass
+        elif state == defer.FLUSH_STATS:
+            # NOTE: this is handled in handler.py:handle_request_defer()
+            pass
         elif state == defer.FLUSH_TB:
             # NOTE: this is handled in handler.py:handle_request_defer()
             pass
@@ -520,7 +523,7 @@ class SendManager(object):
         saver.save(
             type=artifact.type,
             name=artifact.name,
-            metadata=artifact.metadata,
+            metadata=json.loads(artifact.metadata),
             description=artifact.description,
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,
