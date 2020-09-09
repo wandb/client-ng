@@ -583,6 +583,8 @@ def create_app(user_ctx=None):
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
             return os.urandom(size), 200
+        data = request.get_data()
+        print("GOT DATA", data)
         if file == "wandb_manifest.json":
             return {
                 "version": 1,
