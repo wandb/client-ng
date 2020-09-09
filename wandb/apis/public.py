@@ -960,6 +960,7 @@ class Run(Attrs):
         ''')
 
         response = self._exec(query, specs=[json.dumps(spec)])
+        # sampledHistory returns one list per spec, we only send one spec
         return response['project']['run']['sampledHistory'][0]
 
     def _full_history(self, samples=500, stream="default"):
