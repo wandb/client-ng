@@ -1074,6 +1074,55 @@ class Run(Attrs):
     def used_artifacts(self, per_page=100):
         return RunArtifacts(self.client, self, mode="used", per_page=per_page)
 
+    @normalize_exceptions
+    def use_artifact(self, artifact):
+        """ Declare an artifact as an input to a run.
+
+        Args:
+            artifact (:obj:`Artifact`): An artifact returned from
+                `wandb.Api().artifact(name)`
+        Returns:
+            A :obj:`Artifact` object.
+        """
+        api = InternalApi(default_settings={
+            "entity": self.entity, "project": self.project})
+        api.set_current_run_id(self.id)
+
+        if isinstance(artifact, Artifact):
+            api.use_artifact(artifact.id)
+            return artifact
+        elif isinstance(artifact, wandb.Artifact):
+            raise ValueError("Only existing artifacts are excepted by this api. "
+                             "Manually create one with `wandb artifacts put`")
+        else:
+            raise ValueError('You must wandb.Api().artifact() to use_artifact')
+
+    @normalize_exceptions
+    def log_artifact(self, artifact, aliases=None):
+        """ Declare an artifact as output of a run.
+
+        Args:
+            artifact (:obj:`Artifact`): An artifact returned from
+                `wandb.Api().artifact(name)`
+            aliases (list, optional): Aliases to apply to this artifact
+        Returns:
+            A :obj:`Artifact` object.
+        """
+        api = InternalApi(default_settings={
+            "entity": self.entity, "project": self.project})
+        api.set_current_run_id(self.id)
+
+        if isinstance(artifact, Artifact):
+            artifact_collection_name = artifact.name.split(':')[0]
+            api.create_artifact(artifact.type, artifact_collection_name,
+                                artifact.digest, aliases=aliases)
+            return artifact
+        elif isinstance(artifact, wandb.Artifact):
+            raise ValueError("Only existing artifacts are excepted by this api. "
+                             "Manually create one with `wandb artifacts put`")
+        else:
+            raise ValueError('You must wandb.Api().artifact() to use_artifact')
+
     @property
     def summary(self):
         if self._summary is None:
@@ -1777,6 +1826,8 @@ class ProjectArtifactTypes(Paginator):
         self.variables.update({'cursor': self.cursor})
 
     def convert_objects(self):
+        if self.last_response['project'] is None:
+            return []
         return [ArtifactType(self.client, self.entity, self.project, r["node"]["name"], r["node"])
                 for r in self.last_response['project']['artifactTypes']['edges']]
 

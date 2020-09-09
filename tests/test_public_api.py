@@ -264,6 +264,33 @@ def test_artifact_run_logged(runner, mock_server, api):
     assert arts[0].name == "abc123"
 
 
+def test_artifact_manual_use(runner, mock_server, api):
+    run = api.run("test/test/test")
+    art = api.artifact("entity/project/mnist:v0", type="dataset")
+    run.use_artifact(art)
+    assert True
+
+
+def test_artifact_manual_log(runner, mock_server, api):
+    run = api.run("test/test/test")
+    art = api.artifact("entity/project/mnist:v0", type="dataset")
+    run.log_artifact(art)
+    assert True
+
+
+def test_artifact_manual_error(runner, mock_server, api):
+    run = api.run("test/test/test")
+    art = wandb.Artifact("test", type="dataset")
+    with pytest.raises(wandb.CommError):
+        run.log_artifact(art)
+    with pytest.raises(wandb.CommError):
+        run.use_artifact(art)
+    with pytest.raises(wandb.CommError):
+        run.use_artifact("entity/project/mnist:v0")
+    with pytest.raises(wandb.CommError):
+        run.log_artifact("entity/project/mnist:v0")
+
+
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Verify is broken on Windows")
 def test_artifact_verify(runner, mock_server, api):

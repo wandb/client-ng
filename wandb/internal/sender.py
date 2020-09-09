@@ -523,7 +523,7 @@ class SendManager(object):
         saver.save(
             type=artifact.type,
             name=artifact.name,
-            metadata=json.loads(artifact.metadata),
+            metadata=json.loads(artifact.metadata or "{}"),
             description=artifact.description,
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,
