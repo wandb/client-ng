@@ -6,7 +6,10 @@ import sys
 from datetime import datetime, timedelta
 import json
 import yaml
+# HACK: restore first two entries of sys path after wandb load
+save_path = sys.path[:2]
 import wandb
+sys.path[0:0] = save_path
 import logging
 from six.moves import urllib
 import threading
