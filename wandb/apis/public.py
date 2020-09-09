@@ -1092,10 +1092,10 @@ class Run(Attrs):
             api.use_artifact(artifact.id)
             return artifact
         elif isinstance(artifact, wandb.Artifact):
-            raise ValueError("Only existing artifacts are excepted by this api. "
+            raise ValueError("Only existing artifacts are accepted by this api. "
                              "Manually create one with `wandb artifacts put`")
         else:
-            raise ValueError('You must wandb.Api().artifact() to use_artifact')
+            raise ValueError('You must pass a wandb.Api().artifact() to use_artifact')
 
     @normalize_exceptions
     def log_artifact(self, artifact, aliases=None):
@@ -1118,10 +1118,10 @@ class Run(Attrs):
                                 artifact.digest, aliases=aliases)
             return artifact
         elif isinstance(artifact, wandb.Artifact):
-            raise ValueError("Only existing artifacts are excepted by this api. "
+            raise ValueError("Only existing artifacts are accepted by this api. "
                              "Manually create one with `wandb artifacts put`")
         else:
-            raise ValueError('You must wandb.Api().artifact() to use_artifact')
+            raise ValueError('You must pass a wandb.Api().artifact() to use_artifact')
 
     @property
     def summary(self):

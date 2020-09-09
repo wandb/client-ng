@@ -520,10 +520,11 @@ class SendManager(object):
             is_user_created=artifact.user_created,
         )
 
+        metadata = json.loads(artifact.metadata) if artifact.metadata else None
         saver.save(
             type=artifact.type,
             name=artifact.name,
-            metadata=json.loads(artifact.metadata or "{}"),
+            metadata=metadata,
             description=artifact.description,
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,
