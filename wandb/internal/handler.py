@@ -261,6 +261,9 @@ class HandleManager(object):
 
     def handle_request_shutdown(self, record):
         # TODO(jhr): should we drain things and stop new requests from coming in?
+        if self._system_stats is not None:
+            logger.info("stopping system metrics thread")
+            self._system_stats.shutdown()
         result = wandb_internal_pb2.Result(uuid=record.uuid)
         self._result_q.put(result)
         self._stopped.set()
