@@ -96,6 +96,12 @@ def test_run_history(mock_server, api):
     assert run.history(pandas=False)[0] == {'acc': 10, 'loss': 90}
 
 
+def test_run_history_keys(mock_server, api):
+    run = api.run("test/test/test")
+    assert run.history(keys=["acc", "loss"], pandas=False) == [
+           {"loss": 0, "acc": 100}, {"loss": 1, "acc": 0}]
+
+
 def test_run_config(mock_server, api):
     run = api.run("test/test/test")
     assert run.config == {'epochs': 10}

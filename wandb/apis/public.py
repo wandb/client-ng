@@ -960,7 +960,7 @@ class Run(Attrs):
         ''')
 
         response = self._exec(query, specs=[json.dumps(spec)])
-        return [line for line in response['project']['run']['sampledHistory']]
+        return response['project']['run']['sampledHistory'][0]
 
     def _full_history(self, samples=500, stream="default"):
         node = "history" if stream == "default" else "events"
