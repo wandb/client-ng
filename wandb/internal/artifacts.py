@@ -76,7 +76,6 @@ class ArtifactSaver(object):
             )
 
         """Returns the server artifact."""
-        print(metadata)
         self._server_artifact, latest = self._api.create_artifact(
             type,
             name,
