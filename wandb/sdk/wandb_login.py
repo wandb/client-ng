@@ -21,7 +21,8 @@ def _validate_anonymous_setting(anon_str):
 
 
 def login(anonymous=None, key=None, relogin=None):
-    return _login(anonymous=anonymous, key=key, relogin=relogin)
+    configured_key = _login(anonymous=anonymous, key=key, relogin=relogin)
+    return True if configured_key else False
 
 
 def _login(
@@ -105,12 +106,12 @@ def _login(
             )
         apikey.write_key(settings, key)
     else:
-        apikey.prompt_api_key(settings, api=api)
+        key = apikey.prompt_api_key(settings, api=api)
     if _backend and not logged_in:
         # TODO: calling this twice is gross, this deserves a refactor
         # Make sure our backend picks up the new creds
         _ = _backend.interface.communicate_login(key, anonymous)
-    return
+    return key
 
 
 def is_logged_in(settings=None):
