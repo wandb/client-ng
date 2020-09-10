@@ -149,7 +149,7 @@ class _WandbInit(object):
         settings.apply_init(kwargs)
 
         login_key = wandb_login._login(_disable_warning=True, _settings=settings)
-        if login_key is None:
+        if not login_key:
             settings.mode = "offline"
 
         # TODO(jhr): should this be moved? probably.

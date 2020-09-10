@@ -57,6 +57,7 @@ def prompt_api_key(
     input_callback=None,
     browser_callback=None,
     no_offline=False,
+    no_create=False,
     local=False,
 ):
     input_callback = input_callback or getpass.getpass
@@ -71,6 +72,8 @@ def prompt_api_key(
         choices.remove(LOGIN_CHOICE_ANON)
     if jupyter or no_offline:
         choices.remove(LOGIN_CHOICE_DRYRUN)
+    if jupyter or no_create:
+        choices.remove(LOGIN_CHOICE_NEW)
 
     if jupyter and 'google.colab' in sys.modules:
         key = wandb.jupyter.attempt_colab_login(api.app_url)
@@ -85,6 +88,8 @@ def prompt_api_key(
         result = LOGIN_CHOICE_DRYRUN
     elif local:
         result = LOGIN_CHOICE_EXISTS
+    elif len(choices) == 1:
+        result = choices[0]
     else:
         for i, choice in enumerate(choices):
             wandb.termlog("(%i) %s" % (i + 1, choice))
