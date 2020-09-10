@@ -127,9 +127,12 @@ class SendManager(object):
         # TODO: do something with api_key or anonymous?
         # TODO: return an error if we aren't logged in?
         self._api.reauth()
-        viewer = self._api.viewer()
+        viewer_tuple = self._api.viewer_server_info()
         # self._login_flags = json.loads(viewer.get("flags", "{}"))
         # self._login_entity = viewer.get("entity")
+        viewer, server_info = viewer_tuple
+        if server_info:
+            logger.info("Login server info: {}".format(server_info))
         login_entity = viewer.get("entity")
         if record.control.req_resp:
             result = wandb_internal_pb2.Result(uuid=record.uuid)
@@ -162,6 +165,9 @@ class SendManager(object):
 
         done = False
         if state == defer.BEGIN:
+            pass
+        elif state == defer.FLUSH_STATS:
+            # NOTE: this is handled in handler.py:handle_request_defer()
             pass
         elif state == defer.FLUSH_TB:
             # NOTE: this is handled in handler.py:handle_request_defer()
@@ -346,6 +352,9 @@ class SendManager(object):
         storage_id = ups.get("id")
         if storage_id:
             self._run.storage_id = storage_id
+        id = ups.get("name")
+        if id:
+            self._api.set_current_run_id(id)
         display_name = ups.get("displayName")
         if display_name:
             self._run.display_name = display_name
@@ -355,12 +364,14 @@ class SendManager(object):
             if project_name:
                 self._run.project = project_name
                 self._project = project_name
+                self._api.set_setting("project", project_name)
             entity = project.get("entity")
             if entity:
                 entity_name = entity.get("name")
                 if entity_name:
                     self._run.entity = entity_name
                     self._entity = entity_name
+                    self._api.set_setting("entity", entity_name)
         sweep_id = ups.get("sweepName")
         if sweep_id:
             self._run.sweep_id = sweep_id
@@ -514,7 +525,7 @@ class SendManager(object):
         saver.save(
             type=artifact.type,
             name=artifact.name,
-            metadata=artifact.metadata,
+            metadata=json.loads(artifact.metadata),
             description=artifact.description,
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,
