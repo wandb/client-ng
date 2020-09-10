@@ -81,20 +81,16 @@ def prompt_api_key(
             write_key(settings, key)
             return key
 
-    print("DEBUG1", choices, jupyter)
     if anon_mode == "must":
         result = LOGIN_CHOICE_ANON
     # If we're not in an interactive environment, default to dry-run.
     elif not jupyter and (not isatty(sys.stdout) or not isatty(sys.stdin)):
-        print("DEBUG2", choices)
         result = LOGIN_CHOICE_DRYRUN
     elif local:
         result = LOGIN_CHOICE_EXISTS
     elif len(choices) == 1:
-        print("ONLYONE", choices)
         result = choices[0]
     else:
-        print("CHOOSE", choices)
         for i, choice in enumerate(choices):
             wandb.termlog("(%i) %s" % (i + 1, choice))
 
