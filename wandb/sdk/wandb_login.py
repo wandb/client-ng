@@ -95,6 +95,7 @@ def _login(
         return True
 
     jupyter = settings._jupyter or False
+    print("HIKEY", key)
     if key:
         if jupyter:
             wandb.termwarn(

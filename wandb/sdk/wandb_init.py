@@ -148,7 +148,9 @@ class _WandbInit(object):
                     print("Ignored wandb.init() arg %s when running a sweep" % key)
         settings.apply_init(kwargs)
 
+        print("SENDING")
         login_key = wandb_login._login(_disable_warning=True, _settings=settings)
+        print("GOT LOGIN_KEY", login_key)
         if not login_key:
             settings.mode = "offline"
 
