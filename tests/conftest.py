@@ -145,6 +145,7 @@ def test_settings(test_dir, mocker):
                               project="test",
                               console="off",
                               host="test",
+                              api_key=DUMMY_API_KEY,
                               run_id=wandb.util.generate_id(),
                               _start_datetime=datetime.datetime.now())
     settings.setdefaults()
