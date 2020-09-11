@@ -7,7 +7,8 @@
 -  Improved offline support and syncing
 -  Basic noop mode support to simplify testing
 -  Improved windows/pycharm support 
--  Run object has more modifiable properties 
+-  Run object has more modifiable properties
+-  Public API supports attaching artifacts to historic runs
 
 #### :bug: Bug Fix
 
