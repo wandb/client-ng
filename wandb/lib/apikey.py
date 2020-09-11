@@ -21,6 +21,7 @@ LOGIN_CHOICE_ANON = "Private W&B dashboard, no account required"
 LOGIN_CHOICE_NEW = "Create a W&B account"
 LOGIN_CHOICE_EXISTS = "Use an existing W&B account"
 LOGIN_CHOICE_DRYRUN = "Don't visualize my results"
+LOGIN_CHOICE_NOTTY = "Unconfigured"
 LOGIN_CHOICES = [
     LOGIN_CHOICE_ANON,
     LOGIN_CHOICE_NEW,
@@ -51,7 +52,7 @@ def _prompt_choice():
         return -1
 
 
-def prompt_api_key(
+def prompt_api_key(  # noqa: C901
     settings,
     api=None,
     input_callback=None,
@@ -60,6 +61,13 @@ def prompt_api_key(
     no_create=False,
     local=False,
 ):
+    """Prompt for api key.
+
+    Returns:
+        str - if key is configured
+        None - if dryrun is selected
+        False - if unconfigured (notty)
+    """
     input_callback = input_callback or getpass.getpass
     api = api or InternalApi()
     anon_mode = _fixup_anon_mode(settings.anonymous)
@@ -85,7 +93,7 @@ def prompt_api_key(
         result = LOGIN_CHOICE_ANON
     # If we're not in an interactive environment, default to dry-run.
     elif not jupyter and (not isatty(sys.stdout) or not isatty(sys.stdin)):
-        result = LOGIN_CHOICE_DRYRUN
+        result = LOGIN_CHOICE_NOTTY
     elif local:
         result = LOGIN_CHOICE_EXISTS
     elif len(choices) == 1:
@@ -136,6 +144,9 @@ def prompt_api_key(
             ).strip()
         write_key(settings, key)
         return key
+    elif result == LOGIN_CHOICE_NOTTY:
+        # TODO: Needs refactor as this needs to be handled by caller
+        return False
     else:
         # Jupyter environments don't have a tty, but we can still try logging in using
         # the browser callback if one is supplied.

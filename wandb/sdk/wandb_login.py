@@ -10,6 +10,7 @@ import logging
 
 import click
 import wandb
+from wandb.errors.error import UsageError
 from wandb.internal.internal_api import Api
 from wandb.lib import apikey
 
@@ -45,6 +46,9 @@ def _login(
             isn't already logged in.
     Returns:
         bool: if key is configured
+
+    Raises:
+        UsageError - if api_key can not configured and no tty
     """
     if wandb.run is not None:
         if not _disable_warning:
@@ -110,6 +114,9 @@ def _login(
         key = apikey.prompt_api_key(
             settings, api=api, no_offline=force, no_create=force
         )
+        if key is False:
+            raise UsageError("api_key not configured (no-tty).  Run wandb login")
+
     if _backend and not logged_in:
         # TODO: calling this twice is gross, this deserves a refactor
         # Make sure our backend picks up the new creds
