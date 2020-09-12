@@ -729,7 +729,7 @@ def test_gc(runner):
         if not os.path.isdir("wandb"):
             os.mkdir("wandb")
         d1 = datetime.datetime.now()
-        d2 = now - datetime.datetime.timedelta(hours=3)
+        d2 = d1 - datetime.datetime.timedelta(hours=3)
         run1 = d1.strftime("wandb/run-%Y%m%d_%H%M%S-abcd")
         run2 = d2.strftime("wandb/run-%Y%m%d_%H%M%S-efg")
         os.mkdir(run1)
