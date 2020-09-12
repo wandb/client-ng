@@ -729,13 +729,13 @@ def test_gc(runner):
         if not os.path.isdir("wandb"):
             os.mkdir("wandb")
         d1 = datetime.datetime.now()
-        d2 = d1 - datetime.datetime.timedelta(hours=3)
+        d2 = d1 - datetime.timedelta(hours=3)
         run1 = d1.strftime("wandb/run-%Y%m%d_%H%M%S-abcd")
         run2 = d2.strftime("wandb/run-%Y%m%d_%H%M%S-efg")
         os.mkdir(run1)
         os.mkdir(run2)
-        runner.invoke(cli.gc, ["-N", 2])
+        assert runner.invoke(cli.gc, ["-N", "2"], input='y\n').exit_code == 0
         assert os.path.exists(run1)
         assert not os.path.exists(run2)
-        runner.invoke(cli.gc, ["-N", 0])
+        assert runner.invoke(cli.gc, ["-N", "0"], input='y\n').exit_code == 0
         assert not os.path.exists(run1)
