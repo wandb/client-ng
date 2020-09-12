@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import datetime
 from functools import wraps
 import getpass
 import glob
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -1342,20 +1344,39 @@ def off():
         )
 
 
-@cli.command(context_settings=CONTEXT)
-@click.option('--keep', '-N', default=24, help="Keep runs created in the last N hours", type=int)
+@cli.command(
+    context_settings=CONTEXT,
+    help="Garbage collector, cleans up your local run directory.",
+)
+@click.pass_context
+@click.option(
+    "--keep", "-N", default=24, help="Keep runs created in the last N hours", type=int
+)
 def gc(ctx, keep):
-    dr = wandb.wandb_dir()
+    from wandb.old.core import wandb_dir
+
+    dr = wandb_dir()
     if not os.path.isdir(dr):
         raise ClickException("No wandb directory found at %s" % dr)
-    paths = glob.glob(directory + "/*run*")
-    dates = [datetime.datetime.strptime(p.split("-")[1], "%Y%m%d_%H%M%S") for p in paths]
+    paths = glob.glob(dr + "/run-*")
+    dates = [
+        datetime.datetime.strptime(os.path.basename(p).split("-")[1], "%Y%m%d_%H%M%S")
+        for p in paths
+    ]
     since = datetime.datetime.utcnow() - datetime.timedelta(hours=keep)
     bad_paths = [paths[i] for i, d in enumerate(dates) if d < since]
     if len(bad_paths) > 0:
-        click.echo("Found {} runs, {} are older than {} hours".format(len(paths), len(bad_paths), keep))
-        click.confirm(click.style(
-                "Are you sure you want to remove %i runs?" % len(bad_paths), bold=True), abort=True)
+        click.echo(
+            "Found {} runs, {} are older than {} hours".format(
+                len(paths), len(bad_paths), keep
+            )
+        )
+        click.confirm(
+            click.style(
+                "Are you sure you want to remove %i runs?" % len(bad_paths), bold=True
+            ),
+            abort=True,
+        )
         for path in bad_paths:
             shutil.rmtree(path)
         click.echo(click.style("Success!", fg="green"))
