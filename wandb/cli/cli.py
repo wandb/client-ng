@@ -4,6 +4,7 @@
 import copy
 from functools import wraps
 import getpass
+import glob
 import logging
 import os
 import subprocess
@@ -1339,3 +1340,24 @@ def off():
         click.echo(
             "Unable to write config, copy and paste the following in your terminal to turn off W&B:\nexport WANDB_MODE=dryrun"
         )
+
+
+@cli.command(context_settings=CONTEXT)
+@click.option('--keep', '-N', default=24, help="Keep runs created in the last N hours", type=int)
+def gc(ctx, keep):
+    dr = wandb.wandb_dir()
+    if not os.path.isdir(dr):
+        raise ClickException("No wandb directory found at %s" % dr)
+    paths = glob.glob(directory + "/*run*")
+    dates = [datetime.datetime.strptime(p.split("-")[1], "%Y%m%d_%H%M%S") for p in paths]
+    since = datetime.datetime.utcnow() - datetime.timedelta(hours=keep)
+    bad_paths = [paths[i] for i, d in enumerate(dates) if d < since]
+    if len(bad_paths) > 0:
+        click.echo("Found {} runs, {} are older than {} hours".format(len(paths), len(bad_paths), keep))
+        click.confirm(click.style(
+                "Are you sure you want to remove %i runs?" % len(bad_paths), bold=True), abort=True)
+        for path in bad_paths:
+            shutil.rmtree(path)
+        click.echo(click.style("Success!", fg="green"))
+    else:
+        click.echo(click.style("No runs older than %i hours found" % keep, fg="red"))
