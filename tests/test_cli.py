@@ -2,6 +2,7 @@ import wandb
 from wandb.cli import cli
 from wandb.apis.internal import InternalApi
 import contextlib
+import datetime
 import traceback
 import platform
 import getpass
@@ -721,3 +722,20 @@ def test_restore_not_git(runner, mock_server, docker, monkeypatch):
         print(traceback.print_tb(result.exc_info[2]))
         assert result.exit_code == 0
         assert "Original run has no git history" in result.output
+
+
+def test_gc(runner):
+    with runner.isolated_filesystem():
+        if not os.path.isdir("wandb"):
+            os.mkdir("wandb")
+        d1 = datetime.datetime.now()
+        d2 = now - datetime.datetime.timedelta(hours=3)
+        run1 = "wandb/run-%s%s%s_%s%s%s-abcd" % (d1.year, d1.month, d1.day, d1.hour, d1.minute, d1.second)
+        run2 = "wandb/run-%s%s%s_%s%s%s-abcd" % (d2.year, d2.month, d2.day, d2.hour, d2.minute, d2.second)
+        os.mkdir(run1)
+        os.mkdir(run2)
+        runner.invoke(cli.gc, ["-N", 2])
+        assert os.path.exists(run1)
+        assert not os.path.exists(run2)
+        runner.invoke(cli.gc, ["-N", 0])
+        assert not os.path.exists(run1)
