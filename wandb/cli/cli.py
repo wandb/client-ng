@@ -1362,8 +1362,12 @@ def gc(ctx, keep):
     dates = []
     for p in paths:
         try:
-            dates.append(datetime.datetime.strptime(os.path.basename(p).split("-")[1], "%Y%m%d_%H%M%S"))
-        except:
+            dates.append(
+                datetime.datetime.strptime(
+                    os.path.basename(p).split("-")[1], "%Y%m%d_%H%M%S"
+                )
+            )
+        except Exception:
             pass
     since = datetime.datetime.now() - datetime.timedelta(hours=keep)
     bad_paths = [paths[i] for i, d in enumerate(dates) if d < since]
