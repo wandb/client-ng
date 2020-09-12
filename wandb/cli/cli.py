@@ -1359,13 +1359,15 @@ def gc(ctx, keep):
     if not os.path.isdir(dr):
         raise ClickException("No wandb directory found at %s" % dr)
     paths = glob.glob(dr + "/run-*")
-    dates = [
-        datetime.datetime.strptime(os.path.basename(p).split("-")[1], "%Y%m%d_%H%M%S")
-        for p in paths
-    ]
-    since = datetime.datetime.utcnow() - datetime.timedelta(hours=keep)
+    dates = []
+    for p in paths:
+        try:
+            dates.append(datetime.datetime.strptime(os.path.basename(p).split("-")[1], "%Y%m%d_%H%M%S"))
+        except:
+            pass
+    since = datetime.datetime.now() - datetime.timedelta(hours=keep)
     bad_paths = [paths[i] for i, d in enumerate(dates) if d < since]
-    if len(bad_paths) > 0:
+    if bad_paths:
         click.echo(
             "Found {} runs, {} are older than {} hours".format(
                 len(paths), len(bad_paths), keep
