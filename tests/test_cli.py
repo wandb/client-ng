@@ -730,12 +730,22 @@ def test_gc(runner):
             os.mkdir("wandb")
         d1 = datetime.datetime.now()
         d2 = d1 - datetime.timedelta(hours=3)
-        run1 = d1.strftime("wandb/run-%Y%m%d_%H%M%S-abcd")
-        run2 = d2.strftime("wandb/run-%Y%m%d_%H%M%S-efg")
-        os.mkdir(run1)
-        os.mkdir(run2)
+        run1 = d1.strftime("run-%Y%m%d_%H%M%S-abcd")
+        run2 = d2.strftime("run-%Y%m%d_%H%M%S-efgh")
+        run1_dir = os.path.join("wandb", run1)
+        run2_dir = os.path.join("wandb", run2)
+        os.mkdir(run1_dir)
+        with open(os.path.join(run1_dir, "run-abcd.wandb"), 'w') as f:
+            f.write('')
+        with open(os.path.join(run1_dir, "run-abcd.wandb.synced"), 'w') as f:
+            f.write('')
+        os.mkdir(run2_dir)
+        with open(os.path.join(run2_dir, "run-efgh.wandb"), 'w') as f:
+            f.write('')
+        with open(os.path.join(run2_dir, "run-efgh.wandb.synced"), 'w') as f:
+            f.write('')
         assert runner.invoke(cli.gc, ["-N", "2"], input='y\n').exit_code == 0
-        assert os.path.exists(run1)
-        assert not os.path.exists(run2)
+        assert os.path.exists(run1_dir)
+        assert not os.path.exists(run2_dir)
         assert runner.invoke(cli.gc, ["-N", "0"], input='y\n').exit_code == 0
-        assert not os.path.exists(run1)
+        assert not os.path.exists(run1_dir)

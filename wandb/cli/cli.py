@@ -1392,7 +1392,6 @@ def gc(ctx, keep):
         include_online=True,
         include_offline=True,
     ).list()
-    print(paths)
     dates = []
     for p in paths:
         try:

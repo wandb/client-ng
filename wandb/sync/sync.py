@@ -255,3 +255,54 @@ class SyncManager:
     def poll(self):
         time.sleep(1)
         return False
+
+
+def get_runs(include_offline=True,
+             include_online=True,
+             include_synced=True,
+             include_unsynced=True,
+             exclude_globs=[],
+             include_globs=[]):
+    # TODO(jhr): grab dir info from settings
+    base = "wandb"
+    if os.path.exists(".wandb"):
+        base = ".wandb"
+    if not os.path.exists(base):
+        return ()
+
+    all_dirs = os.listdir(base)
+    dirs = []
+    if include_offline:
+        dirs += filter(lambda d: d.startswith("offline-run-"), all_dirs)
+    if include_online:
+        dirs += filter(lambda d: d.startswith("run-"), all_dirs)
+    # find run file in each dir
+    fnames = []
+    for d in dirs:
+        paths = os.listdir(os.path.join(base, d))
+        if exclude_globs:
+            paths = set(paths)
+            for g in exclude_globs:
+                paths = paths - set(fnmatch.filter(paths, g))
+            paths = list(paths)
+        if include_globs:
+            new_paths = set()
+            for g in include_globs:
+                new_paths = new_paths.union(fnmatch.filter(paths, g))
+            paths = list(new_paths)
+        for f in paths:
+            if f.endswith(WANDB_SUFFIX):
+                fnames.append(os.path.join(base, d, f))
+    filtered = []
+    for f in fnames:
+        if os.path.exists("{}{}".format(f, SYNCED_SUFFIX)):
+            if include_synced:
+                filtered.append(f)
+        else:
+            if include_unsynced:
+                filtered.append(f)
+    fnames = filtered
+    # return dirnames
+    dnames = tuple(os.path.dirname(f) for f in fnames)
+
+    return dnames
