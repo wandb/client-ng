@@ -30,7 +30,7 @@ from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
 from wandb.integration.magic import magic_install
 from wandb.old.settings import Settings
-from wandb.sync import SyncManager
+from wandb.sync import get_runs, SyncManager
 import yaml
 
 # whaaaaat depends on prompt_toolkit < 2, ipython now uses > 2 so we vendored for now
@@ -400,6 +400,13 @@ def init(ctx, project, entity, reset):
 )
 @click.option("--sync-all", is_flag=True, default=False, help="Sync all runs")
 @click.option("--clean", is_flag=True, default=False, help="Delete synced runs")
+@click.option(
+    "--keep",
+    "-N",
+    default=24,
+    help="Keep runs created in the last N hours. To be used alongside --clean flag.",
+    type=int,
+)
 @click.option("--ignore", hidden=True)
 @click.option("--show", default=5, help="Number of runs to show")
 @display_error
@@ -421,6 +428,7 @@ def sync(
     ignore=None,
     show=None,
     clean=None,
+    keep=24,
 ):
     api = InternalApi()
     if api.api_key is None:
@@ -437,68 +445,89 @@ def sync(
         project=project,
         entity=entity,
         run_id=run_id,
-        include_globs=include_globs,
-        exclude_globs=exclude_globs,
-        include_online=include_online,
-        include_offline=include_offline,
-        include_synced=include_synced,
         mark_synced=mark_synced,
         app_url=api.app_url,
         view=view,
         verbose=verbose,
     )
-
-    def synced_runs():
-        sm._include_online = True
-        sm._include_offline = True
-        sm._include_synced = True
-        sm._include_unsynced = False
-        ret = sm.list()
-        sm._include_online = include_online
-        sm._include_offline = include_offline
-        sm._include_synced = include_synced
-        sm._include_unsynced = True
-        return ret
-
     if not path:
         # Show listing of possible paths to sync
         # (if interactive, allow user to pick run to sync)
-        sync_items = sm.list()
-        if not sync_items:
+        sync_items = get_runs(
+            include_online=include_online,
+            include_offline=include_offline,
+            include_synced=include_synced,
+            exclude_globs=exclude_globs,
+            include_globs=include_globs,
+        )
+        if not sync_items and not clean:
             wandb.termerror("Nothing to sync.")
             return
         if not sync_all:
             wandb.termlog("NOTE: use sync --sync-all to sync all unsynced runs.")
-            if show and show < len(sync_items):
-                wandb.termlog("Showing {} runs:".format(show))
-            synced = []
-            unsynced = []
-            _synced = synced_runs()
-            for item in sync_items[: show or len(sync_items)]:
-                if item in _synced:
-                    synced.append(item)
-                else:
-                    unsynced.append(item)
-            wandb.termlog("Number of runs to be synced: {}".format(len(unsynced)))
-            if synced:
-                wandb.termlog("Synced runs:")
-                for item in synced:
-                    wandb.termlog("  {}".format(item))
-            if unsynced:
-                wandb.termlog("Unsynced runs:")
-                for item in unsynced:
-                    wandb.termlog("  {}".format(item))
+        if show and show < len(sync_items):
+            wandb.termlog("Showing {} runs:".format(show))
+        synced = []
+        unsynced = []
+        for item in sync_items[: show or len(sync_items)]:
+            (synced if item.synced else unsynced).append(item)
+        wandb.termlog("Number of runs to be synced: {}".format(len(unsynced)))
+        if synced:
+            wandb.termlog("Synced runs:")
+            for item in synced:
+                wandb.termlog("  {}".format(item))
+        if unsynced:
+            wandb.termlog("Unsynced runs:")
+            for item in unsynced:
+                wandb.termlog("  {}".format(item))
+            if not clean:
+                wandb.termlog(
+                    "NOTE: use sync --clean to cleanup synced runs from local directory."
+                )
+        if not (sync_all or clean):
             return
         path = sync_items
-    if run_id and len(path) > 1:
-        wandb.termerror("id can only be set for a single run.")
-        sys.exit(1)
-    for p in path:
-        sm.add(p)
-    sm.start()
-    while not sm.is_done():
-        _ = sm.poll()
-        # print(status)
+    if path:
+        if run_id and len(path) > 1:
+            wandb.termerror("id can only be set for a single run.")
+            sys.exit(1)
+        for p in path:
+            sm.add(p)
+        sm.start()
+        while not sm.is_done():
+            _ = sm.poll()
+            # print(status)
+    if clean:
+        runs = get_runs(
+            include_online=True,
+            include_offline=True,
+            include_synced=True,
+            include_unsynced=False,
+            exclude_globs=exclude_globs,
+            include_globs=include_globs,
+        )
+        since = datetime.datetime.now() - datetime.timedelta(hours=keep)
+        bad_runs = [run for run in runs if run.datetime < since]
+        if bad_runs:
+            click.echo(
+                "Found {} runs, {} are older than {} hours".format(
+                    len(runs), len(bad_runs), keep
+                )
+            )
+            click.confirm(
+                click.style(
+                    "Are you sure you want to remove %i runs?" % len(bad_runs),
+                    bold=True,
+                ),
+                abort=True,
+            )
+            for run in bad_runs:
+                shutil.rmtree(run.path)
+            click.echo(click.style("Success!", fg="green"))
+        else:
+            click.echo(
+                click.style("No runs older than %i hours found" % keep, fg="red")
+            )
 
 
 @cli.command(context_settings=CONTEXT, help="Create a sweep")  # noqa: C901

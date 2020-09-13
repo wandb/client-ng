@@ -2,4 +2,4 @@
 module sync
 """
 
-from .sync import SyncManager  # noqa: F401
+from .sync import get_runs, SyncManager  # noqa: F401
