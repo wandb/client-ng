@@ -2164,7 +2164,7 @@ class Artifact(object):
 
     @property
     def name(self):
-        return '%s:%s' % (self._sequence_name, self._version_index)
+        return '%s:v%s' % (self._sequence_name, self._version_index)
 
     @property
     def aliases(self):
