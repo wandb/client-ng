@@ -5,7 +5,6 @@ import copy
 import datetime
 from functools import wraps
 import getpass
-import glob
 import logging
 import os
 import shutil
@@ -400,6 +399,7 @@ def init(ctx, project, entity, reset):
     help="Mark runs as synced",
 )
 @click.option("--sync-all", is_flag=True, default=False, help="Sync all runs")
+@click.option("--clean", is_flag=True, default=False, help="Delete synced runs")
 @click.option("--ignore", hidden=True)
 @click.option("--show", default=5, help="Number of runs to show")
 @display_error
@@ -420,6 +420,7 @@ def sync(
     sync_all=None,
     ignore=None,
     show=None,
+    clean=None,
 ):
     api = InternalApi()
     if api.api_key is None:
@@ -446,24 +447,51 @@ def sync(
         view=view,
         verbose=verbose,
     )
+
+    def synced_runs():
+        sm._include_online = True
+        sm._include_offline = True
+        sm._include_synced = True
+        sm._include_unsynced = False
+        ret = sm.list()
+        sm._include_online = include_online
+        sm._include_offline = include_offline
+        sm._include_synced = include_synced
+        sm._include_unsynced = True
+        return ret
+
     if not path:
         # Show listing of possible paths to sync
         # (if interactive, allow user to pick run to sync)
         sync_items = sm.list()
         if not sync_items:
-            wandb.termerror("Nothing to sync")
+            wandb.termerror("Nothing to sync.")
             return
         if not sync_all:
-            wandb.termlog("NOTE: use sync --sync-all to sync all unsynced runs")
-            wandb.termlog("Number of runs to be synced: {}".format(len(sync_items)))
+            wandb.termlog("NOTE: use sync --sync-all to sync all unsynced runs.")
             if show and show < len(sync_items):
                 wandb.termlog("Showing {} runs:".format(show))
+            synced = []
+            unsynced = []
+            _synced = synced_runs()
             for item in sync_items[: show or len(sync_items)]:
-                wandb.termlog("  {}".format(item))
+                if item in _synced:
+                    synced.append(item)
+                else:
+                    unsynced.append(item)
+            wandb.termlog("Number of runs to be synced: {}".format(len(unsynced)))
+            if synced:
+                wandb.termlog("Synced runs:")
+                for item in synced:
+                    wandb.termlog("  {}".format(item))
+            if unsynced:
+                wandb.termlog("Unsynced runs:")
+                for item in unsynced:
+                    wandb.termlog("  {}".format(item))
             return
         path = sync_items
     if run_id and len(path) > 1:
-        wandb.termerror("id can only be set for a single run")
+        wandb.termerror("id can only be set for a single run.")
         sys.exit(1)
     for p in path:
         sm.add(p)
@@ -1358,13 +1386,19 @@ def gc(ctx, keep):
     dr = wandb_dir()
     if not os.path.isdir(dr):
         raise ClickException("No wandb directory found at %s" % dr)
-    paths = glob.glob(dr + "/run-*")
+    paths = SyncManager(
+        include_synced=True,
+        include_unsynced=False,
+        include_online=True,
+        include_offline=True,
+    ).list()
+    print(paths)
     dates = []
     for p in paths:
         try:
             dates.append(
                 datetime.datetime.strptime(
-                    os.path.basename(p).split("-")[1], "%Y%m%d_%H%M%S"
+                    os.path.basename(p).split("run-")[1].split("-")[0], "%Y%m%d_%H%M%S"
                 )
             )
         except Exception:

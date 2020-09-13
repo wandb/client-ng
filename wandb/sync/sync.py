@@ -160,6 +160,7 @@ class SyncManager:
         include_offline=None,
         include_online=None,
         include_synced=None,
+        include_unsynced=True,
         mark_synced=None,
         app_url=None,
         view=None,
@@ -175,6 +176,7 @@ class SyncManager:
         self._include_offline = include_offline
         self._include_online = include_online
         self._include_synced = include_synced
+        self._include_unsynced = include_unsynced
         self._mark_synced = mark_synced
         self._app_url = app_url
         self._view = view
@@ -219,14 +221,15 @@ class SyncManager:
                 if f.endswith(WANDB_SUFFIX):
                     fnames.append(os.path.join(base, d, f))
 
-        # filter out synced
-        if not self._include_synced:
-            filtered = []
-            for f in fnames:
-                if not os.path.exists("{}{}".format(f, SYNCED_SUFFIX)):
+        filtered = []
+        for f in fnames:
+            if os.path.exists("{}{}".format(f, SYNCED_SUFFIX)):
+                if self._include_synced:
                     filtered.append(f)
-            fnames = filtered
-
+            else:
+                if self._include_unsynced:
+                    filtered.append(f)
+        fnames = filtered
         # return dirnames
         dnames = tuple(os.path.dirname(f) for f in fnames)
 
