@@ -2104,7 +2104,7 @@ class Artifact(object):
         self._metadata = self._attrs.get("metadata", None)
         self._description = self._attrs.get("description", None)
         self._sequence_name = self._attrs["artifactSequence"]["name"]
-        self._version_index = self._attrs["versionIndex"]
+        self._version_index = self._attrs.get("versionIndex", None)
         self._aliases = [
             a["alias"]
             for a in self._attrs["aliases"]
@@ -2164,6 +2164,8 @@ class Artifact(object):
 
     @property
     def name(self):
+        if self._version_index is None:
+            return self.digest
         return '%s:v%s' % (self._sequence_name, self._version_index)
 
     @property
@@ -2172,6 +2174,9 @@ class Artifact(object):
 
     @aliases.setter
     def aliases(self, aliases):
+        for alias in aliases:
+            if any(char in alias for char in ['/', ':']):
+                raise ValueError('Invalid alias "%s", slashes and colons are disallowed' % alias)
         self._aliases = aliases
 
     def delete(self):
