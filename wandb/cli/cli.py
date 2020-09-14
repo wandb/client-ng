@@ -401,10 +401,9 @@ def init(ctx, project, entity, reset):
 @click.option("--sync-all", is_flag=True, default=False, help="Sync all runs")
 @click.option("--clean", is_flag=True, default=False, help="Delete synced runs")
 @click.option(
-    "--keep",
-    "-N",
+    "--clean-old-hours",
     default=24,
-    help="Keep runs created in the last N hours. To be used alongside --clean flag.",
+    help="Delete runs created before this many hours. To be used alongside --clean flag.",
     type=int,
 )
 @click.option("--ignore", hidden=True)
@@ -428,7 +427,7 @@ def sync(
     ignore=None,
     show=None,
     clean=None,
-    keep=24,
+    clean_old_hours=24,
 ):
     api = InternalApi()
     if api.api_key is None:
@@ -506,12 +505,12 @@ def sync(
             exclude_globs=exclude_globs,
             include_globs=include_globs,
         )
-        since = datetime.datetime.now() - datetime.timedelta(hours=keep)
+        since = datetime.datetime.now() - datetime.timedelta(hours=clean_old_hours)
         bad_runs = [run for run in runs if run.datetime < since]
         if bad_runs:
             click.echo(
                 "Found {} runs, {} are older than {} hours".format(
-                    len(runs), len(bad_runs), keep
+                    len(runs), len(bad_runs), clean_old_hours
                 )
             )
             click.confirm(
@@ -526,7 +525,9 @@ def sync(
             click.echo(click.style("Success!", fg="green"))
         else:
             click.echo(
-                click.style("No runs older than %i hours found" % keep, fg="red")
+                click.style(
+                    "No runs older than %i hours found" % clean_old_hours, fg="red"
+                )
             )
 
 
@@ -1399,54 +1400,3 @@ def off():
         click.echo(
             "Unable to write config, copy and paste the following in your terminal to turn off W&B:\nexport WANDB_MODE=dryrun"
         )
-
-
-@cli.command(
-    context_settings=CONTEXT,
-    help="Garbage collector, cleans up your local run directory.",
-)
-@click.pass_context
-@click.option(
-    "--keep", "-N", default=24, help="Keep runs created in the last N hours", type=int
-)
-def gc(ctx, keep):
-    from wandb.old.core import wandb_dir
-
-    dr = wandb_dir()
-    if not os.path.isdir(dr):
-        raise ClickException("No wandb directory found at %s" % dr)
-    paths = SyncManager(
-        include_synced=True,
-        include_unsynced=False,
-        include_online=True,
-        include_offline=True,
-    ).list()
-    dates = []
-    for p in paths:
-        try:
-            dates.append(
-                datetime.datetime.strptime(
-                    os.path.basename(p).split("run-")[1].split("-")[0], "%Y%m%d_%H%M%S"
-                )
-            )
-        except Exception:
-            pass
-    since = datetime.datetime.now() - datetime.timedelta(hours=keep)
-    bad_paths = [paths[i] for i, d in enumerate(dates) if d < since]
-    if bad_paths:
-        click.echo(
-            "Found {} runs, {} are older than {} hours".format(
-                len(paths), len(bad_paths), keep
-            )
-        )
-        click.confirm(
-            click.style(
-                "Are you sure you want to remove %i runs?" % len(bad_paths), bold=True
-            ),
-            abort=True,
-        )
-        for path in bad_paths:
-            shutil.rmtree(path)
-        click.echo(click.style("Success!", fg="green"))
-    else:
-        click.echo(click.style("No runs older than %i hours found" % keep, fg="red"))

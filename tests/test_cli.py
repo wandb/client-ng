@@ -744,8 +744,8 @@ def test_gc(runner):
             f.write('')
         with open(os.path.join(run2_dir, "run-efgh.wandb.synced"), 'w') as f:
             f.write('')
-        assert runner.invoke(cli.sync, ["--clean", "-N", "2"], input='y\n').exit_code == 0
+        assert runner.invoke(cli.sync, ["--clean", "--clean-old-hours", "2"], input='y\n').exit_code == 0
         assert os.path.exists(run1_dir)
         assert not os.path.exists(run2_dir)
-        assert runner.invoke(cli.sync, ["--clean", "-N", "0"], input='y\n').exit_code == 0
+        assert runner.invoke(cli.sync, ["--clean", "--clean-old-hours", "0"], input='y\n').exit_code == 0
         assert not os.path.exists(run1_dir)
