@@ -454,7 +454,7 @@ def sync(
             for item in unsynced[: (show or len(unsynced))]:
                 wandb.termlog("  {}".format(item))
         if synced:
-            wandb.termlog("Number of synced runs:")
+            wandb.termlog("Number of synced runs: {}".format(len(synced)))
             if show and show < len(synced):
                 wandb.termlog("Showing {} synced runs:".format(show))
             for item in synced[: (show or len(synced))]:
