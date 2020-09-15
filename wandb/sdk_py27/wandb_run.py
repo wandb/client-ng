@@ -518,7 +518,6 @@ class Run(RunBase):
         self._backend.interface.publish_files(files)
 
     def _history_callback(self, row=None, step=None):
-
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
         for k in row:
@@ -871,6 +870,16 @@ class Run(RunBase):
 
     def join(self, exit_code=None):
         self.finish(exit_code=exit_code)
+
+    def _add_panel(self, visualize_key, panel_type, panel_config):
+        if "visualize" not in self._config["_wandb"]:
+            self._config["_wandb"]["visualize"] = dict()
+        self._config["_wandb"]["visualize"][visualize_key] = {
+            "panel_type": panel_type,
+            "panel_config": panel_config,
+        }
+
+        self._config_callback(data=self._config._as_dict())
 
     def _get_project_url(self):
         s = self._settings

@@ -876,7 +876,7 @@ class Run(RunBase):
             self._config["_wandb"]["visualize"] = dict()
         self._config["_wandb"]["visualize"][visualize_key] = {
             "panel_type": panel_type,
-            "panel_config": panel_config
+            "panel_config": panel_config,
         }
 
         self._config_callback(data=self._config._as_dict())
