@@ -528,27 +528,27 @@ def sync(
             include_globs=include_globs,
         )
         since = datetime.datetime.now() - datetime.timedelta(hours=clean_old_hours)
-        bad_runs = [run for run in runs if run.datetime < since]
-        bad_runs.sort(key=lambda run: run.datetime)
-        if bad_runs:
+        old_runs = [run for run in runs if run.datetime < since]
+        old_runs.sort(key=lambda run: run.datetime)
+        if old_runs:
             click.echo(
                 "Found {} runs, {} are older than {} hours".format(
-                    len(runs), len(bad_runs), clean_old_hours
+                    len(runs), len(old_runs), clean_old_hours
                 )
             )
-            if show and show < len(bad_runs):
+            if show and show < len(old_runs):
                 click.echo("Showing {} old runs:".format(show))
-            for run in bad_runs:
+            for run in old_runs:
                 click.echo(run.path)
             if not clean_force:
                 click.confirm(
                     click.style(
-                        "Are you sure you want to remove %i runs?" % len(bad_runs),
+                        "Are you sure you want to remove %i runs?" % len(old_runs),
                         bold=True,
                     ),
                     abort=True,
                 )
-            for run in bad_runs:
+            for run in old_runs:
                 shutil.rmtree(run.path)
             click.echo(click.style("Success!", fg="green"))
         else:
