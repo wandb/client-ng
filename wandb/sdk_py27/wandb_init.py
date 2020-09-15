@@ -382,9 +382,10 @@ class _WandbInit(object):
             run._set_run_obj_offline(run_proto)
         else:
             ret = backend.interface.communicate_check_version()
-            message = ret.response.check_version_response.message
-            if message:
-                wandb.termlog(message)
+            if ret and ret.response and ret.response.check_version_response:
+                message = ret.response.check_version_response.message
+                if message:
+                    wandb.termlog(message)
             ret = backend.interface.communicate_run(run, timeout=30)
             # TODO: fail on more errors, check return type
             # TODO: make the backend log stacktraces on catostrophic failure
