@@ -252,10 +252,14 @@ def get_runs(
                 fnames.append(os.path.join(base, d, f))
     filtered = []
     for f in fnames:
-        if os.path.exists("{}{}".format(f, SYNCED_SUFFIX)):
+        dname = os.path.dirname(f)
+        # TODO(frz): online runs are assumed to be synced, verify from binary log.
+        if os.path.exists("{}{}".format(f, SYNCED_SUFFIX)) or os.path.basename(
+            dname
+        ).startswith("run-"):
             if include_synced:
-                filtered.append(_LocalRun(os.path.dirname(f), True))
+                filtered.append(_LocalRun(dname, True))
         else:
             if include_unsynced:
-                filtered.append(_LocalRun(os.path.dirname(f), False))
+                filtered.append(_LocalRun(dname, False))
     return tuple(filtered)

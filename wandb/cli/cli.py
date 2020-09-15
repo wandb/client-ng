@@ -406,6 +406,12 @@ def init(ctx, project, entity, reset):
     help="Delete runs created before this many hours. To be used alongside --clean flag.",
     type=int,
 )
+@click.option(
+    "--clean-force",
+    is_flag=True,
+    default=False,
+    help="Clean without confirmation prompt.",
+)
 @click.option("--ignore", hidden=True)
 @click.option("--show", default=5, help="Number of runs to show")
 @display_error
@@ -428,6 +434,7 @@ def sync(
     show=None,
     clean=None,
     clean_old_hours=24,
+    clean_force=None,
 ):
     api = InternalApi()
     if api.api_key is None:
@@ -447,17 +454,13 @@ def sync(
         unsynced = []
         for item in sync_items:
             (synced if item.synced else unsynced).append(item)
+        if synced:
+            wandb.termlog("Number of synced runs: {}".format(len(synced)))
         if unsynced:
             wandb.termlog("Number of runs to be synced: {}".format(len(unsynced)))
             if show and show < len(unsynced):
                 wandb.termlog("Showing {} unsynced runs:".format(show))
             for item in unsynced[: (show or len(unsynced))]:
-                wandb.termlog("  {}".format(item))
-        if synced:
-            wandb.termlog("Number of synced runs: {}".format(len(synced)))
-            if show and show < len(synced):
-                wandb.termlog("Showing {} synced runs:".format(show))
-            for item in synced[: (show or len(synced))]:
                 wandb.termlog("  {}".format(item))
         if synced:
             if not clean:
@@ -512,19 +515,25 @@ def sync(
         )
         since = datetime.datetime.now() - datetime.timedelta(hours=clean_old_hours)
         bad_runs = [run for run in runs if run.datetime < since]
+        bad_runs.sort(key=lambda run: -run.datetime.timestamp())
         if bad_runs:
             click.echo(
                 "Found {} runs, {} are older than {} hours".format(
                     len(runs), len(bad_runs), clean_old_hours
                 )
             )
-            click.confirm(
-                click.style(
-                    "Are you sure you want to remove %i runs?" % len(bad_runs),
-                    bold=True,
-                ),
-                abort=True,
-            )
+            if show and show < len(bad_runs):
+                click.echo("Showing {} old runs:".format(show))
+            for run in bad_runs:
+                click.echo(run.path)
+            if not clean_force:
+                click.confirm(
+                    click.style(
+                        "Are you sure you want to remove %i runs?" % len(bad_runs),
+                        bold=True,
+                    ),
+                    abort=True,
+                )
             for run in bad_runs:
                 shutil.rmtree(run.path)
             click.echo(click.style("Success!", fg="green"))
