@@ -30,7 +30,7 @@ from wandb import wandb_controller
 from wandb.apis import InternalApi, PublicApi
 from wandb.integration.magic import magic_install
 from wandb.old.settings import Settings
-from wandb.sync import get_runs, SyncManager
+from wandb.sync import get_run_from_path, get_runs, SyncManager
 import yaml
 
 # whaaaaat depends on prompt_toolkit < 2, ipython now uses > 2 so we vendored for now
@@ -505,6 +505,20 @@ def sync(
             _sync_path(sync_items)
 
     def _clean():
+        if path:
+            runs = list(map(get_run_from_path, path))
+            if not clean_force:
+                click.confirm(
+                    click.style(
+                        "Are you sure you want to remove %i runs?" % len(runs),
+                        bold=True,
+                    ),
+                    abort=True,
+                )
+            for run in runs:
+                shutil.rmtree(run.path)
+            click.echo(click.style("Success!", fg="green"))
+            return
         runs = get_runs(
             include_online=True,
             include_offline=True,
@@ -515,7 +529,7 @@ def sync(
         )
         since = datetime.datetime.now() - datetime.timedelta(hours=clean_old_hours)
         bad_runs = [run for run in runs if run.datetime < since]
-        bad_runs.sort(key=lambda run: -run.datetime.timestamp())
+        bad_runs.sort(key=lambda run: run.datetime)
         if bad_runs:
             click.echo(
                 "Found {} runs, {} are older than {} hours".format(
@@ -544,12 +558,12 @@ def sync(
                 )
             )
 
-    if path:
-        _sync_path(path)
-    elif sync_all:
+    if sync_all:
         _sync_all()
     elif clean:
         _clean()
+    elif path:
+        _sync_path(path)
     else:
         _summary()
 

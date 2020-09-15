@@ -25,7 +25,7 @@ SYNCED_SUFFIX = ".synced"
 
 
 class _LocalRun(object):
-    def __init__(self, path, synced):
+    def __init__(self, path, synced=None):
         self.path = path
         self.synced = synced
         self.offline = os.path.basename(path).startswith("offline-")
@@ -263,3 +263,7 @@ def get_runs(
             if include_unsynced:
                 filtered.append(_LocalRun(dname, False))
     return tuple(filtered)
+
+
+def get_run_from_path(path):
+    return _LocalRun(path)
