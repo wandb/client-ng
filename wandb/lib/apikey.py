@@ -13,7 +13,7 @@ import requests
 from six.moves import input
 import wandb
 from wandb.apis import InternalApi
-from wandb.errors.term import LOG_STRING
+from wandb.errors import term
 from wandb.util import isatty
 
 
@@ -21,6 +21,7 @@ LOGIN_CHOICE_ANON = "Private W&B dashboard, no account required"
 LOGIN_CHOICE_NEW = "Create a W&B account"
 LOGIN_CHOICE_EXISTS = "Use an existing W&B account"
 LOGIN_CHOICE_DRYRUN = "Don't visualize my results"
+LOGIN_CHOICE_NOTTY = "Unconfigured"
 LOGIN_CHOICES = [
     LOGIN_CHOICE_ANON,
     LOGIN_CHOICE_NEW,
@@ -42,7 +43,7 @@ def _prompt_choice():
         return (
             int(
                 input(
-                    "%s: Enter your choice: " % LOG_STRING
+                    "%s: Enter your choice: " % term.LOG_STRING
                 )
             )
             - 1  # noqa: W503
@@ -51,15 +52,24 @@ def _prompt_choice():
         return -1
 
 
-def prompt_api_key(
+def prompt_api_key(  # noqa: C901
     settings,
     api=None,
     input_callback=None,
     browser_callback=None,
     no_offline=False,
+    no_create=False,
     local=False,
 ):
+    """Prompt for api key.
+
+    Returns:
+        str - if key is configured
+        None - if dryrun is selected
+        False - if unconfigured (notty)
+    """
     input_callback = input_callback or getpass.getpass
+    log_string = term.LOG_STRING
     api = api or InternalApi()
     anon_mode = _fixup_anon_mode(settings.anonymous)
     jupyter = settings._jupyter or False
@@ -71,8 +81,11 @@ def prompt_api_key(
         choices.remove(LOGIN_CHOICE_ANON)
     if jupyter or no_offline:
         choices.remove(LOGIN_CHOICE_DRYRUN)
+    if jupyter or no_create:
+        choices.remove(LOGIN_CHOICE_NEW)
 
     if jupyter and 'google.colab' in sys.modules:
+        log_string = term.LOG_STRING_NOCOLOR
         key = wandb.jupyter.attempt_colab_login(api.app_url)
         if key is not None:
             write_key(settings, key)
@@ -81,10 +94,12 @@ def prompt_api_key(
     if anon_mode == "must":
         result = LOGIN_CHOICE_ANON
     # If we're not in an interactive environment, default to dry-run.
-    elif not isatty(sys.stdout) or not isatty(sys.stdin):
-        result = LOGIN_CHOICE_DRYRUN
+    elif not jupyter and (not isatty(sys.stdout) or not isatty(sys.stdin)):
+        result = LOGIN_CHOICE_NOTTY
     elif local:
         result = LOGIN_CHOICE_EXISTS
+    elif len(choices) == 1:
+        result = choices[0]
     else:
         for i, choice in enumerate(choices):
             wandb.termlog("(%i) %s" % (i + 1, choice))
@@ -97,6 +112,7 @@ def prompt_api_key(
         result = choices[idx]
         wandb.termlog("You chose '%s'" % result)
 
+    api_ask = "%s: Paste an API key from your profile and hit enter: " % log_string
     if result == LOGIN_CHOICE_ANON:
         key = api.create_anonymous_api_key()
 
@@ -109,10 +125,7 @@ def prompt_api_key(
             wandb.termlog(
                 "Create an account here: {}/authorize?signup=true".format(app_url)
             )
-            key = input_callback(
-                "%s: Paste an API key from your profile and hit enter"
-                % LOG_STRING
-            ).strip()
+            key = input_callback(api_ask).strip()
 
         write_key(settings, key)
         return key
@@ -125,12 +138,12 @@ def prompt_api_key(
                     app_url
                 )
             )
-            key = input_callback(
-                "%s: Paste an API key from your profile and hit enter"
-                % LOG_STRING
-            ).strip()
+            key = input_callback(api_ask).strip()
         write_key(settings, key)
         return key
+    elif result == LOGIN_CHOICE_NOTTY:
+        # TODO: Needs refactor as this needs to be handled by caller
+        return False
     else:
         # Jupyter environments don't have a tty, but we can still try logging in using
         # the browser callback if one is supplied.

@@ -131,6 +131,8 @@ class SendManager(object):
         # self._login_flags = json.loads(viewer.get("flags", "{}"))
         # self._login_entity = viewer.get("entity")
         viewer, server_info = viewer_tuple
+        if server_info:
+            logger.info("Login server info: {}".format(server_info))
         login_entity = viewer.get("entity")
         if record.control.req_resp:
             result = wandb_internal_pb2.Result(uuid=record.uuid)
@@ -520,10 +522,11 @@ class SendManager(object):
             is_user_created=artifact.user_created,
         )
 
+        metadata = json.loads(artifact.metadata) if artifact.metadata else None
         saver.save(
             type=artifact.type,
             name=artifact.name,
-            metadata=json.loads(artifact.metadata),
+            metadata=metadata,
             description=artifact.description,
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,

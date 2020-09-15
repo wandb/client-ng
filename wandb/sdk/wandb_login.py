@@ -10,24 +10,30 @@ import logging
 
 import click
 import wandb
+from wandb.errors.error import UsageError
 from wandb.internal.internal_api import Api
 from wandb.lib import apikey
 
 logger = logging.getLogger("wandb")
+
+if wandb.TYPE_CHECKING:  # type: ignore
+    from typing import Dict  # noqa: F401 pylint: disable=unused-import
 
 
 def _validate_anonymous_setting(anon_str):
     return anon_str in ["must", "allow", "never"]
 
 
-def login(anonymous=None, key=None, relogin=None):
-    return _login(anonymous=anonymous, key=key, relogin=relogin)
+def login(anonymous=None, key=None, relogin=None, force=None):
+    configured = _login(anonymous=anonymous, key=key, relogin=relogin, force=force)
+    return True if configured else False
 
 
 def _login(
     anonymous=None,
     key=None,
     relogin=None,
+    force=None,
     _backend=None,
     _disable_warning=None,
     _settings=None,
@@ -42,14 +48,17 @@ def _login(
             "allow" we'll only create an anonymous user if the user
             isn't already logged in.
     Returns:
-        None
+        bool: if key is configured
+
+    Raises:
+        UsageError - if api_key can not configured and no tty
     """
     if wandb.run is not None:
         if not _disable_warning:
             wandb.termwarn("Calling wandb.login() after wandb.init() is a no-op.")
-        return
+        return True
 
-    settings = {}
+    settings_dict: Dict = {}
     api = Api()
 
     if anonymous is not None:
@@ -59,18 +68,24 @@ def _login(
                 "Invalid value passed for argument `anonymous` to "
                 "wandb.login(). Can be 'must', 'allow', or 'never'."
             )
-            return
-        settings.update({"anonymous": anonymous})
+            return False
+        settings_dict.update({"anonymous": anonymous})
+
+    if key:
+        settings_dict.update({"api_key": key})
 
     # Note: This won't actually do anything if called from a codepath where
     # wandb.setup was previously called. If wandb.setup is called further up,
     # you must make sure the anonymous setting (and any other settings) are
     # already properly set up there.
-    wl = wandb.setup()
-    settings = _settings or wl.settings()
+    wl = wandb.setup(settings=wandb.Settings(**settings_dict))
+    wl_settings = wl.settings()
+    if _settings:
+        wl_settings._apply_settings(settings=_settings)
+    settings = wl_settings
 
     if settings._offline:
-        return
+        return False
 
     active_entity = None
     logged_in = is_logged_in(settings=settings)
@@ -90,7 +105,7 @@ def _login(
             ),
             repeat=False,
         )
-        return
+        return True
 
     jupyter = settings._jupyter or False
     if key:
@@ -105,12 +120,17 @@ def _login(
             )
         apikey.write_key(settings, key)
     else:
-        apikey.prompt_api_key(settings, api=api)
+        key = apikey.prompt_api_key(
+            settings, api=api, no_offline=force, no_create=force
+        )
+        if key is False:
+            raise UsageError("api_key not configured (no-tty).  Run wandb login")
+
     if _backend and not logged_in:
         # TODO: calling this twice is gross, this deserves a refactor
         # Make sure our backend picks up the new creds
         _ = _backend.interface.communicate_login(key, anonymous)
-    return
+    return key or False
 
 
 def is_logged_in(settings=None):
