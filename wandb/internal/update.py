@@ -1,7 +1,6 @@
 from pkg_resources import parse_version
 import requests
 import wandb
-import threading
 
 
 def _find_available(current_version):
@@ -15,7 +14,7 @@ def _find_available(current_version):
         data = data.json()
         latest_version = data["info"]["version"]
         release_list = data["releases"].keys()
-    except Exception as e:
+    except Exception:
         # Any issues whatsoever, just skip the latest version check.
         return
 
