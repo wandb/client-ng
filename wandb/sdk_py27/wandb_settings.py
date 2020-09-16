@@ -220,18 +220,18 @@ class Settings(object):
 
     @enum.unique
     class Source(enum.IntEnum):
-        BASE = 0
-        ORG = 1
-        ENTITY = 2
-        PROJECT = 3
-        USER = 4
-        SYSTEM = 5
-        WORKSPACE = 6
-        ENV = 7
-        SETUP = 8
-        INIT = 9
-        SETTINGS = 10
-        ARGS = 11
+        BASE = 1
+        ORG = 2
+        ENTITY = 3
+        PROJECT = 4
+        USER = 5
+        SYSTEM = 6
+        WORKSPACE = 7
+        ENV = 8
+        SETUP = 9
+        INIT = 10
+        SETTINGS = 11
+        ARGS = 12
 
     Console = SettingsConsole
 
@@ -379,7 +379,9 @@ class Settings(object):
         )
         console = self.console
         if console == "auto":
-            if self._windows:
+            if self._jupyter:
+                console = "wrap"
+            elif self._windows:
                 legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
                 if sys.version_info >= (3, 6) and legacy_env_var not in os.environ:
                     msg = (
@@ -529,6 +531,10 @@ class Settings(object):
 
         _logger.info("setting env: {}".format(env_dict))
         self._update(env_dict, _source=self.Source.ENV)
+
+    def _apply_user(self, user_settings, _logger=None):
+        _logger.info("setting user settings: {}".format(user_settings))
+        self._update(user_settings, _source=self.Source.USER)
 
     def _path_convert_part(self, path_part, format_dict):
         """convert slashes, expand ~ and other macros."""

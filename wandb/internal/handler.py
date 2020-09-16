@@ -44,7 +44,6 @@ class HandleManager(object):
         assert record_type
         handler_str = "handle_" + record_type
         handler = getattr(self, handler_str, None)
-        logger.debug("handle: {}".format(record_type))
         assert handler, "unknown handle: {}".format(handler_str)
         handler(record)
 
@@ -69,7 +68,12 @@ class HandleManager(object):
 
         logger.info("handle defer: {}".format(state))
         # only handle flush tb (sender handles the rest)
-        if state == defer.FLUSH_TB:
+        if state == defer.FLUSH_STATS:
+            if self._system_stats:
+                # TODO(jhr): this could block so we dont really want to call shutdown
+                # from handler thread
+                self._system_stats.shutdown()
+        elif state == defer.FLUSH_TB:
             if self._tb_watcher:
                 # shutdown tensorboard workers so we get all metrics flushed
                 self._tb_watcher.finish()

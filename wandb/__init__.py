@@ -19,10 +19,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-__version__ = '0.0.43'
+__version__ = '0.10.1.dev1'
 
 # Used with pypi checks and other messages related to pip
-_wandb_module = 'wandb-ng'
+_wandb_module = 'wandb'
 
 import sys
 
@@ -50,7 +50,7 @@ Settings = wandb_sdk.Settings
 Config = wandb_sdk.Config
 
 from wandb.apis import InternalApi, PublicApi
-from wandb.errors.error import CommError
+from wandb.errors.error import CommError, UsageError
 
 from wandb.lib import preinit as _preinit
 from wandb.lib import lazyloader as _lazyloader
@@ -73,7 +73,7 @@ from wandb.wandb_agent import agent
 from wandb.wandb_controller import sweep, controller
 
 from wandb import superagent
-from wandb.secretagent import secretagent
+from wandb.jupyteragent import jupyteragent as _secretagent
 
 # from wandb.core import *
 from wandb.viz import visualize

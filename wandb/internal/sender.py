@@ -127,9 +127,12 @@ class SendManager(object):
         # TODO: do something with api_key or anonymous?
         # TODO: return an error if we aren't logged in?
         self._api.reauth()
-        viewer = self._api.viewer()
+        viewer_tuple = self._api.viewer_server_info()
         # self._login_flags = json.loads(viewer.get("flags", "{}"))
         # self._login_entity = viewer.get("entity")
+        viewer, server_info = viewer_tuple
+        if server_info:
+            logger.info("Login server info: {}".format(server_info))
         login_entity = viewer.get("entity")
         if record.control.req_resp:
             result = wandb_internal_pb2.Result(uuid=record.uuid)
@@ -162,6 +165,9 @@ class SendManager(object):
 
         done = False
         if state == defer.BEGIN:
+            pass
+        elif state == defer.FLUSH_STATS:
+            # NOTE: this is handled in handler.py:handle_request_defer()
             pass
         elif state == defer.FLUSH_TB:
             # NOTE: this is handled in handler.py:handle_request_defer()
@@ -516,10 +522,11 @@ class SendManager(object):
             is_user_created=artifact.user_created,
         )
 
+        metadata = json.loads(artifact.metadata) if artifact.metadata else None
         saver.save(
             type=artifact.type,
             name=artifact.name,
-            metadata=artifact.metadata,
+            metadata=metadata,
             description=artifact.description,
             aliases=artifact.aliases,
             use_after_commit=artifact.use_after_commit,

@@ -6,7 +6,10 @@ import sys
 from datetime import datetime, timedelta
 import json
 import yaml
+# HACK: restore first two entries of sys path after wandb load
+save_path = sys.path[:2]
 import wandb
+sys.path[0:0] = save_path
 import logging
 from six.moves import urllib
 import threading
@@ -97,7 +100,7 @@ def run(ctx):
                 }
             ]
         },
-        "sampledHistory": ['{"loss": 0, "acc": 100}'],
+        "sampledHistory": [[{"loss": 0, "acc": 100}, {"loss": 1, "acc": 0}]],
         "shouldStop": False,
         "failed": False,
         "stopped": stopped,
@@ -119,6 +122,7 @@ def artifact(ctx, collection_name="mnist"):
         "size": 10000,
         "createdAt": datetime.now().isoformat(),
         "updatedAt": datetime.now().isoformat(),
+        "versionIndex": ctx["page_count"],
         "labels": [],
         "metadata": "{}",
         "aliases": [
@@ -129,7 +133,7 @@ def artifact(ctx, collection_name="mnist"):
         ],
         "artifactSequence": {
             "name": collection_name,
-        }
+        },
     }
 
 
@@ -549,7 +553,7 @@ def create_app(user_ctx=None):
                 "id": 1,
                 "file": {
                     "id": 1,
-                    "url": request.url_root + "/storage?file=wandb_manifest.json",
+                    "directUrl": request.url_root + "/storage?file=wandb_manifest.json",
                 },
             }
             return {"data": {"project": {"artifact": art}}}
@@ -580,6 +584,8 @@ def create_app(user_ctx=None):
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
             return os.urandom(size), 200
+        # make sure to read the data
+        data = request.get_data()
         if file == "wandb_manifest.json":
             return {
                 "version": 1,

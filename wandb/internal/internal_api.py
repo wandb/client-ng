@@ -332,6 +332,48 @@ class Api(object):
         return res.get('viewer') or {}
 
     @normalize_exceptions
+    def viewer_server_info(self):
+        cli_query = '''
+            serverInfo {
+                cliVersionInfo
+            }
+        '''
+        query_str = '''
+        query Viewer{
+            viewer {
+                id
+                entity
+                flags
+                teams {
+                    edges {
+                        node {
+                            name
+                        }
+                    }
+                }
+            }
+            _CLI_QUERY_
+        }
+        '''
+        query_new = gql(query_str.replace("_CLI_QUERY_", cli_query))
+        query_old = gql(query_str.replace("_CLI_QUERY_", ""))
+
+        for query in query_new, query_old:
+            try:
+                res = self.gql(query)
+            except UsageError as e:
+                raise(e)
+            except Exception as e:
+                # graphql schema exception is generic
+                err = e
+                continue
+            err = None
+            break
+        if err:
+            raise(err)
+        return res.get('viewer') or {}, res.get('serverInfo') or {}
+
+    @normalize_exceptions
     def list_projects(self, entity=None):
         """Lists projects in W&B scoped by entity.
 
@@ -1003,6 +1045,7 @@ class Api(object):
                 url, data=progress, headers=extra_headers)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
+            logger.error("upload_file exception {} {}".format(url, e))
             status_code = e.response.status_code if e.response != None else 0
             # We need to rewind the file for the next retry (the file passed in is seeked to 0)
             progress.rewind()
@@ -1434,6 +1477,8 @@ class Api(object):
         if not is_user_created:
             run_name = run_name or self.current_run_id
 
+        if aliases is None:
+            aliases = []
         response = self.gql(mutation, variable_values={
             'entityName': entity_name,
             'projectName': project_name,

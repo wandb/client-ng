@@ -112,9 +112,14 @@ fragment ArtifactFragment on Artifact {
     updatedAt
     labels
     metadata
+    versionIndex
     aliases {
         artifactCollectionName
         alias
+    }
+    artifactSequence {
+        id
+        name
     }
     artifactType {
         id
@@ -124,7 +129,7 @@ fragment ArtifactFragment on Artifact {
         id
         file {
             id
-            url
+            directUrl
         }
     }
 }
@@ -960,7 +965,8 @@ class Run(Attrs):
         ''')
 
         response = self._exec(query, specs=[json.dumps(spec)])
-        return [line for line in response['project']['run']['sampledHistory']]
+        # sampledHistory returns one list per spec, we only send one spec
+        return response['project']['run']['sampledHistory'][0]
 
     def _full_history(self, samples=500, stream="default"):
         node = "history" if stream == "default" else "events"
@@ -1073,6 +1079,55 @@ class Run(Attrs):
     @normalize_exceptions
     def used_artifacts(self, per_page=100):
         return RunArtifacts(self.client, self, mode="used", per_page=per_page)
+
+    @normalize_exceptions
+    def use_artifact(self, artifact):
+        """ Declare an artifact as an input to a run.
+
+        Args:
+            artifact (:obj:`Artifact`): An artifact returned from
+                `wandb.Api().artifact(name)`
+        Returns:
+            A :obj:`Artifact` object.
+        """
+        api = InternalApi(default_settings={
+            "entity": self.entity, "project": self.project})
+        api.set_current_run_id(self.id)
+
+        if isinstance(artifact, Artifact):
+            api.use_artifact(artifact.id)
+            return artifact
+        elif isinstance(artifact, wandb.Artifact):
+            raise ValueError("Only existing artifacts are accepted by this api. "
+                             "Manually create one with `wandb artifacts put`")
+        else:
+            raise ValueError('You must pass a wandb.Api().artifact() to use_artifact')
+
+    @normalize_exceptions
+    def log_artifact(self, artifact, aliases=None):
+        """ Declare an artifact as output of a run.
+
+        Args:
+            artifact (:obj:`Artifact`): An artifact returned from
+                `wandb.Api().artifact(name)`
+            aliases (list, optional): Aliases to apply to this artifact
+        Returns:
+            A :obj:`Artifact` object.
+        """
+        api = InternalApi(default_settings={
+            "entity": self.entity, "project": self.project})
+        api.set_current_run_id(self.id)
+
+        if isinstance(artifact, Artifact):
+            artifact_collection_name = artifact.name.split(':')[0]
+            api.create_artifact(artifact.type, artifact_collection_name,
+                                artifact.digest, aliases=aliases)
+            return artifact
+        elif isinstance(artifact, wandb.Artifact):
+            raise ValueError("Only existing artifacts are accepted by this api. "
+                             "Manually create one with `wandb artifacts put`")
+        else:
+            raise ValueError('You must pass a wandb.Api().artifact() to use_artifact')
 
     @property
     def summary(self):
@@ -1777,6 +1832,8 @@ class ProjectArtifactTypes(Paginator):
         self.variables.update({'cursor': self.cursor})
 
     def convert_objects(self):
+        if self.last_response['project'] is None:
+            return []
         return [ArtifactType(self.client, self.entity, self.project, r["node"]["name"], r["node"])
                 for r in self.last_response['project']['artifactTypes']['edges']]
 
@@ -2033,6 +2090,7 @@ class ArtifactCollection(object):
     def __repr__(self):
         return "<ArtifactCollection {} ({})>".format(self.name, self.type)
 
+
 class Artifact(object):
 
     def __init__(self, client, entity, project, name, attrs=None):
@@ -2040,11 +2098,19 @@ class Artifact(object):
         self.entity = entity
         self.project = project
         self.artifact_name = name
-        self._collection_name = None
         self._attrs = attrs
-        self._metadata = {}
         if self._attrs is None:
             self._load()
+        self._metadata = self._attrs.get("metadata", None)
+        self._description = self._attrs.get("description", None)
+        self._sequence_name = self._attrs["artifactSequence"]["name"]
+        self._version_index = self._attrs.get("versionIndex", None)
+        self._aliases = [
+            a["alias"]
+            for a in self._attrs["aliases"]
+            if not re.match(r"^v\d+$", a["alias"])
+            and a["artifactCollectionName"] == self._sequence_name
+        ]
         self._manifest = None
         self._is_downloaded = False
 
@@ -2056,12 +2122,9 @@ class Artifact(object):
     def metadata(self):
         return self._metadata
 
-    # @property
-    # def path(self):
-    #     # TODO: This is a different style than the rest of the paths. The rest of the
-    #     # paths don't include the object type (which makes them hard to distinguish).
-    #     # We should maybe use URIs here.
-    #     return '%s/%s/artifact/%s/%s' % (self.entity, self.project, self.artifact_type_name, self.artifact_name)
+    @metadata.setter
+    def metadata(self, metadata):
+        self._metadata = metadata
 
     @property
     def manifest(self):
@@ -2089,11 +2152,11 @@ class Artifact(object):
 
     @property
     def description(self):
-        return self._attrs["description"]
+        return self._description
 
     @description.setter
     def description(self, desc):
-        self._attrs["description"] = desc
+        self._description = desc
 
     @property
     def type(self):
@@ -2101,27 +2164,20 @@ class Artifact(object):
 
     @property
     def name(self):
-        """Stable name you can use to fetch this artifact."""
-        # TODO: All this logic should move to the backend.
-        if ":" not in self.artifact_name:
-            # this is a digest lookup
-            return self.artifact_name
-        artifact_collection_name = self.artifact_name.split(':')[0]
-        for alias in self._attrs["aliases"]:
-            if alias["artifactCollectionName"] == artifact_collection_name and re.match(r"^v\d+$", alias["alias"]):
-                return '%s:%s' % (artifact_collection_name, alias["alias"])
-        
-        raise ValueError('Unexpected API result.')
+        if self._version_index is None:
+            return self.digest
+        return '%s:v%s' % (self._sequence_name, self._version_index)
 
     @property
     def aliases(self):
-        if ":" not in self.artifact_name:
-            # this is a digest lookup
-            return []
-        artifact_collection_name = self.artifact_name.split(':')[0]
-        return [a["alias"] for a in self._attrs["aliases"]
-            if not re.match(r"^v\d+$", a["alias"]) and
-                a["artifactCollectionName"] == artifact_collection_name]
+        return self._aliases
+
+    @aliases.setter
+    def aliases(self, aliases):
+        for alias in aliases:
+            if any(char in alias for char in ['/', ':']):
+                raise ValueError('Invalid alias "%s", slashes and colons are disallowed' % alias)
+        self._aliases = aliases
 
     def delete(self):
         """Delete artifact and it's files."""
@@ -2267,32 +2323,35 @@ class Artifact(object):
         Persists artifact changes to the wandb backend.
         """
         mutation = gql('''
-        mutation updateArtifact($entity: String!, $type: String!, $project: String!, $digest: String!,
-             $description: String, $metadata: JSONString, $aliases: [ArtifactAliasInput!]) {
-            createArtifact(input: {
-                entityName: $entity, projectName: $project, digest: $digest, artifactTypeName: $type,
-                description: $description, metadata: $metadata, aliases: $aliases}) {
+        mutation updateArtifact(
+            $artifactID: ID!,
+            $description: String,
+            $metadata: JSONString,
+            $aliases: [ArtifactAliasInput!]
+        ) {
+            updateArtifact(input: {
+                artifactID: $artifactID,
+                description: $description,
+                metadata: $metadata,
+                aliases: $aliases
+            }) {
                 artifact {
                     id
                 }
             }
         }
         ''')
-        res = self.client.execute(mutation, variable_values={
-            "entity": self.entity,
-            "project": self.project,
-            "digest": self.digest,
+        self.client.execute(mutation, variable_values={
+            "artifactID": self.id,
             "description": self.description,
             "metadata": util.json_dumps_safer(self.metadata),
-            "aliases": self._aliases()
+            "aliases": [{
+                "artifactCollectionName": self._sequence_name,
+                "alias": alias,
+
+            } for alias in self._aliases]
         })
         return True
-
-    def _aliases(self):
-        if ":" in self.artifact_name:
-            collection, alias = self.artifact_name.split(":")
-            return [{"artifactCollectionName": collection, "alias": alias}]
-        return []
 
     def verify(self, root=None):
         """Verify an artifact by checksumming its downloaded contents.
@@ -2366,8 +2425,9 @@ class Artifact(object):
 
     def _load_manifest(self):
         if self._manifest is None:
-            index_file_url = self._attrs['currentManifest']['file']['url']
+            index_file_url = self._attrs['currentManifest']['file']['directUrl']
             with requests.get(index_file_url) as req:
+                req.raise_for_status()
                 self._manifest = artifacts.ArtifactManifest.from_manifest_json(self, json.loads(req.content))
         return self._manifest
 
