@@ -129,7 +129,7 @@ fragment ArtifactFragment on Artifact {
         id
         file {
             id
-            url
+            directUrl
         }
     }
 }
@@ -2425,8 +2425,9 @@ class Artifact(object):
 
     def _load_manifest(self):
         if self._manifest is None:
-            index_file_url = self._attrs['currentManifest']['file']['url']
+            index_file_url = self._attrs['currentManifest']['file']['directUrl']
             with requests.get(index_file_url) as req:
+                req.raise_for_status()
                 self._manifest = artifacts.ArtifactManifest.from_manifest_json(self, json.loads(req.content))
         return self._manifest
 
