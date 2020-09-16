@@ -2101,7 +2101,7 @@ class Artifact(object):
         self._attrs = attrs
         if self._attrs is None:
             self._load()
-        self._metadata = json.loads(self._attrs.get("metadata", "{}"))
+        self._metadata = json.loads(self._attrs.get("metadata") or "{}")
         self._description = self._attrs.get("description", None)
         self._sequence_name = self._attrs["artifactSequence"]["name"]
         self._version_index = self._attrs.get("versionIndex", None)
