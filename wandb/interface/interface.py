@@ -515,6 +515,7 @@ class BackendSender(object):
         req = self._make_record(run=run)
         resp = self._communicate(req, timeout=timeout)
         if resp is None:
+            # Note: timeouts handled by callers: wandb_init.py
             return
         assert resp.run_result
         return resp.run_result
@@ -585,6 +586,7 @@ class BackendSender(object):
         rec = self._make_request(check_version=check_version)
         result = self._communicate(rec)
         if result is None:
+            # Note: timeouts handled by callers: wandb_init.py
             return
         return result.response.check_version_response
 
