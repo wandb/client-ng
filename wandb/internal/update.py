@@ -1,12 +1,63 @@
 from pkg_resources import parse_version
 import requests
 import wandb
+import threading
+from wandb.internal import internal_util
+
+
+class _Future(object):
+    def __init__(self):
+        self._object = None
+        self._object_ready = threading.Event()
+        self._lock = threading.Lock()
+
+    def get(self, timeout=None):
+        is_set = self._object_ready.wait(timeout)
+        if is_set:
+            if self._object:
+                return self._object
+            if self._except:
+                raise self._except
+        return None
+
+    def _set_object(self, obj):
+        self._object = obj
+        self._object_ready.set()
+
+    def _set_exception(self, exc):
+        self._except = exc
+        self._object_ready.set()
+
+
+class AsyncCall(threading.Thread):
+    def __init__(func):
+        self._func = func
+        self._future = _Future()
+        self.start()
+        return self._future
+
+    def run(self):
+        try:
+            ret = self._func()
+        except Exception as e:
+            self._future._set_exception(e)
+        else:
+            self._future._set_object(ret)
 
 
 def _find_available(current_version):
     timeout = 2  # Two seconds.
     pypi_url = "https://pypi.org/pypi/%s/json" % wandb._wandb_module
+    request_thread = RequestURLThread(pypi_url, timeout=timeout)
+    request_thread.start()
+    async_call = AsyncCall(lambda: requests.get(pypi_url, timeout=timeout).json())
+
     try:
+        async_requests_get = AsyncCall(requests.get)
+        task = async_requests_get(pypi_url, timeout=timeout)
+        task.wait()
+        if task.done():
+            data = task.result()
         data = requests.get(pypi_url, timeout=timeout).json()
         latest_version = data["info"]["version"]
         release_list = data["releases"].keys()
