@@ -431,7 +431,7 @@ def agent(sweep_id, function=None, entity=None, project=None, count=None):
         os.environ[wandb.env.JUPYTER] = "true"
         _api0 = InternalApi()
         if not _api0.api_key:
-            wandb._jupyter_login(api=_api0)
+            wandb.login()
 
     settings = wandb.Settings()
     return run_agent(sweep_id, function=function, in_jupyter=in_jupyter, entity=entity, project=project, count=count)

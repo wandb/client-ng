@@ -709,7 +709,7 @@ def sweep(sweep, entity=None, project=None):
         os.environ[env.JUPYTER] = "true"
         _api0 = InternalApi()
         if not _api0.api_key:
-            wandb._jupyter_login(api=_api0)
+            wandb.login()
     if entity:
         env.set_entity(entity)
     if project:
