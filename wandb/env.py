@@ -90,8 +90,7 @@ def is_debug(default=None, env=None):
 
 
 def error_reporting_enabled():
-    # Don't setup sentry in the user process by default
-    return _env_as_bool(ERROR_REPORTING, default=wandb._IS_INTERNAL_PROCESS)
+    return _env_as_bool(ERROR_REPORTING, default=True)
 
 
 def get_error_reporting(default=True, env=None):
