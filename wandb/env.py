@@ -13,6 +13,7 @@ these values in many cases.
 import os
 import sys
 import json
+import wandb
 from distutils.util import strtobool
 
 CONFIG_PATHS = 'WANDB_CONFIG_PATHS'
@@ -89,7 +90,8 @@ def is_debug(default=None, env=None):
 
 
 def error_reporting_enabled():
-    return _env_as_bool(ERROR_REPORTING, default=True)
+    # Don't setup sentry in the user process by default
+    return _env_as_bool(ERROR_REPORTING, default=wandb._IS_INTERNAL_PROCESS)
 
 
 def get_error_reporting(default=True, env=None):
