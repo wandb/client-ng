@@ -296,14 +296,21 @@ class Agent(object):
 
         env = dict(os.environ)
 
-        flags = ["--{}={}".format(name, config['value'])
-                 for name, config in command['args'].items()]
+        flags_no_hyphens = ["{}={}".format(name, config['value'])
+                            for name, config in command['args'].items()]
+        flags = ["--" + flag for flag in flags_no_hyphens]
 
         if self._function:
             proc = AgentProcess(function=self._function, env=env,
                     run_id=run_id, in_jupyter=self._in_jupyter)
         else:
-            sweep_vars = dict(interpreter=["python"], program=[command['program']], args=flags, env=["/usr/bin/env"])
+            sweep_vars = dict(
+                    interpreter=["python"],
+                    program=[command['program']],
+                    args=flags,
+                    args_no_hyphens=flags_no_hyphens,
+                    env=["/usr/bin/env"],
+                    )
             if platform.system() == "Windows":
                 del sweep_vars["env"]
             command_list = []
