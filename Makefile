@@ -67,7 +67,7 @@ proto:
 	cd wandb/proto && python wandb_internal_codegen.py
 
 isort:
-	isort -o wandb --force-sort-within-sections $(args)
+	isort -o wandb -o gql --force-sort-within-sections $(args)
 
 clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyc' -exec rm -f {} +
