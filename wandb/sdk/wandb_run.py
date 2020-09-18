@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize
+from wandb.viz import Visualize, NewViz
 
 from . import wandb_config
 from . import wandb_history
@@ -527,9 +527,13 @@ class Run(RunBase):
                 self._config["_wandb"]["viz"][k] = {
                     "id": row[k].viz_id,
                     "historyFieldSettings": {"key": k, "x-axis": "_step"},
-                }
+                } 
                 row[k] = row[k].value
                 visualize_persist_config = True
+            elif isinstance(row[k], NewViz):
+                self._add_panel(k, "Vega2", NewViz.panel_config)
+                visualize_persist_config = True
+
         if visualize_persist_config:
             self._config_callback(data=self._config._as_dict())
 
@@ -870,6 +874,22 @@ class Run(RunBase):
 
     def join(self, exit_code=None):
         self.finish(exit_code=exit_code)
+
+    def custom_plot_on_table(
+        self, vega_spec_name: str,
+        table_key: str,
+        data_table: wandb.Table,
+        config_mapping: dict
+    ):
+        """
+
+        """
+        panel_config = {}
+        panel_config.update(config_mapping)
+        panel_config.upate({'panelDefId': vega_spec_name})
+
+        self.log({table_key: data_table})
+        return NewViz(panel_config)
 
     def _add_panel(self, visualize_key: str, panel_type: str, panel_config: dict):
         if "visualize" not in self._config["_wandb"]:
