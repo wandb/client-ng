@@ -44,7 +44,6 @@ class TBWatcher(object):
         self._settings = settings
         self._interface = interface
         self._run_proto = run_proto
-        # self._internal_run = internal_run.InternalRun(run_proto, settings)
         # TODO(jhr): do we need locking in this queue?
         self._watcher_queue = queue.PriorityQueue()
         wandb.tensorboard.reset_state()
