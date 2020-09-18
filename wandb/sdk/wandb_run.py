@@ -568,6 +568,9 @@ class Run(RunBase):
         # Grab the config from resuming
         if run_obj.HasField("config"):
             c_dict = config_util.dict_no_value_from_proto_list(run_obj.config.update)
+            # TODO: Windows throws a wild error when this is set...
+            if "_wandb" in c_dict:
+                del c_dict["_wandb"]
             # We update the config object here without triggering the callback
             self.config._update(c_dict, allow_val_change=True)
         # Update the summary, this will trigger an un-needed graphql request :(
