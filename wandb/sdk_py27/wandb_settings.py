@@ -709,7 +709,9 @@ class Settings(object):
         # If there's not already a program file, infer it now.
         program = self.program or _get_program()
         if program:
-            program_relpath = self.program_relpath or _get_program_relpath_from_gitrepo(self.program)
+            program_relpath = self.program_relpath or _get_program_relpath_from_gitrepo(
+                program
+            )
             self.update(dict(program=program, program_relpath=program_relpath))
         else:
             program = "<python with no main file>"

@@ -710,7 +710,7 @@ class Settings(object):
         program = self.program or _get_program()
         if program:
             program_relpath = self.program_relpath or _get_program_relpath_from_gitrepo(
-                self.program
+                program
             )
             self.update(dict(program=program, program_relpath=program_relpath))
         else:
