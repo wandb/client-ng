@@ -32,13 +32,6 @@ from .file_pusher import FilePusher
 logger = logging.getLogger(__name__)
 
 
-def _config_dict_from_proto_list(obj_list):
-    d = dict()
-    for item in obj_list:
-        d[item.key] = dict(desc=None, value=json.loads(item.value_json))
-    return d
-
-
 class SendManager(object):
     def __init__(
         self, settings, record_q, result_q, interface,
@@ -61,12 +54,14 @@ class SendManager(object):
         self._project = None
 
         # State updated by resuming
-        self._offsets = {
+        self._resume_state = {
             "step": 0,
             "history": 0,
             "events": 0,
             "output": 0,
             "runtime": 0,
+            "summary": None,
+            "config": None,
         }
 
         # State added when run_exit needs results
@@ -273,7 +268,6 @@ class SendManager(object):
             resume_status = self._api.run_resume_status(
                 entity=entity, project_name=run.project, name=run.run_id
             )
-            logger.info("resume status %s", resume_status)
             if resume_status is None:
                 if self._settings.resume == "must":
                     error = wandb_internal_pb2.ErrorInfo()
@@ -289,39 +283,42 @@ class SendManager(object):
                 elif self._settings.resume in ("allow", "auto"):
                     history = {}
                     events = {}
+                    config = {}
+                    summary = {}
                     try:
                         history = json.loads(
                             json.loads(resume_status["historyTail"])[-1]
                         )
                         events = json.loads(json.loads(resume_status["eventsTail"])[-1])
+                        config = json.loads(resume_status["config"])
+                        summary = json.loads(resume_status["summaryMetrics"])
                     except (IndexError, ValueError) as e:
                         logger.error("unable to load resume tails", exc_info=e)
                     # TODO: Do we need to restore config / summary?
                     # System metrics runtime is usually greater than history
                     events_rt = events.get("_runtime", 0)
                     history_rt = history.get("_runtime", 0)
-                    self._offsets["runtime"] = max(events_rt, history_rt)
-                    self._offsets["step"] = history.get("_step", -1) + 1
-                    self._offsets["history"] = resume_status["historyLineCount"]
-                    self._offsets["events"] = resume_status["eventsLineCount"]
-                    self._offsets["output"] = resume_status["logLineCount"]
-                    logger.info("configured resuming with: %s" % self._offsets)
+                    self._resume_state["runtime"] = max(events_rt, history_rt)
+                    self._resume_state["step"] = history.get("_step", -1) + 1
+                    self._resume_state["history"] = resume_status["historyLineCount"]
+                    self._resume_state["events"] = resume_status["eventsLineCount"]
+                    self._resume_state["output"] = resume_status["logLineCount"]
+                    self._resume_state["config"] = config
+                    self._resume_state["summary"] = summary
+                    logger.info("configured resuming with: %s" % self._resume_state)
         return error
 
     def send_run(self, data):
         run = data.run
-        run_tags = run.tags[:]
         error = None
         is_wandb_init = self._run is None
 
         # build config dict
         config_dict = None
+        config_path = os.path.join(self._settings.files_dir, filenames.CONFIG_FNAME)
         if run.HasField("config"):
-            config_dict = _config_dict_from_proto_list(run.config.update)
-            config_path = os.path.join(self._settings.files_dir, filenames.CONFIG_FNAME)
+            config_dict = config_util.dict_from_proto_list(run.config.update)
             config_util.save_config_file_from_dict(config_path, config_dict)
-
-        repo = GitRepo(remote=self._settings.git_remote)
 
         if is_wandb_init:
             # Only check resume status on `wandb.init`
@@ -337,9 +334,37 @@ class SendManager(object):
                 logger.error("Got error in async mode: %s", error.message)
             return
 
+        # Save the resumed config
+        if self._resume_state["config"] is not None:
+            # TODO: should we merge this with resumed config?
+            config_override = config_dict or {}
+            config_dict = self._resume_state["config"]
+            config_dict.update(config_override)
+            config_util.save_config_file_from_dict(config_path, config_dict)
+
+        self._init_run(run, config_dict)
+
+        if data.control.req_resp:
+            resp = wandb_internal_pb2.Result(uuid=data.uuid)
+            # TODO: we could do self._interface.publish_defer(resp) to notify
+            # the handler not to actually perform server updates for this uuid
+            # because the user process will send a summary update when we resume
+            resp.run_result.run.CopyFrom(self._run)
+            self._result_q.put(resp)
+
+        # Only spin up our threads on the first run message
+        if is_wandb_init:
+            self._start_run_threads()
+        else:
+            logger.info("updated run: %s", self._run.run_id)
+
+    def _init_run(self, run, config_dict):
+        # We subtract the previous runs runtime when resuming
+        start_time = run.start_time.ToSeconds() - self._resume_state["runtime"]
+        repo = GitRepo(remote=self._settings.git_remote)
         # TODO: we don't check inserted currently, ultimately we should make
         # the upsert know the resume state and fail transactionally
-        ups, inserted = self._api.upsert_run(
+        server_run, inserted = self._api.upsert_run(
             name=run.run_id,
             entity=run.entity or None,
             project=run.project or None,
@@ -347,7 +372,7 @@ class SendManager(object):
             job_type=run.job_type or None,
             display_name=run.display_name or None,
             notes=run.notes or None,
-            tags=run_tags or None,
+            tags=run.tags[:] or None,
             config=config_dict or None,
             sweep_name=run.sweep_id or None,
             host=run.host or None,
@@ -355,27 +380,31 @@ class SendManager(object):
             repo=repo.remote_url,
             commit=repo.last_commit,
         )
-
-        # We subtract the previous runs runtime when resuming
-        start_time = run.start_time.ToSeconds() - self._offsets["runtime"]
         self._run = run
-        self._run.starting_step = self._offsets["step"]
+        self._run.starting_step = self._resume_state["step"]
         self._run.start_time.FromSeconds(start_time)
-        storage_id = ups.get("id")
+        self._run.config.CopyFrom(self._interface._make_config(config_dict))
+        if self._resume_state["summary"] is not None:
+            self._run.summary.CopyFrom(
+                self._interface._make_summary_from_dict(self._resume_state["summary"])
+            )
+        storage_id = server_run.get("id")
         if storage_id:
             self._run.storage_id = storage_id
-        id = ups.get("name")
+        id = server_run.get("name")
         if id:
             self._api.set_current_run_id(id)
-        display_name = ups.get("displayName")
+        display_name = server_run.get("displayName")
         if display_name:
             self._run.display_name = display_name
-        project = ups.get("project")
+        project = server_run.get("project")
+        # TODO: remove self._api.set_settings, and make self._project a property?
         if project:
             project_name = project.get("name")
             if project_name:
                 self._run.project = project_name
                 self._project = project_name
+                self._api_settings["project"] = project_name
                 self._api.set_setting("project", project_name)
             entity = project.get("entity")
             if entity:
@@ -383,51 +412,42 @@ class SendManager(object):
                 if entity_name:
                     self._run.entity = entity_name
                     self._entity = entity_name
+                    self._api_settings["entity"] = entity_name
                     self._api.set_setting("entity", entity_name)
-        sweep_id = ups.get("sweepName")
+        sweep_id = server_run.get("sweepName")
         if sweep_id:
             self._run.sweep_id = sweep_id
 
-        if data.control.req_resp:
-            resp = wandb_internal_pb2.Result(uuid=data.uuid)
-            resp.run_result.run.CopyFrom(self._run)
-            self._result_q.put(resp)
-
-        if self._entity is not None:
-            self._api_settings["entity"] = self._entity
-        if self._project is not None:
-            self._api_settings["project"] = self._project
-
-        # Only spin up our threads on the first run message
-        if is_wandb_init:
-            self._fs = file_stream.FileStreamApi(
-                self._api, run.run_id, start_time, settings=self._api_settings
-            )
-            # Ensure the streaming polices have the proper offsets
-            self._fs.set_file_policy(
-                "wandb-summary.json", file_stream.SummaryFilePolicy()
-            )
-            self._fs.set_file_policy(
-                "wandb-history.jsonl",
-                file_stream.JsonlFilePolicy(start_chunk_id=self._offsets["history"]),
-            )
-            self._fs.set_file_policy(
-                "wandb-events.jsonl",
-                file_stream.JsonlFilePolicy(start_chunk_id=self._offsets["events"]),
-            )
-            self._fs.set_file_policy(
-                "output.log",
-                file_stream.CRDedupeFilePolicy(start_chunk_id=self._offsets["output"]),
-            )
-            self._fs.start()
-            self._pusher = FilePusher(self._api)
-            self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
-            sentry_set_scope("internal", run.entity, run.project)
-            logger.info(
-                "run started: %s with start time %s", self._run.run_id, start_time
-            )
-        else:
-            logger.info("updated run: %s", self._run.run_id)
+    def _start_run_threads(self):
+        self._fs = file_stream.FileStreamApi(
+            self._api,
+            self._run.run_id,
+            self._run.start_time.ToSeconds(),
+            settings=self._api_settings,
+        )
+        # Ensure the streaming polices have the proper offsets
+        self._fs.set_file_policy("wandb-summary.json", file_stream.SummaryFilePolicy())
+        self._fs.set_file_policy(
+            "wandb-history.jsonl",
+            file_stream.JsonlFilePolicy(start_chunk_id=self._resume_state["history"]),
+        )
+        self._fs.set_file_policy(
+            "wandb-events.jsonl",
+            file_stream.JsonlFilePolicy(start_chunk_id=self._resume_state["events"]),
+        )
+        self._fs.set_file_policy(
+            "output.log",
+            file_stream.CRDedupeFilePolicy(start_chunk_id=self._resume_state["output"]),
+        )
+        self._fs.start()
+        self._pusher = FilePusher(self._api)
+        self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
+        sentry_set_scope("internal", self._run.entity, self._run.project)
+        logger.info(
+            "run started: %s with start time %s",
+            self._run.run_id,
+            self._run.start_time.ToSeconds(),
+        )
 
     def _save_history(self, history_dict):
         if self._fs:
@@ -495,7 +515,7 @@ class SendManager(object):
 
     def send_config(self, data):
         cfg = data.config
-        config_dict = _config_dict_from_proto_list(cfg.update)
+        config_dict = config_util.dict_from_proto_list(cfg.update)
         self._api.upsert_run(
             name=self._run.run_id, config=config_dict, **self._api_settings
         )
