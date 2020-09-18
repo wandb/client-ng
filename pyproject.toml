@@ -22,4 +22,6 @@ include = '''
 | wandb/integration/sagemaker/
 | wandb/sync/
 | wandb/secretagent/
+| wandb/wandb_agent.py
+| wandb/wandb_controller.py
 '''
