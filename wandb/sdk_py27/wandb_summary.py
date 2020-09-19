@@ -73,7 +73,7 @@ class SummaryDict(object):
             item = SummaryItem()
             item.key = (key,)
             item.value = value
-            record.update = (item,)
+            record.update.append(item)
 
         self._update(record)
 
