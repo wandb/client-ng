@@ -17,7 +17,7 @@ from wandb.interface import interface
 from wandb.lib import config_util, filenames, proto_util
 from wandb.lib.git import GitRepo
 from wandb.proto import wandb_internal_pb2  # type: ignore
-from wandb.util import sentry_set_scope
+from wandb import util
 
 
 # from wandb.stuff import io_wrap
@@ -83,7 +83,9 @@ class SendManager(object):
         assert record_type
         handler_str = "send_" + record_type
         send_handler = getattr(self, handler_str, None)
-        logger.debug("send: {}".format(record_type))
+        # Don't log output to reduce log noise
+        if record_type != "output":
+            logger.debug("send: {}".format(record_type))
         assert send_handler, "unknown send handler: {}".format(handler_str)
         send_handler(record)
 
@@ -140,11 +142,11 @@ class SendManager(object):
         viewer, server_info = viewer_tuple
         if server_info:
             logger.info("Login server info: {}".format(server_info))
-        login_entity = viewer.get("entity")
+        self._entity = viewer.get("entity")
         if record.control.req_resp:
             result = wandb_internal_pb2.Result(uuid=record.uuid)
-            if login_entity:
-                result.response.login_response.active_entity = login_entity
+            if self._entity:
+                result.response.login_response.active_entity = self._entity
             self._result_q.put(result)
 
     def send_exit(self, data):
@@ -316,11 +318,14 @@ class SendManager(object):
         # build config dict
         config_dict = None
         config_path = os.path.join(self._settings.files_dir, filenames.CONFIG_FNAME)
-        if run.HasField("config"):
+        if run.config:
             config_dict = config_util.dict_from_proto_list(run.config.update)
             config_util.save_config_file_from_dict(config_path, config_dict)
 
         if is_wandb_init:
+            # Ensure we have a project to query for status
+            if run.project == "":
+                run.project = util.auto_project_name(self._settings.program)
             # Only check resume status on `wandb.init`
             error = self._maybe_setup_resume(run)
 
@@ -442,7 +447,7 @@ class SendManager(object):
         self._fs.start()
         self._pusher = FilePusher(self._api)
         self._dir_watcher = DirWatcher(self._settings, self._api, self._pusher)
-        sentry_set_scope("internal", self._run.entity, self._run.project)
+        util.sentry_set_scope("internal", self._run.entity, self._run.project)
         logger.info(
             "run started: %s with start time %s",
             self._run.run_id,
