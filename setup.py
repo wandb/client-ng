@@ -23,7 +23,7 @@ kubeflow_requirements = ['kubernetes', 'minio', 'google-cloud-storage', 'sh']
 
 setup(
     name='wandb',
-    version='0.10.1.dev1',
+    version='0.10.2.dev1',
     description="A CLI and library for interacting with the Weights and Biases API.",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -33,7 +33,7 @@ setup(
     packages=[
         'wandb'
     ],
-    package_dir={'wandb-ng': 'wandb'},
+    package_dir={'wandb': 'wandb'},
     package_data={
         'wandb': [
             'py.typed',
