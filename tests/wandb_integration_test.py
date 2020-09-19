@@ -49,15 +49,11 @@ def test_parallel_runs(live_mock_server, test_settings):
     # Assert we've stored 2 runs worth of files
     files_sorted = sorted([
         'wandb-metadata.json', 'code/tests/logs/test_parallel_runs/train.py',
-        'diff.patch', 'requirements.txt', 'output.log', 'config.yaml',
+        'requirements.txt', 'output.log', 'config.yaml',
         'wandb-summary.json'])
     for run,files in live_mock_server.get_ctx()["storage"].items():
         num_runs += 1
-        print("GOT", files_sorted)
-        # The CI environment doesn't have output.log
-        if "output.log" not in files:
-            files_sorted.remove("output.log")
-        assert sorted(files) == files_sorted
+        assert sorted([f for f in files if not f.endswith(".patch")]) == files_sorted
     assert num_runs == 2
 
 
