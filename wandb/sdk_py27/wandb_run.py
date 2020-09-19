@@ -436,6 +436,13 @@ class Run(RunBase):
         return self._run_id
 
     @property
+    def sweep_id(self):
+        if self._run_obj is None:
+            return None
+        else:
+            return self._run_obj.sweep_id
+
+    @property
     def path(self):
         parts = []
         for e in [self._entity, self._project, self._run_id]:
