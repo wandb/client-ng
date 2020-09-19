@@ -53,6 +53,7 @@ def test_parallel_runs(live_mock_server, test_settings):
         'wandb-summary.json'])
     for run,files in live_mock_server.get_ctx()["storage"].items():
         num_runs += 1
+        print("GOT", files_sorted)
         # The CI environment doesn't have output.log
         if "output.log" not in files:
             files_sorted.remove("output.log")
