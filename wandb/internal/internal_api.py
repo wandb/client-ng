@@ -109,7 +109,7 @@ class Api(object):
         self._current_run_id = None
         self._file_stream_api = None
         # This Retry class is initialized once for each Api instance, so this
-        # defaults to retrying 1 million times per process or for 1 day
+        # defaults to retrying 1 million times per process or 7 days
         self.upload_file_retry = normalize_exceptions(
             retry.retriable(retry_timedelta=retry_timedelta)(self.upload_file)
         )
