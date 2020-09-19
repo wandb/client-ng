@@ -465,7 +465,7 @@ class Run(RunBase):
 
     @property
     def resumed(self):
-        return self._starting_step > 0
+        return self.starting_step > 0
 
     @property
     def step(self):
@@ -565,13 +565,18 @@ class Run(RunBase):
 
     def _set_run_obj(self, run_obj):
         self._run_obj = run_obj
+        self._entity = run_obj.entity
+        self._project = run_obj.project
         # Grab the config from resuming
-        if run_obj.HasField("config"):
+        if run_obj.config:
             c_dict = config_util.dict_no_value_from_proto_list(run_obj.config.update)
+            # TODO: Windows throws a wild error when this is set...
+            if "_wandb" in c_dict:
+                del c_dict["_wandb"]
             # We update the config object here without triggering the callback
             self.config._update(c_dict, allow_val_change=True)
         # Update the summary, this will trigger an un-needed graphql request :(
-        if run_obj.HasField("summary"):
+        if run_obj.summary:
             summary_dict = {}
             for orig in run_obj.summary.update:
                 summary_dict[orig.key] = json.loads(orig.value_json)

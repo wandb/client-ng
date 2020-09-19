@@ -12,12 +12,12 @@ import os
 import time
 
 import wandb
+from wandb import util
 from wandb.filesync.dir_watcher import DirWatcher
 from wandb.interface import interface
 from wandb.lib import config_util, filenames, proto_util
 from wandb.lib.git import GitRepo
 from wandb.proto import wandb_internal_pb2  # type: ignore
-from wandb import util
 
 
 # from wandb.stuff import io_wrap
