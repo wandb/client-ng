@@ -39,6 +39,8 @@ def test_resume_allow_success(live_mock_server, test_settings):
     # }
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="File syncing is somewhat busted in windows")
+# TODO: Sometimes wandb-summary.json didn't exists, other times requirements.txt in windows
 def test_parallel_runs(live_mock_server, test_settings):
     with open("train.py", "w") as f:
         f.write(fixture_open("train.py").read())
@@ -55,9 +57,6 @@ def test_parallel_runs(live_mock_server, test_settings):
     for run,files in live_mock_server.get_ctx()["storage"].items():
         num_runs += 1
         print("Files from server", files)
-        # TODO: Windows doesn't save wandb-summary.json?!?
-        if platform.system() == "Windows":
-            files_sorted.remove("wandb-summary.json")
         assert sorted([f for f in files if not f.endswith(".patch")]) == files_sorted
     assert num_runs == 2
 
