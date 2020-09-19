@@ -53,6 +53,7 @@ def test_parallel_runs(live_mock_server, test_settings):
         'wandb-summary.json'])
     for run,files in live_mock_server.get_ctx()["storage"].items():
         num_runs += 1
+        print("Files from server", files)
         assert sorted([f for f in files if not f.endswith(".patch")]) == files_sorted
     assert num_runs == 2
 
