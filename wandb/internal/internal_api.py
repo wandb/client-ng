@@ -64,7 +64,7 @@ class Api(object):
         self,
         default_settings=None,
         load_settings=True,
-        retry_timedelta=datetime.timedelta(days=1),
+        retry_timedelta=datetime.timedelta(days=7),
         environ=os.environ,
     ):
         self._environ = environ
