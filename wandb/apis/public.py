@@ -1098,7 +1098,7 @@ class Run(Attrs):
         """
         api = InternalApi(
             default_settings={"entity": self.entity, "project": self.project},
-            retry_timedelta=RETRY_TIMEDELTA
+            retry_timedelta=RETRY_TIMEDELTA,
         )
         api.set_current_run_id(self.id)
         root = os.path.abspath(root)
@@ -1210,7 +1210,7 @@ class Run(Attrs):
         """
         api = InternalApi(
             default_settings={"entity": self.entity, "project": self.project},
-            retry_timedelta=RETRY_TIMEDELTA
+            retry_timedelta=RETRY_TIMEDELTA,
         )
         api.set_current_run_id(self.id)
 
@@ -1238,7 +1238,7 @@ class Run(Attrs):
         """
         api = InternalApi(
             default_settings={"entity": self.entity, "project": self.project},
-            retry_timedelta=RETRY_TIMEDELTA
+            retry_timedelta=RETRY_TIMEDELTA,
         )
         api.set_current_run_id(self.id)
 

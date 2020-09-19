@@ -111,7 +111,9 @@ class Api(object):
         self._file_stream_api = None
         # This Retry class is initialized once for each Api instance, so this
         # defaults to retrying 1 million times per process or for 1 day
-        self.upload_file_retry = normalize_exceptions(retry.retriable(retry_timedelta=retry_timedelta)(self.upload_file))
+        self.upload_file_retry = normalize_exceptions(
+            retry.retriable(retry_timedelta=retry_timedelta)(self.upload_file)
+        )
 
     def reauth(self):
         """Ensures the current api key is set in the transport"""
