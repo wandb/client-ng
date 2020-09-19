@@ -23,6 +23,7 @@ def default_ctx():
         "page_count": 0,
         "page_times": 2,
         "requested_file": "weights.h5",
+        "current_run": None,
         "files": {},
         "k8s": False,
         "resume": False,
@@ -259,9 +260,11 @@ def create_app(user_ctx=None):
                 ctx["fail_graphql_count"] += 1
                 return json.dumps({"errors": ["Server down"]}), 500
         body = request.get_json()
+        if body["variables"].get("run"):
+            ctx["current_run"] = body["variables"]["run"]
         if body["variables"].get("files"):
             ctx["requested_file"] = body["variables"]["files"][0]
-            url = request.url_root + "/storage?file=%s" % urllib.parse.quote(ctx["requested_file"])
+            url = request.url_root + "/storage?file={}&run={}".format(urllib.parse.quote(ctx["requested_file"]), ctx["current_run"])
             return json.dumps(
                 {
                     "data": {
@@ -288,7 +291,8 @@ def create_app(user_ctx=None):
                                     "name": "test",
                                     "displayName": "funky-town-13",
                                     "id": "test",
-                                    "summaryMetrics": '{"acc": 10}',
+                                    "config": '{"epochs": {"value": 10}}',
+                                    "summaryMetrics": '{"acc": 10, "best_val_loss": 0.5}',
                                     "logLineCount": 14,
                                     "historyLineCount": 15,
                                     "eventsLineCount": 0,
@@ -579,8 +583,10 @@ def create_app(user_ctx=None):
                 ctx["fail_storage_count"] += 1
                 return json.dumps({"errors": ["Server down"]}), 500
         file = request.args.get("file")
-        ctx["storage"] = ctx.get("storage", [])
-        ctx["storage"].append(request.args.get("file"))
+        run = request.args.get("run", "unknown")
+        ctx["storage"] = ctx.get("storage", {})
+        ctx["storage"][run] = ctx["storage"].get(run, [])
+        ctx["storage"][run].append(request.args.get("file"))
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
             return os.urandom(size), 200
