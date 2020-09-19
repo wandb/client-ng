@@ -1104,7 +1104,7 @@ class Run(Attrs):
         root = os.path.abspath(root)
         name = os.path.relpath(path, root)
         with open(os.path.join(root, name), "rb") as f:
-            api.push({name: f})
+            api.push({util.to_forward_slash_path(name): f})
         return Files(self.client, self, [name])[0]
 
     @normalize_exceptions
