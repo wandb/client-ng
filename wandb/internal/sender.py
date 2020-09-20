@@ -276,9 +276,7 @@ class SendManager(object):
             if self._settings.resume == "must":
                 error = wandb_internal_pb2.ErrorInfo()
                 error.code = wandb_internal_pb2.ErrorInfo.ErrorCode.INVALID
-                error.message = (
-                    "resume='must' but run (%s) doesn't exist" % run.run_id
-                )
+                error.message = "resume='must' but run (%s) doesn't exist" % run.run_id
                 return error
             return
 
@@ -296,9 +294,7 @@ class SendManager(object):
         config = {}
         summary = {}
         try:
-            history = json.loads(
-                json.loads(resume_status["historyTail"])[-1]
-            )
+            history = json.loads(json.loads(resume_status["historyTail"])[-1])
             events = json.loads(json.loads(resume_status["eventsTail"])[-1])
             config = json.loads(resume_status["config"])
             summary = json.loads(resume_status["summaryMetrics"])
@@ -307,9 +303,7 @@ class SendManager(object):
             if self._settings.resume == "must":
                 error = wandb_internal_pb2.ErrorInfo()
                 error.code = wandb_internal_pb2.ErrorInfo.ErrorCode.INVALID
-                error.message = (
-                    "resume='must' but could not resume (%s) " % run.run_id
-                )
+                error.message = "resume='must' but could not resume (%s) " % run.run_id
                 return error
 
         # TODO: Do we need to restore config / summary?
