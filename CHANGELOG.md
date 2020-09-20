@@ -12,6 +12,7 @@
 -  Fix wandb.summary.update() not updating all keys
 -  Code saving was not properly enabled based on UI settings
 -  Tensorboard now logging images before end of program
+-  Fix resume issues dealing with config and summary metrics
 
 ## 0.10.1 (September 16, 2020)
 
