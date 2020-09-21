@@ -74,10 +74,14 @@ class SystemStats(object):
                 self._tpu_profiler = tpu.TPUProfiler()
             except Exception as e:
                 wandb.termlog("Error initializing TPUProfiler: " + str(e))
+            finally:
+                self._tpu_profiler = None
         else:
             self._tpu_profiler = None
 
     def start(self):
+        if self._tpu_profiler:
+            self._tpu_profiler.start()
         if self._thread is None:
             self._shutdown = False
             self._thread = threading.Thread(target=self._thread_body)

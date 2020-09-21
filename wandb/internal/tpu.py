@@ -22,7 +22,6 @@ class TPUProfiler(object):
         tpu_zone=None,
         gcp_project=None,
         duration_ms=1000,
-        start=True,
     ):
         if service_addr:
             if tpu:
@@ -47,17 +46,15 @@ class TPUProfiler(object):
         self.duration_ms = duration_ms
         self._manager = multiprocessing.Manager()
         self._dict = self._manager.dict()
+        self._dict["tpu_utilization"] = 0.0
         self._lock = self._manager.Lock()
         self._process = None
-        if start:
-            self.start()
 
     def start(self):
-        if self._process is None:
-            self._process = multiprocessing.Process(
-                target=self._loop, args=(self._dict, self._lock)
-            )
-            self._process.start()
+        self._process = multiprocessing.Process(
+            target=self._loop, args=(self._dict, self._lock)
+        )
+        self._process.start()
 
     def _get_tpu_utilization(self):
         # this call blocks for duration_ms milliseconds
@@ -77,6 +74,10 @@ class TPUProfiler(object):
                 lock.release()
 
     def get_tpu_utilization(self):
+        if not self._process:
+            raise Exception("TPUProfiler process not running!")
+        if not self._process.is_alive():
+            self.start()
         with self._lock:
             return self._dict["tpu_utilization"]
 
