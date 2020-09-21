@@ -64,13 +64,12 @@ class Api(object):
         self,
         default_settings=None,
         load_settings=True,
-        retry_timedelta=datetime.timedelta(days=1),
+        retry_timedelta=datetime.timedelta(days=7),
         environ=os.environ,
     ):
         self._environ = environ
         self.default_settings = {
             "section": "default",
-            "run": "latest",
             "git_remote": "origin",
             "ignore_globs": [],
             "base_url": "https://api.wandb.ai",
@@ -109,6 +108,11 @@ class Api(object):
         )
         self._current_run_id = None
         self._file_stream_api = None
+        # This Retry class is initialized once for each Api instance, so this
+        # defaults to retrying 1 million times per process or 7 days
+        self.upload_file_retry = normalize_exceptions(
+            retry.retriable(retry_timedelta=retry_timedelta)(self.upload_file)
+        )
 
     def reauth(self):
         """Ensures the current api key is set in the transport"""
@@ -240,8 +244,6 @@ class Api(object):
 
     @property
     def current_run_id(self):
-        if not self._current_run_id:
-            self._current_run_id = self.settings("run_id")
         return self._current_run_id
 
     @property
@@ -350,9 +352,8 @@ class Api(object):
             project = project or self.settings().get("project")
             if project is None:
                 raise CommError("No default project configured.")
-            run = run or slug or env.get_run(env=self._environ)
-            if run is None:
-                run = "latest"
+            run = run or slug or self.current_run_id or env.get_run(env=self._environ)
+            assert run, "run must be specified"
         return (project, run)
 
     @normalize_exceptions
@@ -1016,7 +1017,8 @@ class Api(object):
         }
         """
         )
-        run_id = run or self.settings("run")
+        run_id = run or self.current_run_id
+        assert run_id, "run must be specified"
         entity = entity or self.settings("entity")
         query_result = self.gql(
             query,
@@ -1044,7 +1046,7 @@ class Api(object):
 
         Args:
             project (str): The project to download
-            run (str, optional): The run to upload to
+            run (str): The run to upload to
             entity (str, optional): The entity to scope this project to.  Defaults to wandb models
 
         Returns:
@@ -1075,11 +1077,13 @@ class Api(object):
         }
         """
         )
+        run = run or self.current_run_id
+        assert run, "run must be specified"
         query_result = self.gql(
             query,
             variable_values={
                 "name": project,
-                "run": run or self.settings("run"),
+                "run": run,
                 "entity": entity or self.settings("entity"),
             },
         )
@@ -1093,7 +1097,7 @@ class Api(object):
         Args:
             project (str): The project to download
             file_name (str): The name of the file to download
-            run (str, optional): The run to upload to
+            run (str): The run to upload to
             entity (str, optional): The entity to scope this project to.  Defaults to wandb models
 
         Returns:
@@ -1122,11 +1126,13 @@ class Api(object):
         }
         """
         )
+        run = run or self.current_run_id
+        assert run, "run must be specified"
         query_result = self.gql(
             query,
             variable_values={
                 "name": project,
-                "run": run or self.settings("run"),
+                "run": run,
                 "fileName": file_name,
                 "entity": entity or self.settings("entity"),
             },
@@ -1208,10 +1214,6 @@ class Api(object):
                 util.sentry_reraise(e)
 
         return response
-
-    # This Retry class is initialized once for each Api instance, so this
-    # defaults to retrying 1 million times per process or 365 days
-    upload_file_retry = normalize_exceptions(retry.retriable()(upload_file))
 
     @normalize_exceptions
     def register_agent(self, host, sweep_id=None, project_name=None, entity=None):
@@ -1487,7 +1489,7 @@ class Api(object):
         """Uploads multiple files to W&B
 
         Args:
-            files (list or dict): The filenames to upload
+            files (list or dict): The filenames to upload, when dict the values are open files
             run (str, optional): The run to upload to
             entity (str, optional): The entity to scope this project to.  Defaults to wandb models
             project (str, optional): The name of the project to upload to. Defaults to the one in settings.
