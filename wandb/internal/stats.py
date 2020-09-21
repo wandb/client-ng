@@ -128,6 +128,8 @@ class SystemStats(object):
                 self._thread.join()
         finally:
             self._thread = None
+        if self._tpu_profiler:
+            self._tpu_profiler.stop()
 
     def flush(self):
         stats = self.stats()

@@ -1,6 +1,6 @@
 import logging
+import multiprocessing
 import os
-import threading
 
 try:
     from tensorflow.python.distribute.cluster_resolver import tpu_cluster_resolver  # type: ignore
@@ -21,7 +21,8 @@ class TPUProfiler(object):
         tpu=None,
         tpu_zone=None,
         gcp_project=None,
-        duration_ms=500,
+        duration_ms=1000,
+        start=True,
     ):
         if service_addr:
             if tpu:
@@ -44,9 +45,19 @@ class TPUProfiler(object):
         service_addr = service_addr.replace("grpc://", "").replace(":8470", ":8466")
         self.service_addr = service_addr
         self.duration_ms = duration_ms
-        self._tpu_utilization = 0.0
-        # self._thread = threading.Thread(target=self._thread_body, daemon=True)
-        # self._thread.start()
+        self._manager = multiprocessing.Manager()
+        self._dict = self._manager.dict()
+        self._lock = self._manager.Lock()
+        self._process = None
+        if start:
+            self.start()
+
+    def start(self):
+        if self._process is None:
+            self._process = multiprocessing.Process(
+                target=self._loop, args=(self._dict, self._lock)
+            )
+            self._process.start()
 
     def _get_tpu_utilization(self):
         # this call blocks for duration_ms milliseconds
@@ -55,17 +66,24 @@ class TPUProfiler(object):
         )
         return float(res.split("Utilization ")[1].split(": ")[1].split("%")[0])
 
-    def _thread_body(self):
+    def _loop(self, dict_, lock):
         while True:
+            lock.acquire()
             try:
-                self._tpu_utilization = self._get_tpu_utilization()
+                dict_["tpu_utilization"] = self._get_tpu_utilization()
             except Exception:
-                # Happens when previous profiler session is still active.
                 pass
+            finally:
+                lock.release()
 
     def get_tpu_utilization(self):
-        return self._get_tpu_utilization()
-        # return self._tpu_utilization
+        with self._lock:
+            return self._dict["tpu_utilization"]
+
+    def stop(self):
+        if self._process:
+            self._process.terminate()
+            self._process = None
 
 
 def is_tpu_available():
