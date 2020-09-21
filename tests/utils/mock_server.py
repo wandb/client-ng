@@ -6,7 +6,10 @@ import sys
 from datetime import datetime, timedelta
 import json
 import yaml
+# HACK: restore first two entries of sys path after wandb load
+save_path = sys.path[:2]
 import wandb
+sys.path[0:0] = save_path
 import logging
 from six.moves import urllib
 import threading
@@ -19,6 +22,8 @@ def default_ctx():
         "fail_storage_count": 0,  # used via "fail_storage_times"
         "page_count": 0,
         "page_times": 2,
+        "requested_file": "weights.h5",
+        "current_run": None,
         "files": {},
         "k8s": False,
         "resume": False,
@@ -67,10 +72,10 @@ def run(ctx):
         }
     else:
         fileNode = {
-            "name": "weights.h5",
+            "name": ctx["requested_file"],
             "sizeBytes": 20,
             "md5": "XXX",
-            "url": request.url_root + "/storage?file=weights.h5",
+            "url": request.url_root + "/storage?file=%s" % ctx["requested_file"],
         }
       
     return {
@@ -90,14 +95,14 @@ def run(ctx):
         ],
         "events": ['{"cpu": 10}', '{"cpu": 20}', '{"cpu": 30}'],
         "files": {
-            # Special weights url meant to be used with api_mocks#download_url
+            # Special weights url by default, if requesting upload we set the name
             "edges": [
                 {
                     "node": fileNode,
                 }
             ]
         },
-        "sampledHistory": ['{"loss": 0, "acc": 100}'],
+        "sampledHistory": [[{"loss": 0, "acc": 100}, {"loss": 1, "acc": 0}]],
         "shouldStop": False,
         "failed": False,
         "stopped": stopped,
@@ -119,6 +124,7 @@ def artifact(ctx, collection_name="mnist"):
         "size": 10000,
         "createdAt": datetime.now().isoformat(),
         "updatedAt": datetime.now().isoformat(),
+        "versionIndex": ctx["page_count"],
         "labels": [],
         "metadata": "{}",
         "aliases": [
@@ -129,7 +135,7 @@ def artifact(ctx, collection_name="mnist"):
         ],
         "artifactSequence": {
             "name": collection_name,
-        }
+        },
     }
 
 
@@ -189,7 +195,6 @@ def get_ctx():
 def set_ctx(ctx):
     get_ctx()
     g.ctx.set(ctx)
-
 
 
 def _bucket_config():
@@ -255,9 +260,11 @@ def create_app(user_ctx=None):
                 ctx["fail_graphql_count"] += 1
                 return json.dumps({"errors": ["Server down"]}), 500
         body = request.get_json()
+        if body["variables"].get("run"):
+            ctx["current_run"] = body["variables"]["run"]
         if body["variables"].get("files"):
-            file = body["variables"]["files"][0]
-            url = request.url_root + "/storage?file=%s" % urllib.parse.quote(file)
+            ctx["requested_file"] = body["variables"]["files"][0]
+            url = request.url_root + "/storage?file={}&run={}".format(urllib.parse.quote(ctx["requested_file"]), ctx["current_run"])
             return json.dumps(
                 {
                     "data": {
@@ -266,7 +273,7 @@ def create_app(user_ctx=None):
                                 "id": "storageid",
                                 "files": {
                                     "uploadHeaders": [],
-                                    "edges": [{"node": {"name": file, "url": url}}],
+                                    "edges": [{"node": {"name": ctx["requested_file"], "url": url}}],
                                 },
                             }
                         }
@@ -284,7 +291,8 @@ def create_app(user_ctx=None):
                                     "name": "test",
                                     "displayName": "funky-town-13",
                                     "id": "test",
-                                    "summaryMetrics": '{"acc": 10}',
+                                    "config": '{"epochs": {"value": 10}}',
+                                    "summaryMetrics": '{"acc": 10, "best_val_loss": 0.5}',
                                     "logLineCount": 14,
                                     "historyLineCount": 15,
                                     "eventsLineCount": 0,
@@ -412,6 +420,41 @@ def create_app(user_ctx=None):
                                     "entity": {"id": "1234", "name": "test"},
                                 },
                             }
+                        }
+                    }
+                }
+            )
+        if "mutation CreateAgent(" in body["query"]:
+            return json.dumps(
+                {
+                    "data": {
+                        "createAgent": {
+                            "agent": {
+                                "id": "mock-server-agent-93xy",
+                            }
+                        }
+                    }
+                }
+            )
+        if "mutation Heartbeat(" in body["query"]:
+            return json.dumps(
+                {
+                    "data": {
+                        "agentHeartbeat": {
+                            "agent": {
+                                "id": "mock-server-agent-93xy",
+                            },
+                            "commands": json.dumps([
+                                {
+                                    "type": "run",
+                                    "run_id": "mocker-server-run-x9",
+                                    "args": {
+                                        "learning_rate": {
+                                            "value": 0.99124
+                                        }
+                                    }
+                                }
+                            ])
                         }
                     }
                 }
@@ -549,7 +592,7 @@ def create_app(user_ctx=None):
                 "id": 1,
                 "file": {
                     "id": 1,
-                    "url": request.url_root + "/storage?file=wandb_manifest.json",
+                    "directUrl": request.url_root + "/storage?file=wandb_manifest.json",
                 },
             }
             return {"data": {"project": {"artifact": art}}}
@@ -575,11 +618,15 @@ def create_app(user_ctx=None):
                 ctx["fail_storage_count"] += 1
                 return json.dumps({"errors": ["Server down"]}), 500
         file = request.args.get("file")
-        ctx["storage"] = ctx.get("storage", [])
-        ctx["storage"].append(request.args.get("file"))
+        run = request.args.get("run", "unknown")
+        ctx["storage"] = ctx.get("storage", {})
+        ctx["storage"][run] = ctx["storage"].get(run, [])
+        ctx["storage"][run].append(request.args.get("file"))
         size = ctx["files"].get(request.args.get("file"))
         if request.method == "GET" and size:
             return os.urandom(size), 200
+        # make sure to read the data
+        data = request.get_data()
         if file == "wandb_manifest.json":
             return {
                 "version": 1,

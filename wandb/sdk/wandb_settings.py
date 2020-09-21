@@ -220,18 +220,18 @@ class Settings(object):
 
     @enum.unique
     class Source(enum.IntEnum):
-        BASE: int = 0
-        ORG: int = 1
-        ENTITY: int = 2
-        PROJECT: int = 3
-        USER: int = 4
-        SYSTEM: int = 5
-        WORKSPACE: int = 6
-        ENV: int = 7
-        SETUP: int = 8
-        INIT: int = 9
-        SETTINGS: int = 10
-        ARGS: int = 11
+        BASE: int = 1
+        ORG: int = 2
+        ENTITY: int = 3
+        PROJECT: int = 4
+        USER: int = 5
+        SYSTEM: int = 6
+        WORKSPACE: int = 7
+        ENV: int = 8
+        SETUP: int = 9
+        INIT: int = 10
+        SETTINGS: int = 11
+        ARGS: int = 12
 
     Console: Type[SettingsConsole] = SettingsConsole
 
@@ -379,7 +379,9 @@ class Settings(object):
         )
         console: str = self.console
         if console == "auto":
-            if self._windows:
+            if self._jupyter:
+                console = "wrap"
+            elif self._windows:
                 legacy_env_var = "PYTHONLEGACYWINDOWSSTDIO"
                 if sys.version_info >= (3, 6) and legacy_env_var not in os.environ:
                     msg = (
@@ -529,6 +531,10 @@ class Settings(object):
 
         _logger.info("setting env: {}".format(env_dict))
         self._update(env_dict, _source=self.Source.ENV)
+
+    def _apply_user(self, user_settings, _logger=None):
+        _logger.info("setting user settings: {}".format(user_settings))
+        self._update(user_settings, _source=self.Source.USER)
 
     def _path_convert_part(self, path_part, format_dict):
         """convert slashes, expand ~ and other macros."""
@@ -696,16 +702,20 @@ class Settings(object):
 
     def _infer_run_settings_from_env(self):
         """Modify settings based on environment (for runs only)."""
-        # If the settings say to save code, and there's not already a program file,
-        # infer it now.
-        if self.save_code and not self.program_relpath:
-            program = _get_program()
-            if program:
-                program_relpath = _get_program_relpath_from_gitrepo(program)
-                self.update(dict(program=program, program_relpath=program_relpath))
-            else:
-                program = "<python with no main file>"
-                self.update(dict(program=program))
+        if self.disable_code:
+            self.update(dict(program="<code saving explicitly disabled>"))
+            return
+
+        # If there's not already a program file, infer it now.
+        program = self.program or _get_program()
+        if program:
+            program_relpath = self.program_relpath or _get_program_relpath_from_gitrepo(
+                program
+            )
+            self.update(dict(program=program, program_relpath=program_relpath))
+        else:
+            program = "<python with no main file>"
+            self.update(dict(program=program))
 
     def setdefaults(self, __d=None):
         __d = __d or defaults

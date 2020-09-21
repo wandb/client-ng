@@ -148,6 +148,10 @@ class _WandbInit(object):
                     print("Ignored wandb.init() arg %s when running a sweep" % key)
         settings.apply_init(kwargs)
 
+        login_key = wandb_login._login(_disable_warning=True, _settings=settings)
+        if not login_key:
+            settings.mode = "offline"
+
         # TODO(jhr): should this be moved? probably.
         d = dict(_start_time=time.time(), _start_datetime=datetime.datetime.now(),)
         settings.update(d)
@@ -316,8 +320,6 @@ class _WandbInit(object):
                 run=run,
                 config=run.config,
                 log=run.log,
-                join=run.join,
-                finish=run.finish,
                 summary=run.summary,
                 save=run.save,
                 restore=run.restore,
@@ -378,18 +380,20 @@ class _WandbInit(object):
             run._set_run_obj_offline(run_proto)
         else:
             ret = backend.interface.communicate_check_version()
-            message = ret.response.check_version_response.message
-            if message:
-                wandb.termlog(message)
+            if ret and ret.message:
+                wandb.termlog(ret.message)
             ret = backend.interface.communicate_run(run, timeout=30)
-            # TODO: fail on more errors, check return type
-            # TODO: make the backend log stacktraces on catostrophic failure
-            if ret.HasField("error"):
+            error_message = None
+            if not ret:
+                error_message = "Error communicating with backend"
+            if ret and ret.error:
+                error_message = ret.error.message
+            if error_message:
                 # Shutdown the backend and get rid of the logger
                 # we don't need to do console cleanup at this point
                 backend.cleanup()
                 self.teardown()
-                raise UsageError(ret.error.message)
+                raise UsageError(error_message)
             run._set_run_obj(ret.run)
 
         # initiate run (stats and metadata probing)
@@ -402,8 +406,6 @@ class _WandbInit(object):
             run=run,
             config=run.config,
             log=run.log,
-            join=run.join,
-            finish=run.finish,
             summary=run.summary,
             save=run.save,
             restore=run.restore,

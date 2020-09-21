@@ -1,16 +1,13 @@
 from __future__ import absolute_import
 
-import collections
-import time
-import os
 from numbers import Number
 import threading
+import time
+
 import wandb
 from wandb import util
 from wandb.internal import tpu
 from wandb.vendor.pynvml import pynvml  # type: ignore[import]
-
-from wandb.interface import interface
 
 psutil = util.get_module("psutil")
 
@@ -30,22 +27,20 @@ def gpu_in_use_by_this_process(gpu_handle):
     our_processes = base_process.children(recursive=True)
     our_processes.append(base_process)
 
-    our_pids = set([
-        process.pid
-        for process
-        in our_processes
-    ])
+    our_pids = set([process.pid for process in our_processes])
 
-    compute_pids = set([
-        process.pid
-        for process
-        in pynvml.nvmlDeviceGetComputeRunningProcesses(gpu_handle)
-    ])
-    graphics_pids = set([
-        process.pid
-        for process
-        in pynvml.nvmlDeviceGetGraphicsRunningProcesses(gpu_handle)
-    ])
+    compute_pids = set(
+        [
+            process.pid
+            for process in pynvml.nvmlDeviceGetComputeRunningProcesses(gpu_handle)
+        ]
+    )
+    graphics_pids = set(
+        [
+            process.pid
+            for process in pynvml.nvmlDeviceGetGraphicsRunningProcesses(gpu_handle)
+        ]
+    )
 
     pids_using_device = compute_pids | graphics_pids
 
@@ -57,9 +52,9 @@ class SystemStats(object):
         try:
             pynvml.nvmlInit()
             self.gpu_count = pynvml.nvmlDeviceGetCount()
-        except pynvml.NVMLError as err:
+        except pynvml.NVMLError:
             self.gpu_count = 0
-        #self.run = run
+        # self.run = run
         self._pid = pid
         self._api = api
         self._interface = interface
@@ -68,13 +63,11 @@ class SystemStats(object):
         self._shutdown = False
         if psutil:
             net = psutil.net_io_counters()
-            self.network_init = {
-                "sent": net.bytes_sent,
-                "recv": net.bytes_recv
-            }
+            self.network_init = {"sent": net.bytes_sent, "recv": net.bytes_recv}
         else:
             wandb.termlog(
-                "psutil not installed, only GPU stats will be reported.  Install with pip install psutil")
+                "psutil not installed, only GPU stats will be reported.  Install with pip install psutil"
+            )
         self._thread = None
         if tpu.is_tpu_available():
             try:
@@ -91,7 +84,8 @@ class SystemStats(object):
             self._shutdown = False
             self._thread = threading.Thread(target=self._thread_body)
             self._thread.daemon = True
-        self._thread.start()
+        if not self._thread.is_alive():
+            self._thread.start()
 
     @property
     def proc(self):
@@ -101,13 +95,13 @@ class SystemStats(object):
     def sample_rate_seconds(self):
         """Sample system stats every this many seconds, defaults to 2, min is 0.5"""
         return 1
-        #return max(0.5, self._api.dynamic_settings["system_sample_seconds"])
+        # return max(0.5, self._api.dynamic_settings["system_sample_seconds"])
 
     @property
     def samples_to_average(self):
         """The number of samples to average before pushing, defaults to 15 valid range (2:30)"""
         return 4
-        #return min(30, max(2, self._api.dynamic_settings["system_samples"]))
+        # return min(30, max(2, self._api.dynamic_settings["system_samples"]))
 
     def _thread_body(self):
         while True:
@@ -126,7 +120,8 @@ class SystemStats(object):
                 time.sleep(0.1)
                 seconds += 0.1
                 if self._shutdown:
-                    break
+                    self.flush()
+                    return
 
     def shutdown(self):
         self._shutdown = True
@@ -144,7 +139,7 @@ class SystemStats(object):
             if isinstance(value, Number):
                 samples = list(self.sampler.get(stat, [stats[stat]]))
                 stats[stat] = round(sum(samples) / len(samples), 2)
-        #self.run.events.track("system", stats, _wandb=True)
+        # self.run.events.track("system", stats, _wandb=True)
         self._interface.publish_stats(stats)
         self.samples = 0
         self.sampler = {}
@@ -156,26 +151,32 @@ class SystemStats(object):
             try:
                 util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                 memory = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                temp = pynvml.nvmlDeviceGetTemperature(
+                    handle, pynvml.NVML_TEMPERATURE_GPU
+                )
                 in_use_by_us = gpu_in_use_by_this_process(handle)
 
                 stats["gpu.{}.{}".format(i, "gpu")] = util.gpu
                 stats["gpu.{}.{}".format(i, "memory")] = util.memory
-                stats["gpu.{}.{}".format(
-                    i, "memoryAllocated")] = (memory.used / float(memory.total)) * 100
+                stats["gpu.{}.{}".format(i, "memoryAllocated")] = (
+                    memory.used / float(memory.total)
+                ) * 100
                 stats["gpu.{}.{}".format(i, "temp")] = temp
 
                 if in_use_by_us:
                     stats["gpu.process.{}.{}".format(i, "gpu")] = util.gpu
                     stats["gpu.process.{}.{}".format(i, "memory")] = util.memory
-                    stats["gpu.process.{}.{}".format(
-                        i, "memoryAllocated")] = (memory.used / float(memory.total)) * 100
+                    stats["gpu.process.{}.{}".format(i, "memoryAllocated")] = (
+                        memory.used / float(memory.total)
+                    ) * 100
                     stats["gpu.process.{}.{}".format(i, "temp")] = temp
 
                     # Some GPUs don't provide information about power usage
                 try:
                     power_watts = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0
-                    power_capacity_watts = pynvml.nvmlDeviceGetEnforcedPowerLimit(handle) / 1000.0
+                    power_capacity_watts = (
+                        pynvml.nvmlDeviceGetEnforcedPowerLimit(handle) / 1000.0
+                    )
                     power_usage = (power_watts / power_capacity_watts) * 100
 
                     stats["gpu.{}.{}".format(i, "powerWatts")] = power_watts
@@ -183,12 +184,14 @@ class SystemStats(object):
 
                     if in_use_by_us:
                         stats["gpu.process.{}.{}".format(i, "powerWatts")] = power_watts
-                        stats["gpu.process.{}.{}".format(i, "powerPercent")] = power_usage
+                        stats[
+                            "gpu.process.{}.{}".format(i, "powerPercent")
+                        ] = power_usage
 
-                except pynvml.NVMLError as err:
+                except pynvml.NVMLError:
                     pass
 
-            except pynvml.NVMLError as err:
+            except pynvml.NVMLError:
                 pass
         if psutil:
             net = psutil.net_io_counters()
@@ -197,14 +200,13 @@ class SystemStats(object):
             stats["memory"] = sysmem.percent
             stats["network"] = {
                 "sent": net.bytes_sent - self.network_init["sent"],
-                "recv": net.bytes_recv - self.network_init["recv"]
+                "recv": net.bytes_recv - self.network_init["recv"],
             }
             # TODO: maybe show other partitions, will likely need user to configure
-            stats["disk"] = psutil.disk_usage('/').percent
+            stats["disk"] = psutil.disk_usage("/").percent
             stats["proc.memory.availableMB"] = sysmem.available / 1048576.0
             try:
-                stats["proc.memory.rssMB"] = self.proc.memory_info().rss / \
-                    1048576.0
+                stats["proc.memory.rssMB"] = self.proc.memory_info().rss / 1048576.0
                 stats["proc.memory.percent"] = self.proc.memory_percent()
                 stats["proc.cpu.threads"] = self.proc.num_threads()
             except psutil.NoSuchProcess:

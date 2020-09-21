@@ -9,8 +9,7 @@ import numbers
 import os
 
 import six
-import wandb
-from wandb.internal import meta, sample, stats, update
+from wandb.internal import meta, sample, stats
 from wandb.internal import tb_watcher
 from wandb.lib import proto_util
 from wandb.proto import wandb_internal_pb2
@@ -44,7 +43,6 @@ class HandleManager(object):
         assert record_type
         handler_str = "handle_" + record_type
         handler = getattr(self, handler_str, None)
-        logger.debug("handle: {}".format(record_type))
         assert handler, "unknown handle: {}".format(handler_str)
         handler(record)
 
@@ -69,7 +67,12 @@ class HandleManager(object):
 
         logger.info("handle defer: {}".format(state))
         # only handle flush tb (sender handles the rest)
-        if state == defer.FLUSH_TB:
+        if state == defer.FLUSH_STATS:
+            if self._system_stats:
+                # TODO(jhr): this could block so we dont really want to call shutdown
+                # from handler thread
+                self._system_stats.shutdown()
+        elif state == defer.FLUSH_TB:
             if self._tb_watcher:
                 # shutdown tensorboard workers so we get all metrics flushed
                 self._tb_watcher.finish()
@@ -185,12 +188,7 @@ class HandleManager(object):
         self._dispatch_record(record)
 
     def handle_request_check_version(self, record):
-        result = wandb_internal_pb2.Result(uuid=record.uuid)
-        current_version = wandb.__version__
-        message = update.check_available(current_version)
-        if message:
-            result.response.check_version_response.message = message
-        self._result_q.put(result)
+        self._dispatch_record(record)
 
     def handle_request_run_start(self, record):
         run_start = record.request.run_start
@@ -269,10 +267,3 @@ class HandleManager(object):
         logger.info("shutting down handler")
         if self._tb_watcher:
             self._tb_watcher.finish()
-
-
-def _config_dict_from_proto_list(obj_list):
-    d = dict()
-    for item in obj_list:
-        d[item.key] = dict(desc=None, value=json.loads(item.value_json))
-    return d

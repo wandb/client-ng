@@ -19,6 +19,11 @@ def api(runner):
     return Api()
 
 
+def test_api_auto_login_no_tty(mocker):
+    with pytest.raises(wandb.UsageError):
+        Api()
+
+
 def test_parse_project_path(api):
     e, p = api._parse_project_path("user/proj")
     assert e == "user"
@@ -96,6 +101,12 @@ def test_run_history(mock_server, api):
     assert run.history(pandas=False)[0] == {'acc': 10, 'loss': 90}
 
 
+def test_run_history_keys(mock_server, api):
+    run = api.run("test/test/test")
+    assert run.history(keys=["acc", "loss"], pandas=False) == [
+           {"loss": 0, "acc": 100}, {"loss": 1, "acc": 0}]
+
+
 def test_run_config(mock_server, api):
     run = api.run("test/test/test")
     assert run.config == {'epochs': 10}
@@ -151,6 +162,36 @@ def test_run_file(runner, mock_server, api):
         assert not os.path.exists("weights.h5")
         file.download()
         assert os.path.exists("weights.h5")
+
+
+def test_run_upload_file(runner, mock_server, api):
+    with runner.isolated_filesystem():
+        run = api.run("test/test/test")
+        with open("new_file.pb", "w") as f:
+            f.write("TEST")
+        file = run.upload_file("new_file.pb")
+        assert file.url == "https://api.wandb.ai//storage?file=new_file.pb"
+
+
+def test_run_upload_file_relative(runner, mock_server, api):
+    with runner.isolated_filesystem():
+        run = api.run("test/test/test")
+        wandb.util.mkdir_exists_ok("foo")
+        os.chdir("foo")
+        with open("new_file.pb", "w") as f:
+            f.write("TEST")
+        file = run.upload_file("new_file.pb", "../")
+        assert file.url == "https://api.wandb.ai//storage?file=foo/new_file.pb"
+
+
+def test_upload_file_retry(runner, mock_server, api):
+    mock_server.set_context("fail_storage_count", 4)
+    with runner.isolated_filesystem():
+        run = api.run("test/test/test")
+        with open("new_file.pb", "w") as f:
+            f.write("TEST")
+        file = run.upload_file("new_file.pb")
+        assert file.url == "https://api.wandb.ai//storage?file=new_file.pb"
 
 
 def test_runs_from_path(mock_server, api):
@@ -254,14 +295,41 @@ def test_artifact_run_used(runner, mock_server, api):
     run = api.run("test/test/test")
     arts = run.used_artifacts()
     assert len(arts) == 2
-    assert arts[0].name == "abc123"
+    assert arts[0].name == "mnist:v0"
 
 
 def test_artifact_run_logged(runner, mock_server, api):
     run = api.run("test/test/test")
     arts = run.logged_artifacts()
     assert len(arts) == 2
-    assert arts[0].name == "abc123"
+    assert arts[0].name == "mnist:v0"
+
+
+def test_artifact_manual_use(runner, mock_server, api):
+    run = api.run("test/test/test")
+    art = api.artifact("entity/project/mnist:v0", type="dataset")
+    run.use_artifact(art)
+    assert True
+
+
+def test_artifact_manual_log(runner, mock_server, api):
+    run = api.run("test/test/test")
+    art = api.artifact("entity/project/mnist:v0", type="dataset")
+    run.log_artifact(art)
+    assert True
+
+
+def test_artifact_manual_error(runner, mock_server, api):
+    run = api.run("test/test/test")
+    art = wandb.Artifact("test", type="dataset")
+    with pytest.raises(wandb.CommError):
+        run.log_artifact(art)
+    with pytest.raises(wandb.CommError):
+        run.use_artifact(art)
+    with pytest.raises(wandb.CommError):
+        run.use_artifact("entity/project/mnist:v0")
+    with pytest.raises(wandb.CommError):
+        run.log_artifact("entity/project/mnist:v0")
 
 
 @pytest.mark.skipif(platform.system() == "Windows",

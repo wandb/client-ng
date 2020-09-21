@@ -2,6 +2,7 @@
 tensor b watcher.
 """
 
+import logging
 import os
 import threading
 import time
@@ -15,6 +16,8 @@ from wandb.internal import run as internal_run
 
 # Give some time for tensorboard data to be flushed
 SHUTDOWN_DELAY = 5
+REMOTE_FILE_TOKEN = "://"
+logger = logging.getLogger(__name__)
 
 
 def _link_and_save_file(path, base_path, interface, settings):
@@ -40,7 +43,7 @@ class TBWatcher(object):
         self._consumer = None
         self._settings = settings
         self._interface = interface
-        self._internal_run = internal_run.InternalRun(run_proto, settings)
+        self._run_proto = run_proto
         # TODO(jhr): do we need locking in this queue?
         self._watcher_queue = queue.PriorityQueue()
         wandb.tensorboard.reset_state()
@@ -75,7 +78,7 @@ class TBWatcher(object):
 
         if not self._consumer:
             self._consumer = TBEventConsumer(
-                self, self._watcher_queue, self._internal_run
+                self, self._watcher_queue, self._run_proto, self._settings
             )
             self._consumer.start()
 
@@ -105,6 +108,9 @@ class TBDirWatcher(object):
         self.tf_compat = util.get_module(
             "tensorboard.compat", required="Please install tensorboard package"
         )
+        # TODO: tensorboard provides: tensorboard.compat.tensorflow_stub.io.gfile
+        # but it doesn't give us mtime
+        self.tf_io = util.get_module("tensorflow.io.gfile")
         self._tbwatcher = tbwatcher
         self._generator = self.directory_watcher.DirectoryWatcher(
             logdir, self._loader(save, namespace), self._is_new_tensorflow_events_file
@@ -127,9 +133,17 @@ class TBDirWatcher(object):
         path = self.tf_compat.tf.compat.as_str_any(path)
         base = os.path.basename(path)
         start_time = self._tbwatcher._settings._start_time
+        if REMOTE_FILE_TOKEN in path:
+            if self.tf_io:
+                modified_time = self.tf_io.stat(path).mtime_nsec / 1000000000
+            else:
+                logger.warning("not logging tfevent file: %s, install tensorflow", path)
+                return False
+        else:
+            modified_time = os.stat(path).st_mtime
         return (
             "tfevents" in base
-            and os.stat(path).st_mtime >= start_time  # noqa: W503
+            and modified_time >= start_time  # noqa: W503
             and not base.endswith(".profile-empty")  # noqa: W503
         )
 
@@ -142,18 +156,23 @@ class TBDirWatcher(object):
             def __init__(self, file_path):
                 super(EventFileLoader, self).__init__(file_path)
                 if save:
-                    # TODO: save plugins?
-                    logdir = os.path.dirname(file_path)
-                    parts = list(os.path.split(logdir))
-                    if namespace and parts[-1] == namespace:
-                        parts.pop()
-                        logdir = os.path.join(*parts)
-                    _link_and_save_file(
-                        path=file_path,
-                        base_path=logdir,
-                        interface=_loader_interface,
-                        settings=_loader_settings,
-                    )
+                    if REMOTE_FILE_TOKEN in file_path:
+                        logger.warning(
+                            "Not persisting remote tfevent file: %s", file_path
+                        )
+                    else:
+                        # TODO: save plugins?
+                        logdir = os.path.dirname(file_path)
+                        parts = list(os.path.split(logdir))
+                        if namespace and parts[-1] == namespace:
+                            parts.pop()
+                            logdir = os.path.join(*parts)
+                        _link_and_save_file(
+                            path=file_path,
+                            base_path=logdir,
+                            interface=_loader_interface,
+                            settings=_loader_settings,
+                        )
 
         return EventFileLoader
 
@@ -212,15 +231,24 @@ class TBEventConsumer(object):
     out of order steps.
     """
 
-    def __init__(self, tbwatcher, queue, internal_run, delay=10):
+    def __init__(self, tbwatcher, queue, run_proto, settings, delay=10):
         self._tbwatcher = tbwatcher
         self._queue = queue
-        self._internal_run = internal_run
         self._thread = threading.Thread(target=self._thread_body)
         self._shutdown = None
         self._delay = delay
 
+        # This is a bit of a hack to get file saving to work as it does in the user
+        # process. Since we don't have a real run object, we have to define the
+        # datatypes callback ourselves.
+        def datatypes_cb(fname):
+            files = dict(files=[(fname, "now")])
+            self._tbwatcher._interface.publish_files(files)
+
+        self._internal_run = internal_run.InternalRun(run_proto, settings, datatypes_cb)
+
     def start(self):
+        self._start_time = time.time()
         self._thread.start()
 
     def finish(self):
@@ -233,8 +261,8 @@ class TBEventConsumer(object):
         while True:
             try:
                 event = self._queue.get(True, 1)
-                # If the event was added later than delay, put it back in the queue
-                if event.created_at > time.time() - self._delay:
+                # Wait self._delay seconds from consumer start before logging events
+                if time.time() < self._start_time + self._delay and not self._shutdown:
                     self._queue.put(event)
                     time.sleep(0.1)
                     continue

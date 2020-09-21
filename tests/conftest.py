@@ -128,6 +128,11 @@ def git_repo(runner):
 
 
 @pytest.fixture
+def dummy_api_key():
+    return DUMMY_API_KEY
+
+
+@pytest.fixture
 def test_settings(test_dir, mocker):
     """ Settings object for tests"""
     #  TODO: likely not the right thing to do, we shouldn't be setting this
@@ -145,6 +150,7 @@ def test_settings(test_dir, mocker):
                               project="test",
                               console="off",
                               host="test",
+                              api_key=DUMMY_API_KEY,
                               run_id=wandb.util.generate_id(),
                               _start_datetime=datetime.datetime.now())
     settings.setdefaults()
@@ -172,6 +178,7 @@ def runner(monkeypatch, mocker):
                         'project_name': 'test_model', 'files': ['weights.h5'],
                         'attach': False, 'team_name': 'Manual Entry'})
     monkeypatch.setattr(webbrowser, 'open_new_tab', lambda x: True)
+    mocker.patch("wandb.lib.apikey.isatty", lambda stream: True)
     mocker.patch("wandb.lib.apikey.input", lambda x: 1)
     mocker.patch("wandb.lib.apikey.getpass.getpass", lambda x: DUMMY_API_KEY)
     return CliRunner()
@@ -216,12 +223,14 @@ def live_mock_server(request):
     os.environ["WANDB_USERNAME"] = name
     os.environ["WANDB_BASE_URL"] = server.base_url
     os.environ["WANDB_ERROR_REPORTING"] = "false"
+    os.environ["WANDB_API_KEY"] = DUMMY_API_KEY
     # clear mock server ctx
     server.reset_ctx()
     yield server
     del os.environ["WANDB_USERNAME"]
     del os.environ["WANDB_BASE_URL"]
     del os.environ["WANDB_ERROR_REPORTING"]
+    del os.environ["WANDB_API_KEY"]
 
 
 @pytest.fixture

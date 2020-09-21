@@ -185,10 +185,10 @@ class BackendSender(object):
         proto_artifact.type = artifact.type
         proto_artifact.name = artifact.name
         proto_artifact.digest = artifact.digest
-        if proto_artifact.description:
+        if artifact.description:
             proto_artifact.description = artifact.description
-        if proto_artifact.metadata:
-            proto_artifact.metadata = artifact.metadata
+        if artifact.metadata:
+            proto_artifact.metadata = json.dumps(artifact.metadata)
         self._make_artifact_manifest(artifact.manifest, obj=proto_artifact.manifest)
         return proto_artifact
 
@@ -279,6 +279,14 @@ class BackendSender(object):
                 # self.write_h5(path_from_root, friendly_value)
 
             return json_value
+
+    def _make_summary_from_dict(self, summary_dict):
+        summary = wandb_internal_pb2.SummaryRecord()
+        for k, v in six.iteritems(summary_dict):
+            update = summary.update.add()
+            update.key = k
+            update.value_json = json.dumps(v)
+        return summary
 
     def _make_summary(self, summary_record):
         pb_summary_record = wandb_internal_pb2.SummaryRecord()
@@ -428,7 +436,7 @@ class BackendSender(object):
         future = self._router.send_and_receive(rec, local=local)
         return future.get(timeout)
 
-    def communicate_login(self, api_key=None, anonymous=None, timeout=5):
+    def communicate_login(self, api_key=None, anonymous=None, timeout=15):
         login = self._make_login(api_key, anonymous)
         rec = self._make_request(login=login)
         result = self._communicate(rec, timeout=timeout)
@@ -515,10 +523,8 @@ class BackendSender(object):
         req = self._make_record(run=run)
         resp = self._communicate(req, timeout=timeout)
         if resp is None:
-            # TODO: friendlier error message here
-            raise wandb.Error(
-                "Couldn't communicate with backend after %s seconds" % timeout
-            )
+            # Note: timeouts handled by callers: wandb_init.py
+            return
         assert resp.run_result
         return resp.run_result
 
@@ -587,7 +593,10 @@ class BackendSender(object):
         check_version = wandb_internal_pb2.CheckVersionRequest()
         rec = self._make_request(check_version=check_version)
         result = self._communicate(rec)
-        return result
+        if result is None:
+            # Note: timeouts handled by callers: wandb_init.py
+            return
+        return result.response.check_version_response
 
     def communicate_run_start(self):
         run_start = wandb_internal_pb2.RunStartRequest()
