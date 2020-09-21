@@ -21,7 +21,7 @@ class TPUProfiler(object):
         tpu=None,
         tpu_zone=None,
         gcp_project=None,
-        duration_ms=1000,
+        duration_ms=500,
     ):
         if service_addr:
             if tpu:
@@ -45,8 +45,8 @@ class TPUProfiler(object):
         self.service_addr = service_addr
         self.duration_ms = duration_ms
         self._tpu_utilization = 0.0
-        self._thread = threading.Thread(target=self._thread_body, daemon=True)
-        self._thread.start()
+        # self._thread = threading.Thread(target=self._thread_body, daemon=True)
+        # self._thread.start()
 
     def _get_tpu_utilization(self):
         # this call blocks for duration_ms milliseconds
@@ -64,7 +64,8 @@ class TPUProfiler(object):
                 pass
 
     def get_tpu_utilization(self):
-        return self._tpu_utilization
+        return self._get_tpu_utilization()
+        # return self._tpu_utilization
 
 
 def is_tpu_available():
