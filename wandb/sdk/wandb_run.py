@@ -532,7 +532,7 @@ class Run(RunBase):
                 row[k] = row[k].value
                 visualize_persist_config = True
             elif isinstance(row[k], NewViz):
-                self._add_panel(k, "Vega2", row[k].panel_config)
+                self._add_panel(k, "vega2", row[k].panel_config)
                 visualize_persist_config = True
                 remove_keys.append(k)
 
@@ -889,8 +889,10 @@ class Run(RunBase):
         Args:
             vega_spec_name: the name of the spec for the plot
             table_key: the key used to log the data table
-            data_table: a wandb.Table object containing the data to be used on the visualization
-            config_mapping: a dictionary containing the field mappings and historyFieldSettings
+            data_table: a wandb.Table object containing the data to
+                        be used on the visualization
+            config_mapping: a dictionary containing the field mappings
+                            and historyFieldSettings
         """
 
         userQuery = {
@@ -921,13 +923,16 @@ class Run(RunBase):
                             }
                         ]
                     }
-                ]
+                ],
             }
         }
 
         panel_config = {}
         panel_config.update(config_mapping)
         panel_config.update({'panelDefId': vega_spec_name})
+        panel_config.update(
+            {'transform': {"name": "tableWithLeafColNames"}}
+        )
         panel_config.update(userQuery)
 
         self.log({table_key: data_table})
