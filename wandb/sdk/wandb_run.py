@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize, NewViz
+from wandb.viz import Visualize, NewViz, newVisualize
 
 from . import wandb_config
 from . import wandb_history
@@ -879,7 +879,8 @@ class Run(RunBase):
         self.finish(exit_code=exit_code)
 
     def plot_table(
-        self, vega_spec_name: str,
+        self, 
+        vega_spec_name: str,
         table_key: str,
         data_table: None,
         config_mapping: dict
@@ -894,49 +895,10 @@ class Run(RunBase):
             config_mapping: a dictionary containing the field mappings
                             and historyFieldSettings
         """
-
-        userQuery = {
-            "userQuery": {
-                "queryFields": [
-                    {
-                        "name": "runSets",
-                        "args": [
-                            {
-                                "name": "runSets",
-                                "value": "${runSets}"
-                            }
-                        ],
-                        "fields": [
-                            {
-                                "name": "name",
-                                "fields": []
-                            },
-                            {
-                                "name": "summaryTable",
-                                "args": [
-                                    {
-                                        "name": "tableKey",
-                                        "value": table_key
-                                    }
-                                ],
-                                "fields": []
-                            }
-                        ]
-                    }
-                ],
-            }
-        }
-
-        panel_config = {}
-        panel_config.update(config_mapping)
-        panel_config.update({'panelDefId': vega_spec_name})
-        panel_config.update(
-            {'transform': {"name": "tableWithLeafColNames"}}
-        )
-        panel_config.update(userQuery)
+        visualization = newVisualize(vega_spec_name, table_key, config_mapping)
 
         self.log({table_key: data_table})
-        return NewViz(panel_config)
+        return visualization
 
     def _add_panel(self, visualize_key: str, panel_type: str, panel_config: dict):
         if "visualize" not in self._config["_wandb"]:
