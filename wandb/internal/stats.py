@@ -73,9 +73,7 @@ class SystemStats(object):
             try:
                 self._tpu_profiler = tpu.TPUProfiler()
             except Exception as e:
-                wandb.termlog(
-                    "Error initializing TPUProfiler: " + str(e)
-                )
+                wandb.termlog("Error initializing TPUProfiler: " + str(e))
         else:
             self._tpu_profiler = None
 

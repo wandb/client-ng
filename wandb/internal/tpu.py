@@ -3,8 +3,8 @@ import os
 import threading
 
 try:
-    from tensorflow.python.distribute.cluster_resolver import tpu_cluster_resolver
-    from tensorflow.python.profiler import profiler_client
+    from tensorflow.python.distribute.cluster_resolver import tpu_cluster_resolver  # type: ignore
+    from tensorflow.python.profiler import profiler_client  # type: ignore
 except ImportError:
     tpu_cluster_resolver = None
     profiler_client = None
@@ -45,7 +45,7 @@ class TPUProfiler(object):
         self.service_addr = service_addr
         self.duration_ms = duration_ms
         self._tpu_utilization = 0.0
-        self._thread = threading.Thread(target=self._thread_body)
+        self._thread = threading.Thread(target=self._thread_body, daemon=True)
         self._thread.start()
 
     def _get_tpu_utilization(self):
