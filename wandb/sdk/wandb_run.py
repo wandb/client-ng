@@ -520,6 +520,7 @@ class Run(RunBase):
     def _history_callback(self, row=None, step=None):
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
+        remove_keys = []
         for k in row:
             if isinstance(row[k], Visualize):
                 if "viz" not in self._config["_wandb"]:
@@ -527,16 +528,18 @@ class Run(RunBase):
                 self._config["_wandb"]["viz"][k] = {
                     "id": row[k].viz_id,
                     "historyFieldSettings": {"key": k, "x-axis": "_step"},
-                } 
+                }
                 row[k] = row[k].value
                 visualize_persist_config = True
             elif isinstance(row[k], NewViz):
-                self._add_panel(k, "Vega2", NewViz.panel_config)
+                self._add_panel(k, "Vega2", row[k].panel_config)
                 visualize_persist_config = True
+                remove_keys.append(k)
 
         if visualize_persist_config:
             self._config_callback(data=self._config._as_dict())
-
+        for k in remove_keys:
+            row.pop(k)
         self._backend.interface.publish_history(row, step)
 
     def _console_callback(self, name, data):
@@ -875,18 +878,57 @@ class Run(RunBase):
     def join(self, exit_code=None):
         self.finish(exit_code=exit_code)
 
-    def custom_plot_on_table(
+    def plot_table(
         self, vega_spec_name: str,
         table_key: str,
-        data_table: wandb.Table,
+        data_table: None,
         config_mapping: dict
     ):
         """
-
+        Creates a custom plot on a table.
+        Args:
+            vega_spec_name: the name of the spec for the plot
+            table_key: the key used to log the data table
+            data_table: a wandb.Table object containing the data to be used on the visualization
+            config_mapping: a dictionary containing the field mappings and historyFieldSettings
         """
+
+        userQuery = {
+            "userQuery": {
+                "queryFields": [
+                    {
+                        "name": "runSets",
+                        "args": [
+                            {
+                                "name": "runSets",
+                                "value": "${runSets}"
+                            }
+                        ],
+                        "fields": [
+                            {
+                                "name": "name",
+                                "fields": []
+                            },
+                            {
+                                "name": "summaryTable",
+                                "args": [
+                                    {
+                                        "name": "tableKey",
+                                        "value": table_key
+                                    }
+                                ],
+                                "fields": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+
         panel_config = {}
         panel_config.update(config_mapping)
-        panel_config.upate({'panelDefId': vega_spec_name})
+        panel_config.update({'panelDefId': vega_spec_name})
+        panel_config.update(userQuery)
 
         self.log({table_key: data_table})
         return NewViz(panel_config)
