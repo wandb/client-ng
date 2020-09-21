@@ -12,11 +12,11 @@ def visualize(viz_id, value):
     return Visualize(viz_id, value)
 
 
-class NewViz:
+class CustomChart:
     def __init__(self, panel_config):
         self.panel_config = panel_config
 
-def newVisualize(vega_spec_name: str, table_key: str, config_mapping: dict):
+def custom_plot_on_table(vega_spec_name: str, table_key: str, config_mapping: dict):
     userQuery = {
         "userQuery": {
             "queryFields": [
@@ -55,6 +55,8 @@ def newVisualize(vega_spec_name: str, table_key: str, config_mapping: dict):
     panel_config.update(
         {'transform': {"name": "tableWithLeafColNames"}}
     )
-    panel_config.update({"historyFieldSettings": {"key": table_key, "x-axis": "_step"}})
+    panel_config.update(
+        {"historyFieldSettings": {"key": table_key, "x-axis": "_step"}}
+    )
     panel_config.update(userQuery)
-    return NewViz(panel_config)
+    return CustomChart(panel_config)

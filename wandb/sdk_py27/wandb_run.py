@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize
+from wandb.viz import Visualize, CustomChart, newVisualize
 
 from . import wandb_config
 from . import wandb_history
@@ -520,6 +520,7 @@ class Run(RunBase):
     def _history_callback(self, row=None, step=None):
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
+        remove_keys = []
         for k in row:
             if isinstance(row[k], Visualize):
                 if "viz" not in self._config["_wandb"]:
@@ -530,9 +531,15 @@ class Run(RunBase):
                 }
                 row[k] = row[k].value
                 visualize_persist_config = True
+            elif isinstance(row[k], CustomChart):
+                self._add_panel(k, "vega2", row[k].panel_config)
+                visualize_persist_config = True
+                remove_keys.append(k)
+
         if visualize_persist_config:
             self._config_callback(data=self._config._as_dict())
-
+        for k in remove_keys:
+            row.pop(k)
         self._backend.interface.publish_history(row, step)
 
     def _console_callback(self, name, data):
@@ -870,6 +877,28 @@ class Run(RunBase):
 
     def join(self, exit_code=None):
         self.finish(exit_code=exit_code)
+
+    def plot_table(
+        self,
+        vega_spec_name,
+        table_key,
+        data_table,
+        config_mapping,
+    ):
+        """
+        Creates a custom plot on a table.
+        Args:
+            vega_spec_name: the name of the spec for the plot
+            table_key: the key used to log the data table
+            data_table: a wandb.Table object containing the data to
+                        be used on the visualization
+            config_mapping: a dictionary containing the field mappings
+                            and historyFieldSettings
+        """
+        visualization = newVisualize(vega_spec_name, table_key, config_mapping)
+
+        self.log({table_key: data_table})
+        return visualization
 
     def _add_panel(self, visualize_key, panel_type, panel_config):
         if "visualize" not in self._config["_wandb"]:

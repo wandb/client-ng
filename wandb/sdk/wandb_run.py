@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize, NewViz, newVisualize
+from wandb.viz import Visualize, CustomChart, newVisualize
 
 from . import wandb_config
 from . import wandb_history
@@ -531,7 +531,7 @@ class Run(RunBase):
                 }
                 row[k] = row[k].value
                 visualize_persist_config = True
-            elif isinstance(row[k], NewViz):
+            elif isinstance(row[k], CustomChart):
                 self._add_panel(k, "vega2", row[k].panel_config)
                 visualize_persist_config = True
                 remove_keys.append(k)
@@ -879,11 +879,11 @@ class Run(RunBase):
         self.finish(exit_code=exit_code)
 
     def plot_table(
-        self, 
+        self,
         vega_spec_name: str,
         table_key: str,
         data_table: None,
-        config_mapping: dict
+        config_mapping: dict,
     ):
         """
         Creates a custom plot on a table.
