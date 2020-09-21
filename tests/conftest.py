@@ -128,6 +128,11 @@ def git_repo(runner):
 
 
 @pytest.fixture
+def dummy_api_key():
+    return DUMMY_API_KEY
+
+
+@pytest.fixture
 def test_settings(test_dir, mocker):
     """ Settings object for tests"""
     #  TODO: likely not the right thing to do, we shouldn't be setting this
@@ -218,12 +223,14 @@ def live_mock_server(request):
     os.environ["WANDB_USERNAME"] = name
     os.environ["WANDB_BASE_URL"] = server.base_url
     os.environ["WANDB_ERROR_REPORTING"] = "false"
+    os.environ["WANDB_API_KEY"] = DUMMY_API_KEY
     # clear mock server ctx
     server.reset_ctx()
     yield server
     del os.environ["WANDB_USERNAME"]
     del os.environ["WANDB_BASE_URL"]
     del os.environ["WANDB_ERROR_REPORTING"]
+    del os.environ["WANDB_API_KEY"]
 
 
 @pytest.fixture
