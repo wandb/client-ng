@@ -75,6 +75,7 @@ class SystemStats(object):
         if tpu.is_tpu_available():
             try:
                 self._tpu_profiler = tpu.TPUProfiler()
+                wandb.termlog("TPUPorfiler initialized!")
             except Exception as e:
                 wandb.termlog("Error initializing TPUProfiler: " + str(e))
         if self._thread is None:
