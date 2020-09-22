@@ -557,7 +557,7 @@ class Run(RunBase):
                 row[k] = row[k].value
                 visualize_persist_config = True
             elif isinstance(row[k], CustomChart):
-                self._add_panel(k, "vega2", row[k].panel_config)
+                self._add_panel(k, "Vega2", row[k].panel_config)
                 visualize_persist_config = True
                 remove_keys.append(k)
 
