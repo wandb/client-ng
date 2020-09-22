@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import config_util, filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize, CustomChart, newVisualize
+from wandb.viz import Visualize, CustomChart, custom_plot_on_table
 
 from . import wandb_config
 from . import wandb_history
@@ -534,6 +534,7 @@ class Run(RunBase):
         self._backend.interface.publish_files(files)
 
     def _history_callback(self, row=None, step=None):
+
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
         remove_keys = []
@@ -916,8 +917,7 @@ class Run(RunBase):
         data_table,
         config_mapping,
     ):
-        """
-        Creates a custom plot on a table.
+        """Creates a custom plot on a table.
         Args:
             vega_spec_name: the name of the spec for the plot
             table_key: the key used to log the data table
@@ -926,7 +926,7 @@ class Run(RunBase):
             config_mapping: a dictionary containing the field mappings
                             and historyFieldSettings
         """
-        visualization = newVisualize(vega_spec_name, table_key, config_mapping)
+        visualization = custom_plot_on_table(vega_spec_name, table_key, config_mapping)
 
         self.log({table_key: data_table})
         return visualization
