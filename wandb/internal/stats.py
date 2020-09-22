@@ -121,15 +121,15 @@ class SystemStats(object):
                     return
 
     def shutdown(self):
+        if self._tpu_profiler:
+            self._tpu_profiler.stop()
+            self._tpu_profiler = None
         self._shutdown = True
         try:
             if self._thread is not None:
                 self._thread.join()
         finally:
             self._thread = None
-        if self._tpu_profiler:
-            self._tpu_profiler.stop()
-            self._tpu_profiler = None
 
     def flush(self):
         stats = self.stats()
@@ -140,7 +140,8 @@ class SystemStats(object):
                 samples = list(self.sampler.get(stat, [stats[stat]]))
                 stats[stat] = round(sum(samples) / len(samples), 2)
         # self.run.events.track("system", stats, _wandb=True)
-        self._interface.publish_stats(stats)
+        if self._interface:
+            self._interface.publish_stats(stats)
         self.samples = 0
         self.sampler = {}
 

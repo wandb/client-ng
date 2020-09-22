@@ -47,9 +47,8 @@ class TPUProfiler(object):
         self._manager = multiprocessing.Manager()
         self._dict = self._manager.dict()
         self._dict["tpu_utilization"] = 0.0
-        self._lock = self._manager.Lock()
         self._process = multiprocessing.Process(
-            target=self._loop, args=(self._dict, self._lock), daemon=True
+            target=self._loop, args=(self._dict), daemon=True
         )
         self._process.start()
 
@@ -60,23 +59,19 @@ class TPUProfiler(object):
         )
         return float(res.split("Utilization ")[1].split(": ")[1].split("%")[0])
 
-    def _loop(self, dict_, lock):
+    def _loop(self, dict_):
         while True:
-            lock.acquire()
             try:
                 dict_["tpu_utilization"] = self._get_tpu_utilization()
             except Exception:
                 pass
-            finally:
-                lock.release()
 
     def get_tpu_utilization(self):
         if self._process is None:
             raise Exception("This TPUProfiler instance has been stopped.")
         if not self._process.is_alive():
             raise Exception("TPUProfiler background process shutdown!")
-        with self._lock:
-            return self._dict["tpu_utilization"]
+        return self._dict["tpu_utilization"]
 
     def stop(self):
         if self._process and self._process.is_alive():
