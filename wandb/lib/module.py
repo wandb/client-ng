@@ -11,6 +11,7 @@ def set_global(
     restore=None,
     use_artifact=None,
     log_artifact=None,
+    plot_table=None,
 ):
     if run:
         wandb.run = run
@@ -28,6 +29,8 @@ def set_global(
         wandb.use_artifact = use_artifact
     if log_artifact:
         wandb.log_artifact = log_artifact
+    if plot_table:
+        wandb.plot_table = plot_table
 
 
 def unset_globals():
@@ -48,4 +51,7 @@ def unset_globals():
     )
     wandb.log_artifact = preinit.PreInitCallable(
         "wandb.log_artifact", wandb.wandb_sdk.wandb_run.Run.log_artifact
+    )
+    wandb.plot_table = preinit.PreInitCallable(
+        "wandb.plot_table", wandb.wandb_sdk.wandb_run.Run.plot_table
     )

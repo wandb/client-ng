@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import config_util, filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize
+from wandb.viz import custom_plot_on_table, CustomChart, Visualize
 
 from . import wandb_config
 from . import wandb_history
@@ -545,6 +545,7 @@ class Run(RunBase):
 
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
+        remove_keys = []
         for k in row:
             if isinstance(row[k], Visualize):
                 if "viz" not in self._config["_wandb"]:
@@ -555,9 +556,15 @@ class Run(RunBase):
                 }
                 row[k] = row[k].value
                 visualize_persist_config = True
+            elif isinstance(row[k], CustomChart):
+                self._add_panel(k, "Vega2", row[k].panel_config)
+                visualize_persist_config = True
+                remove_keys.append(k)
+
         if visualize_persist_config:
             self._config_callback(data=self._config._as_dict())
-
+        for k in remove_keys:
+            row.pop(k)
         self._backend.interface.publish_history(row, step)
 
     def _console_callback(self, name, data):
@@ -910,6 +917,37 @@ class Run(RunBase):
 
     def join(self, exit_code=None):
         self.finish(exit_code=exit_code)
+
+    def plot_table(
+        self,
+        vega_spec_name: str,
+        table_key: str,
+        data_table: None,
+        config_mapping: dict,
+    ):
+        """Creates a custom plot on a table.
+        Args:
+            vega_spec_name: the name of the spec for the plot
+            table_key: the key used to log the data table
+            data_table: a wandb.Table object containing the data to
+                        be used on the visualization
+            config_mapping: a dictionary containing the field mappings
+                            and historyFieldSettings
+        """
+        visualization = custom_plot_on_table(vega_spec_name, table_key, config_mapping)
+
+        self.log({table_key: data_table})
+        return visualization
+
+    def _add_panel(self, visualize_key: str, panel_type: str, panel_config: dict):
+        if "visualize" not in self._config["_wandb"]:
+            self._config["_wandb"]["visualize"] = dict()
+        self._config["_wandb"]["visualize"][visualize_key] = {
+            "panel_type": panel_type,
+            "panel_config": panel_config,
+        }
+
+        self._config_callback(data=self._config._as_dict())
 
     def _get_project_url(self):
         s = self._settings
