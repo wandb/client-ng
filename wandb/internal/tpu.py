@@ -68,6 +68,7 @@ class TPUProfiler(object):
             except Exception:
                 pass
             finally:
+                pass
                 #lock.release()
 
     def get_tpu_utilization(self):
