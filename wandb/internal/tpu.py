@@ -62,21 +62,21 @@ class TPUProfiler(object):
 
     def _loop(self, dict_, lock):
         while True:
-            lock.acquire()
+            #lock.acquire()
             try:
                 dict_["tpu_utilization"] = self._get_tpu_utilization()
             except Exception:
                 pass
             finally:
-                lock.release()
+                #lock.release()
 
     def get_tpu_utilization(self):
         if self._process is None:
             raise Exception("This TPUProfiler instance has been stopped.")
         if not self._process.is_alive():
             raise Exception("TPUProfiler background process shutdown!")
-        with self._lock:
-            return self._dict["tpu_utilization"]
+        #with self._lock:
+        return self._dict["tpu_utilization"]
 
     def stop(self):
         if self._process and self._process.is_alive():
