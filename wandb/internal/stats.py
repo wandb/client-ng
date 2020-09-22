@@ -140,7 +140,8 @@ class SystemStats(object):
                 samples = list(self.sampler.get(stat, [stats[stat]]))
                 stats[stat] = round(sum(samples) / len(samples), 2)
         # self.run.events.track("system", stats, _wandb=True)
-        self._interface.publish_stats(stats)
+        if self._interface:
+            self._interface.publish_stats(stats)
         self.samples = 0
         self.sampler = {}
 
