@@ -16,7 +16,7 @@ class CustomChart:
     def __init__(self, panel_config):
         self.panel_config = panel_config
 
-def custom_plot_on_table(vega_spec_name: str, table_key: str, config_mapping: dict):
+def custom_plot_on_table(vega_spec_name, table_key, config_mapping):
     userQuery = {
         "userQuery": {
             "queryFields": [

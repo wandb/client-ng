@@ -33,7 +33,7 @@ from wandb.errors import Error
 from wandb.interface.summary_record import SummaryRecord
 from wandb.lib import config_util, filenames, module, proto_util, redirect, sparkline
 from wandb.util import add_import_hook, sentry_set_scope, to_forward_slash_path
-from wandb.viz import Visualize, CustomChart, custom_plot_on_table
+from wandb.viz import custom_plot_on_table, CustomChart, Visualize
 
 from . import wandb_config
 from . import wandb_history
