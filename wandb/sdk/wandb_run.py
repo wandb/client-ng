@@ -534,6 +534,7 @@ class Run(RunBase):
         self._backend.interface.publish_files(files)
 
     def _history_callback(self, row=None, step=None):
+
         # TODO(jhr): move visualize hack somewhere else
         visualize_persist_config = False
         for k in row:
