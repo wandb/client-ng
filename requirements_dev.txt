@@ -1,6 +1,7 @@
 pytest
 coverage
 coveralls
+gql==0.2.0
 tox==3.7
 pip
 Pillow

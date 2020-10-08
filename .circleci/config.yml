@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@2.2.0
+    win: circleci/windows@2.2.0
 
 workflows:
   main:
@@ -26,6 +26,9 @@ workflows:
          name: "Python 3.8"
          image: "python:3.8"
          toxenv: "py38"
+      - integration:
+          name: "Integration"
+
       - win:
          name: "Windows (Python 3.7)"
       - mac:
@@ -36,20 +39,11 @@ workflows:
             - "Python 2.7"
             - "Python 3.6"
 
-jobs:
-    test:
-        parameters:
-            image:
-              type: string
-            toxenv:
-              type: string
-        docker:
-            - image: << parameters.image >>
+commands:
+    setup-tests:
+        description: "Setup pyenv with cache"
         steps:
             - checkout
-            - run:
-                  name: Install system deps
-                  command: apt-get update && apt-get install -y libsndfile1 ffmpeg
             - restore_cache:
                   keys:
                       - v0.2-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
@@ -62,6 +56,21 @@ jobs:
                   paths:
                       - ./venv
                   key: v0.2-dependencies-{{ checksum "setup.py" }}-{{ checksum "requirements_dev.txt" }}-{{ .Environment.CIRCLE_JOB }}
+
+jobs:
+    test:
+        parameters:
+            image:
+              type: string
+            toxenv:
+              type: string
+        docker:
+            - image: << parameters.image >>
+        steps:
+            - run:
+                  name: Install system deps
+                  command: apt-get update && apt-get install -y libsndfile1 ffmpeg
+            - setup-tests
             - run:
                   name: Run tests
                   command: |
@@ -105,3 +114,32 @@ jobs:
                   name: Call coveralls webhook
                   command: |
                       curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
+
+    integration:
+        description: "Testing the wandb client libraries integration's with other services"
+        docker:
+            - image: wandb/local-integration:1.0.0
+            - image: wandb/local:latest
+              environment:
+                CI: "1"
+                DISABLE_TELEMETRY: "true"
+        steps:
+            - checkout
+            - run:
+                  name: Install local wandb as package
+                  command: pip install .
+            - run:
+                  name: Waiting for wandb/local server to be ready
+                  command: python integration_tests/scripts/wait_for_server.py
+            - run:
+                  name: Set environment variables
+                  command: python integration_tests/setup.py >> $BASH_ENV
+            - run:
+                  name: Run training jobs(Media)
+                  command: python integration_tests/test_scripts/media/all_media_types.py
+            - run:
+                  name: Wait for server to process upload
+                  command: sleep 20
+            - run:
+                  name: Check test asserts
+                  command: python -m pytest integration_tests/

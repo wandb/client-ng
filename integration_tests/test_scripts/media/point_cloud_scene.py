@@ -1,8 +1,6 @@
 import numpy as np
 import wandb
 
-wandb.init(project="lidar-scene-test")
-
 
 N_POINT = 1000
 points = np.random.rand(N_POINT, 3) * 5 - 2.5
@@ -62,7 +60,7 @@ vectors_2 = [
     },
     {
         "start": [2, 2, 2],
-        "end":[1, 1, 1.5],
+        "end": [1, 1, 1.5],
         "color": [255, 255, 0],
     },
     {
@@ -73,8 +71,12 @@ vectors_2 = [
 
 vectors_all = vectors + vectors_2
 
-wandb.log({
+all_tests = {
     "separate_vectors": [make_scene([v]) for v in vectors],
     "color_vectors": make_scene(vectors_2),
     "all_vectors": make_scene(vectors_all)
-})
+}
+
+if __name__ == "__main__":
+    wandb.init(project="lidar-scene-test")
+    wandb.log(all_tests)

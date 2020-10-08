@@ -26,6 +26,7 @@ import uuid
 import json
 import codecs
 import tempfile
+
 from wandb import util
 from wandb.util import has_num
 from wandb.compat import tempfile
