@@ -6,6 +6,7 @@ import time
 
 import wandb
 from wandb import util
+from wandb.internal import tpu
 from wandb.vendor.pynvml import pynvml  # type: ignore[import]
 
 psutil = util.get_module("psutil")
@@ -68,8 +69,14 @@ class SystemStats(object):
                 "psutil not installed, only GPU stats will be reported.  Install with pip install psutil"
             )
         self._thread = None
+        self._tpu_profiler = None
 
     def start(self):
+        if tpu.is_tpu_available():
+            try:
+                self._tpu_profiler = tpu.TPUProfiler()
+            except Exception as e:
+                wandb.termlog("Error initializing TPUProfiler: " + str(e))
         if self._thread is None:
             self._shutdown = False
             self._thread = threading.Thread(target=self._thread_body)
@@ -114,6 +121,9 @@ class SystemStats(object):
                     return
 
     def shutdown(self):
+        if self._tpu_profiler:
+            self._tpu_profiler.stop()
+            self._tpu_profiler = None
         self._shutdown = True
         try:
             if self._thread is not None:
@@ -130,7 +140,8 @@ class SystemStats(object):
                 samples = list(self.sampler.get(stat, [stats[stat]]))
                 stats[stat] = round(sum(samples) / len(samples), 2)
         # self.run.events.track("system", stats, _wandb=True)
-        self._interface.publish_stats(stats)
+        if self._interface:
+            self._interface.publish_stats(stats)
         self.samples = 0
         self.sampler = {}
 
@@ -201,4 +212,6 @@ class SystemStats(object):
                 stats["proc.cpu.threads"] = self.proc.num_threads()
             except psutil.NoSuchProcess:
                 pass
+        if self._tpu_profiler:
+            stats["tpu"] = self._tpu_profiler.get_tpu_utilization()
         return stats
